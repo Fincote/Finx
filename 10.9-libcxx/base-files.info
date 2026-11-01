@@ -4,7 +4,7 @@ Version: 1.9.19
 Revision: 1
 Source: mirror:custom:fink/%n-%v.tar.gz
 Essential: yes
-Source-MD5: 3fb12614c4acc359b0a71e90c476bb24
+Source-MD5: b29f425d88239d68cc29a3960db5a458
 CompileScript: ./setup.sh %p
 InstallScript: ./install.sh %i
 DocFiles: COPYING NEWS README

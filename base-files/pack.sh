@@ -67,20 +67,28 @@ build() {
     # shellcheck disable=SC2064
     trap "rm -rf '$stage'" EXIT INT TERM
 
+    # 成员必须放在 base-files-<version>/ 之下。Fink 的 phase_unpack 解完 tar 后
+    # 会 chdir 到 $buildpath/<fullname>/<子目录>，而那个子目录名在没有
+    # SourceDirectory 时由 tar 文件名推导（PkgVersion.pm 的 get_build_directory）。
+    # 打成扁平的，自举会在 phase three 第一步就报
+    #   "directory .../base-files-1.9.19 doesn't exist, check the package description"
+    # 上游 SourceForge 上的原始 tar 也是这个布局。
+    topdir="base-files-$PUBSPEC_VERSION"
+    mkdir "$stage/$topdir" || die "can't create staging dir"
+
     for f in $FILES; do
         [ -f "$REPO_ROOT/base-files/$f" ] || die "missing source file: base-files/$f"
-        cp "$REPO_ROOT/base-files/$f" "$stage/$f" || die "can't copy $f"
+        cp "$REPO_ROOT/base-files/$f" "$stage/$topdir/$f" || die "can't copy $f"
         # TZ=UTC 是关键：touch -t 解析本地时间，不钉死时区 epoch 就会漂移。
-        TZ=UTC touch -t "$STAMP" "$stage/$f" || die "can't set mtime on $f"
+        TZ=UTC touch -t "$STAMP" "$stage/$topdir/$f" || die "can't set mtime on $f"
     done
+    TZ=UTC touch -t "$STAMP" "$stage/$topdir" || die "can't set mtime on $topdir"
 
-    # 成员名要扁平（无顶层的 base-files-<ver>/ 目录）：Fink 的 phase_unpack
-    # 会先 mkdir 并 chdir 到 buildpath/<fullname>，再就地解包。
     ( cd "$stage" \
         && COPYFILE_DISABLE=1 TZ=UTC tar \
             --format=ustar \
             --uid 0 --gid 0 --uname root --gname wheel \
-            -cf "$outdir/$TARBALL.tmp" $FILES ) \
+            -cf "$outdir/$TARBALL.tmp" "$topdir" ) \
         || die "tar failed"
 
     gzip -9n -c "$outdir/$TARBALL.tmp" > "$outdir/$TARBALL" || die "gzip failed"
@@ -115,7 +123,7 @@ case "${1:-}" in
         work=$(mktemp -d "${TMPDIR:-/tmp}/base-files-pack.XXXXXX") || die "mktemp failed"
         path=$(build "$work") || exit 1
         got=$(md5_of "$path")
-        rm -rf "$work"
+        # 注意：$work 要留到布局检查之后才能删 —— 那次检查要读 $path。
 
         if [ "$EXPECTED_MD5" != "$got" ]; then
             printf 'FAILED: %s is not reproducible on this machine\n' "$TARBALL" >&2
@@ -140,7 +148,24 @@ case "${1:-}" in
             fi
         fi
 
-        printf 'base-files tarball OK (%s)\n' "$got"
+        # 布局断言：顶层必须是 base-files-<version>/。这一条不能只写在注释里 ——
+        # 打成扁平的 tar 本身是合法的 gzip+tar，MD5 也会自洽，只有 bootstrap
+        # 跑到 phase three 才会炸，而那时报错说的是"package description"，
+        # 完全指不到打包脚本。
+        first=$(gzip -dc "$path" | tar -tf - 2>/dev/null | head -1)
+        want_dir="base-files-$PUBSPEC_VERSION/"
+        if [ "$first" != "$want_dir" ]; then
+            printf 'FAILED: wrong archive layout\n' >&2
+            printf '        first member: %s\n' "${first:-<none>}" >&2
+            printf '        expected:     %s\n' "$want_dir" >&2
+            printf '        Fink unpacks into <build>/<fullname>/<subdir>, where subdir\n' >&2
+            printf '        comes from the tarball name. A flat archive makes bootstrap\n' >&2
+            printf '        fail with "directory ... doesn'"'"'t exist".\n' >&2
+            exit 1
+        fi
+
+        rm -rf "$work"
+        printf 'base-files tarball OK (%s, %s)\n' "$got" "$want_dir"
         ;;
     --update)
         work=$(mktemp -d "${TMPDIR:-/tmp}/base-files-pack.XXXXXX") || die "mktemp failed"

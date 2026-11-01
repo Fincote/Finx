@@ -528,8 +528,27 @@ Fink 的 `find_tarball()` 只认归档文件，且先搜 `$basepath/src`，找�
 而不是留到 bootstrap 跑到一半才让用户面对一个与他的改动无关的下载错误。
 改了 `base-files/` 里的载荷就要 `./base-files/pack.sh --update`。
 
-归档必须是**扁平**的（成员在顶层，无 `base-files-1.9.19/` 前缀）：`phase_unpack` 先
-`mkdir $buildpath/<fullname>` 再 `chdir` 进去解包，与 `create_tarball` 的产物同形。
+归档必须有一个 **`base-files-1.9.19/` 顶层目录**，成员全在里面。
+
+这一条我一开始搞反了，写成"必须扁平"，代价是第一次 CI 自举跑到 phase three 就死：
+
+```
+/usr/bin/tar --no-same-owner --no-same-permissions -xf /opt/finx/src/base-files-1.9.19.tar.gz
+directory /opt/finx/src/fink.build/base-files-1.9.19-1/base-files-1.9.19 doesn't exist,
+check the package description
+```
+
+原因是 [PkgVersion.pm:1852](../perlmod/Fink/PkgVersion.pm:1852) 的 `get_build_directory`：没有
+`SourceDirectory` 也没有 `NoSourceDirectory` 时，子目录名**由 tar 文件名推导**。所以
+`base-files-1.9.19.tar.gz` 解出来的东西必须在 `base-files-1.9.19/` 之下，`phase_compile`
+才 `chdir` 得进去。上游 SourceForge 上的原始 tar 也是这个布局。
+
+（`fink` 包那个 tar 是扁平的，因为它是 `create_tarball` 直接打的、走 `inject_package`
+而不是 `phase_unpack`。两者路径不同，别类推。）
+
+扁平 tar 本身是合法的 gzip+tar，MD5 也自洽，所以**只有自举能发现**，而报错说的是
+"package description"，指不到打包脚本。因此 `pack.sh --check` 现在自己断言第一条成员
+是 `base-files-<version>/`，把这个不变量钉在会直接失败的地方。
 
 #### 版本与校验和存在哪儿：一个自己制造的事故
 
@@ -556,13 +575,15 @@ fink 包编译失败，**bootstrap 死在 phase 3**。而在仓库里 `make test
 #### 验证到哪一步
 
 已验证：打包可复现（跨时区、跨机器 —— 本机与 GitHub 的 macOS arm64 runner 产出同一个
-MD5）、归档布局与 `phase_unpack` 预期一致、解出来的树能跑通 `setup.sh` + `install.sh`、
+MD5）、解出来的树能跑通 `setup.sh` + `install.sh`、
 生成的 `init.sh` 里前缀展开为 `/opt/finx` 且 `source` 后 `PATH` 正确、
 `pack_included_sources()` 确实把 tar 放进 `$basepath/src` 且 MD5 与 `.info` 一致、
 `make test` 在**只有 `MANIFEST` 文件的树**里通过。
 
-**未验证：完整 bootstrap。** 那需要编译 dpkg/tar 并访问镜像源，本机不具备条件。
-两侧接口都已按代码对齐，但端到端的第一次真实自举仍是未验证的。
+**未验证：phase three 之后的完整 bootstrap。** 第一次 CI 自举（run 41312771240）证明
+phase one 下载与 phase two 编译 —— 包括 dpkg 1.19.7 与 tar 1.29 这两批 2019 年的 C 代码
+在 clang 17 + macOS 26 SDK 上 —— 都能过；它死在 phase three 的第一个包（base-files）
+解包，原因就是上面那个归档布局错误。修好后重跑前，phase three 的其余 38 个包仍未验证。
 
 `dpkg-base-files` 仍是外部 tarball。它提供的是 `.la` 清理 triggers，不阻塞「系统怎么
 跑起来」这个问题，但用的是同一套机制，可以照此办理。
