@@ -508,13 +508,8 @@ OPT_BASEPATH: { ### install path redo block
 if ($retrying || not $installto) {
 	my $default;
 	my $install_path;
-	if ($vers <= 18) {
-		$default = '/sw';
-		$install_path = $default;
-	} else {
-		$default = '/opt/sw';
-		$install_path = $default;
-	}
+	$default = '/opt/finx';
+	$install_path = $default;
 	while (1) {
 		last if !has_installed_software($install_path);
 		$install_path =~ /^(.*?)(\d*)$/;
@@ -530,7 +525,7 @@ if ($retrying || not $installto) {
 	}
 	my $prompt = "Please choose the path where Fink should be installed. Note "
 		. "that you will normally be able to use a binary distribution only if you "
-		. "choose '/opt/sw' (or '/sw' on systems before 10.15).";
+		. "choose '/opt/finx'.";
 	$installto =
 		&prompt($prompt, default => $install_path);
 }

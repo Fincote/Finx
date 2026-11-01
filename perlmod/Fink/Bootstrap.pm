@@ -738,7 +738,7 @@ sub locate_Fink {
 			}
 		}
 		if (not defined $bpath or $bpath eq "") {
-			$bpath = "/opt/sw";
+			$bpath = "/opt/finx";
 		}
 		$guessed = " (guessed)";
 	}

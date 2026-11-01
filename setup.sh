@@ -23,7 +23,7 @@
 
 if [ $# -ne 2 ]; then
   echo "Usage: ./setup.sh <prefix> <architecture>"
-  echo "  Example: ./setup.sh /opt/sw x86_64"
+  echo "  Example: ./setup.sh /opt/finx x86_64"
   exit 1
 fi
 

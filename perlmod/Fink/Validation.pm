@@ -75,7 +75,9 @@ our %boolean_fields = map {$_, 1}
 our %obsolete_fields = map {$_, 1}
 	qw(comment commentport commenstow usegettext);
 
-# Fields to check for hardcoded /opt/sw
+# Fields to check for a hardcoded installation prefix
+#
+# 规范前缀是 /opt/finx；/sw 与 /opt/sw 是旧 Fink 的写法，同样视为不可移植。
 our %check_hardcode_fields = map {$_, 1}
 	(
 		qw(
@@ -96,6 +98,9 @@ our %check_hardcode_fields = map {$_, 1}
 		),
 		(map {"set".$_} @set_vars)
 	);
+
+# 前缀写死的判定：命中规范前缀 /opt/finx，或旧 Fink 的 /sw、/opt/sw
+our $hardcoded_prefix_re = qr{(?:/opt/finx|/sw)(?:[\s/]|\Z)};
 
 # Fields in which %n/%v can and should be used
 our %name_version_fields = map {$_, 1}
@@ -389,7 +394,7 @@ END { }				# module clean-up code here (global destructor)
 #	+ warn if fields seem to contain the package name/version, suggest %n/%v
 #		 be used (excluded from this are fields like Description, Homepage etc.)
 #	+ warn if unknown fields are encountered
-#	+ warn if /opt/sw is hardcoded in the script or set fields or patch file
+#	+ warn if /opt/finx is hardcoded in the script or set fields or patch file
 #		(from Patch and PatchScript)
 #	+ correspondence between source* and source*-md5 fields
 #	+ if type is bundle/nosource - warn about usage of "Source" etc.
@@ -471,7 +476,7 @@ sub validate_info_file {
 		$basepath = $val_prefix;
 		$buildpath = "$basepath/src/fink.build";
 	} else {
-		$basepath = $config->param_default("basepath", "/opt/sw");
+		$basepath = $config->param_default("basepath", "/opt/finx");
 		$buildpath = $config->param_default("buildpath", "$basepath/src/fink.build");
 	}
 
@@ -969,14 +974,14 @@ sub validate_info_file {
 					print "Error: $pretty_field has Mac line endings. ($value)\n";
 					$looks_good = 0;
 				}
-				# Check for hardcoded /sw.
-				# This catches both /sw and /opt/sw.
+				# Check for a hardcoded installation prefix.
+				# 规范前缀 /opt/finx 与旧 Fink 的 /sw、/opt/sw 都算。
 				open(INPUT, "<$value") or die "Couldn't read $pretty_field ($value): $!\n";
 				while (defined($patch_file_content=<INPUT>)) {
 					# only check lines being added (and skip diff header line)
 					next unless $patch_file_content =~ /^\+(?!\+\+ )/;
-					if ($patch_file_content =~ /\/sw([\s\/]|\Z)/) {
-						print "Warning: $pretty_field appears to contain a hardcoded /sw. ($value)\n";
+					if ($patch_file_content =~ $hardcoded_prefix_re) {
+						print "Warning: $pretty_field appears to contain a hardcoded installation prefix. ($value)\n";
 						$looks_good = 0;
 						last;
 					}
@@ -1395,10 +1400,10 @@ sub validate_info_component {
 		next if $field =~ /^splitoff/;   # we don't do recursive stuff here
 		$value = $properties->{$field};
 
-		# Check for hardcoded /sw (fink can be installed at other prefixes)
-		# This check will still catch hardcoded /opt/sw, and older users may still be using /sw anyway.
-		if ($check_hardcode_fields{$field} and $value =~ /\/sw([\s\/]|\Z)/) {
-			print "Warning: Field \"$field\"$splitoff_field appears to contain a hardcoded /sw. ($filename)\n";
+		# Check for a hardcoded installation prefix (fink can be installed at
+		# other prefixes). 规范前缀 /opt/finx 与旧 Fink 的 /sw、/opt/sw 都算。
+		if ($check_hardcode_fields{$field} and $value =~ $hardcoded_prefix_re) {
+			print "Warning: Field \"$field\"$splitoff_field appears to contain a hardcoded installation prefix. ($filename)\n";
 			$looks_good = 0;
 		}
 
@@ -1794,13 +1799,13 @@ sub validate_dpkg_unpacked {
 # Check a given unpacked .deb file for standards compliance
 # returns boolean of whether everything is okay
 #
-# - usage of non-recommended directories (/opt/sw/src, /opt/sw/man, /opt/sw/info, /opt/sw/doc, /opt/sw/libexec, /opt/sw/lib/locale)
+# - usage of non-recommended directories (/opt/finx/src, /opt/finx/man, /opt/finx/info, /opt/finx/doc, /opt/finx/libexec, /opt/finx/lib/locale)
 # - usage of other non-standard subdirs
-# - storage of a .bundle inside /opt/sw/lib/perl5/darwin or /opt/sw/lib/perl5/auto
+# - storage of a .bundle inside /opt/finx/lib/perl5/darwin or /opt/finx/lib/perl5/auto
 # - Emacs packages
 #     - installation of .elc files
 #     - (it's now OK to install files directly into
-#        /opt/sw/share/emacs/site-lisp, so we no longer check for this)
+#        /opt/finx/share/emacs/site-lisp, so we no longer check for this)
 # - BuildDependsOnly: if package stores files an include/ dir, it should
 #     declare BuildDependsOnly true
 # - Check presence and execute-flag on executable specified in daemonicfile
@@ -1836,7 +1841,7 @@ sub _validate_dpkg {
 		$basepath = $val_prefix;
 		$buildpath = "$basepath/src/fink.build";
 	} else {
-		$basepath = $config->param_default("basepath", "/opt/sw");
+		$basepath = $config->param_default("basepath", "/opt/finx");
 		$buildpath = $config->param_default("buildpath", "$basepath/src/fink.build");
 	}
 
@@ -2043,7 +2048,7 @@ sub _validate_dpkg {
 			$deb_control->{package} !~ /^emacs\d\d(|-.*)$/ &&
 			$deb_control->{package} !~ /^xemacs(|-.*)$/
 		   ) {
-			&stack_msg($msgs, "Compiled .elc file installed. Package should install .el files, and provide a /opt/sw/lib/emacsen-common/packages/install/<package> script that byte compiles them for each installed Emacs flavour.", $filename);
+			&stack_msg($msgs, "Compiled .elc file installed. Package should install .el files, and provide a /opt/finx/lib/emacsen-common/packages/install/<package> script that byte compiles them for each installed Emacs flavour.", $filename);
 		}
 
 		# track whether BuildDependsOnly will be needed

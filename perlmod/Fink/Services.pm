@@ -2704,7 +2704,7 @@ sub check_id_unused {
 
 Example:
 
-  my ($status,$dir) = is_accessible("/opt/sw/src/fink.build", "05");
+  my ($status,$dir) = is_accessible("/opt/finx/src/fink.build", "05");
 
 Check whether a path is accessible via the octal mode in $octmode (not limited to just
 that mode, so "05" will satisfy e.g. 555, 755, 777, etc.).

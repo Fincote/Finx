@@ -24,7 +24,7 @@
 
 if [ $# -ne 2 ]; then
   echo "Usage: ./install.sh <prefix> <architecture>"
-  echo "  Example: ./install.sh /tmp/builddirectory/opt/sw i386"
+  echo "  Example: ./install.sh /tmp/builddirectory/opt/finx i386"
   echo "WARNING: Don't call install.sh directly, use inject.pl instead."
   echo "         You have been warned."
   exit 1
