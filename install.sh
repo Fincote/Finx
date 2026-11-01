@@ -110,7 +110,7 @@ for file in update/ltmain.sh update/Makefile.in.in ; do
     /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update/"
 done
 
-for file in AUTHORS COPYING README README.html README.removing-fink-bld readme.*.html \
+for file in AUTHORS LICENSE README README.html README.removing-fink-bld readme.*.html \
             INSTALL INSTALL.html NEWS STYLE TODO* USAGE USAGE.html ; do
     /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink/"
 done

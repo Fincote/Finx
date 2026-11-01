@@ -718,7 +718,7 @@ Called by bootstrap and fink's inject.pl.
 
 sub check_files {
 	my ($file);
-	foreach $file (qw(fink.in install.sh COPYING VERSION
+	foreach $file (qw(fink.in install.sh LICENSE VERSION
 	perlmod/Fink update fink.info.in postinstall.pl.in
 	update/config.guess perlmod/Fink/Config.pm fink-virtual-pkgs.in
 		fink-instscripts.in fink-scanpackages.in fink-dpkg-status-cleanup.in

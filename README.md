@@ -117,4 +117,4 @@ make format             # indentation check (Perl uses tabs, shell uses 4 spaces
 
 ## 🧩 License
 
-Finx keeps Fink's license and is released under the **GNU General Public License, version 2**. See [`COPYING`](./COPYING) for details.
+Finx keeps Fink's license and is released under the **GNU General Public License, version 2, or (at your option) any later version** — SPDX `GPL-2.0-or-later`. That is the wording every source file inherited from Fink carries; see [`LICENSE`](./LICENSE) for the full text.

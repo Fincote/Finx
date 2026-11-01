@@ -117,4 +117,4 @@ make format             # 缩进检查（Perl 用 tab，shell 用 4 空格）
 
 ## 🧩 许可证
 
-Finx 沿用 Fink 的许可证，以 **GNU General Public License 第二版** 发布。详见 [`COPYING`](./COPYING)。
+Finx 沿用 Fink 的许可证，以 **GNU General Public License 第二版，或（由你选择）任何更新版本** 发布 —— SPDX 标识为 `GPL-2.0-or-later`。这与每个源文件从 Fink 继承下来的措辞一致；全文见 [`LICENSE`](./LICENSE)。

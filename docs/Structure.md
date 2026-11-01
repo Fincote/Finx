@@ -210,7 +210,7 @@ resolve_method()   决定走种子还是源码
 | `VERSION` / `REVISION` | 版本号 / 每个发行版的修订号 | 是 |
 | `Release` | apt 索引模板 | 是 |
 | `STYLE` | 2003 年的 Perl 代码风格原文 | 是（历史文档） |
-| `NEWS` / `AUTHORS` / `COPYING` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档，随包分发 | 是 |
+| `NEWS` / `AUTHORS` / `LICENSE` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档，随包分发 | 是 |
 
 ### `perlmod/`：全部 Perl 模块（42 个文件）
 
