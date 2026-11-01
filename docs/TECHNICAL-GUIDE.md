@@ -531,12 +531,35 @@ Fink 的 `find_tarball()` 只认归档文件，且先搜 `$basepath/src`，找�
 归档必须是**扁平**的（成员在顶层，无 `base-files-1.9.19/` 前缀）：`phase_unpack` 先
 `mkdir $buildpath/<fullname>` 再 `chdir` 进去解包，与 `create_tarball` 的产物同形。
 
+#### 版本与校验和存在哪儿：一个自己制造的事故
+
+第一版把 `Version` 与期望的 MD5 都从 [`10.9-libcxx/base-files.info`](../10.9-libcxx/base-files.info)
+读。它读得到 —— 在仓库里。但 `make test` 不止在仓库里跑：`fink` 这个包的
+`CompileScript`（[fink.info.in:19](../fink.info.in:19)）里就有 `make test PREFIX=%p ...`，
+而它执行时的工作目录是 `create_tarball` 从 `MANIFEST` 打出来、再由 dpkg 解开的那棵树。
+那棵树里**没有 `10.9-libcxx/`** —— 它被 `MANIFEST.SKIP` 的 `^10\.[^/]*/` 排除。
+
+于是 `pack.sh --check` 读不到文件，`make sources_check` 失败，`make test` 失败，
+fink 包编译失败，**bootstrap 死在 phase 3**。而在仓库里 `make test` 一路是绿的。
+
+修法是把版本与期望 MD5 放进 [`base-files/pack.conf`](../base-files/pack.conf) —— 它随
+载荷一起发布，所以在载荷树里也读得到。`.info` 的 `Source-MD5` 仍然存在（Fink 只认它），
+但降级为**被交叉校验的一方**：`--check` 在仓库里会确认两者一致，在载荷树里静默跳过
+这一半（那儿没有 `.info`）。
+
+这件事的教训不止于 base-files：**凡是被 `MANIFEST.SKIP` 排除的目录，都不能成为构建期
+脚本的输入。** 为了不让同类错误再靠人记，加了
+[`scripts/payload_test.sh`](../scripts/payload_test.sh)（`make payload_test`）：
+把 `MANIFEST` 列出的文件复制到临时目录，在那儿原样跑一遍 `make test`。
+它独立于 `make test`（挂进去会在载荷树里递归），由 CI 与 `Verify: all` 调用。
+
 #### 验证到哪一步
 
-已验证：打包可复现（跨时区）、归档布局与 `phase_unpack` 预期一致、解出来的树能跑通
-`setup.sh` + `install.sh`、生成的 `init.sh` 里前缀展开为 `/opt/finx` 且 `source` 后
-`PATH` 正确、`pack_included_sources()` 确实把 tar 放进 `$basepath/src` 且 MD5 与
-`.info` 一致。
+已验证：打包可复现（跨时区、跨机器 —— 本机与 GitHub 的 macOS arm64 runner 产出同一个
+MD5）、归档布局与 `phase_unpack` 预期一致、解出来的树能跑通 `setup.sh` + `install.sh`、
+生成的 `init.sh` 里前缀展开为 `/opt/finx` 且 `source` 后 `PATH` 正确、
+`pack_included_sources()` 确实把 tar 放进 `$basepath/src` 且 MD5 与 `.info` 一致、
+`make test` 在**只有 `MANIFEST` 文件的树**里通过。
 
 **未验证：完整 bootstrap。** 那需要编译 dpkg/tar 并访问镜像源，本机不具备条件。
 两侧接口都已按代码对齐，但端到端的第一次真实自举仍是未验证的。

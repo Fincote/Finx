@@ -32,6 +32,9 @@
 set -u
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd) || exit 1
+PACKCONF="$REPO_ROOT/base-files/pack.conf"
+# 这份 .info 只在仓库里存在。载荷 tar 解出来的树没有 10.9-libcxx/，
+# 而 fink 包的 CompileScript 会跑 make test —— 所以它是可选的交叉校验对象。
 INFO="$REPO_ROOT/10.9-libcxx/base-files.info"
 
 # 归档成员：与上游 base-files/inject.pl 的 $packagefiles 一致。
@@ -46,9 +49,13 @@ die() {
     exit 1
 }
 
-# 版本与包名都从 .info 读，避免第二份事实来源。
-PUBSPEC_VERSION=$(sed -n 's/^Version:[[:space:]]*//p' "$INFO" | head -1)
-[ -n "$PUBSPEC_VERSION" ] || die "can't read Version from $INFO"
+# 版本与期望校验和都从 pack.conf 读。它随载荷一起发布，所以在一棵只有
+# MANIFEST 里那些文件的树里也读得到 —— 这一点是硬要求，见 pack.conf 的注释。
+[ -f "$PACKCONF" ] || die "can't find $PACKCONF"
+PUBSPEC_VERSION=$(sed -n 's/^version[[:space:]]*//p' "$PACKCONF" | head -1)
+EXPECTED_MD5=$(sed -n 's/^source-md5[[:space:]]*//p' "$PACKCONF" | head -1)
+[ -n "$PUBSPEC_VERSION" ] || die "can't read version from $PACKCONF"
+[ -n "$EXPECTED_MD5" ] || die "can't read source-md5 from $PACKCONF"
 TARBALL="base-files-$PUBSPEC_VERSION.tar.gz"
 
 # 打一次包，参数是输出目录。输出文件的路径回显到 stdout。
@@ -93,10 +100,6 @@ md5_of() {
     fi
 }
 
-recorded_md5() {
-    sed -n 's/^Source-MD5:[[:space:]]*//p' "$INFO" | head -1
-}
-
 case "${1:-}" in
     ''|-h|--help)
         sed -n '3,14p' "$0" | sed 's/^# \{0,1\}//'
@@ -109,30 +112,49 @@ case "${1:-}" in
         rm -rf "$work"
         ;;
     --check)
-        want=$(recorded_md5)
-        [ -n "$want" ] || die "no Source-MD5 in $INFO"
         work=$(mktemp -d "${TMPDIR:-/tmp}/base-files-pack.XXXXXX") || die "mktemp failed"
         path=$(build "$work") || exit 1
         got=$(md5_of "$path")
         rm -rf "$work"
-        if [ "$want" != "$got" ]; then
+
+        if [ "$EXPECTED_MD5" != "$got" ]; then
             printf 'FAILED: %s is not reproducible on this machine\n' "$TARBALL" >&2
-            printf '        recorded in 10.9-libcxx/base-files.info: %s\n' "$want" >&2
-            printf '        produced here:                          %s\n' "$got" >&2
+            printf '        recorded in base-files/pack.conf: %s\n' "$EXPECTED_MD5" >&2
+            printf '        produced here:                    %s\n' "$got" >&2
             printf '        Fink would reject the local tarball and ask the user.\n' >&2
             printf '        If the change is intentional (or this tar writes different\n' >&2
             printf '        headers), run ./base-files/pack.sh --update.\n' >&2
             exit 1
         fi
-        printf 'base-files tarball OK (%s)\n' "$want"
+
+        # 仓库里还要求 .info 与 pack.conf 一致。载荷树里没有那份 .info，
+        # 于是这一半静默跳过 —— 那一趟只能验可复现性，验不了两处是否同步。
+        if [ -f "$INFO" ]; then
+            info_md5=$(sed -n 's/^Source-MD5:[[:space:]]*//p' "$INFO" | head -1)
+            if [ "$info_md5" != "$got" ]; then
+                printf 'FAILED: 10.9-libcxx/base-files.info is out of sync\n' >&2
+                printf '        .info says:        %s\n' "$info_md5" >&2
+                printf '        pack.conf says:    %s\n' "$got" >&2
+                printf '        run ./base-files/pack.sh --update\n' >&2
+                exit 1
+            fi
+        fi
+
+        printf 'base-files tarball OK (%s)\n' "$got"
         ;;
     --update)
         work=$(mktemp -d "${TMPDIR:-/tmp}/base-files-pack.XXXXXX") || die "mktemp failed"
         path=$(build "$work") || exit 1
         got=$(md5_of "$path")
         rm -rf "$work"
-        sed -i '' -e "s|^Source-MD5:.*|Source-MD5: $got|" "$INFO" || die "can't update $INFO"
-        printf 'Source-MD5 updated to %s\n' "$got"
+        sed -i '' -e "s|^source-md5 .*|source-md5 $got|" "$PACKCONF" \
+            || die "can't update $PACKCONF"
+        # .info 只在仓库里存在；载荷树里跳过。
+        if [ -f "$INFO" ]; then
+            sed -i '' -e "s|^Source-MD5:.*|Source-MD5: $got|" "$INFO" \
+                || die "can't update $INFO"
+        fi
+        printf 'source-md5 updated to %s\n' "$got"
         ;;
     -*)
         die "unknown option: $1"

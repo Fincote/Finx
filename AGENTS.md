@@ -73,13 +73,19 @@ make test          # manifest_check → structure → sources_check → test_set
   一侧，看不见 `install.sh` 到底装了什么。改了 `install.sh` 的文件列表或
   `MANIFEST` 后务必跑一次。
 - 再跑 `sources_check`（[`base-files/pack.sh`](./base-files/pack.sh) `--check`）：
-  确认现场打出的 `base-files` tar 与 `10.9-libcxx/base-files.info` 里登记的
-  `Source-MD5` 一致。**改了 `base-files/` 里任何一个载荷文件都要跑
-  `./base-files/pack.sh --update`**，否则自举时 Fink 会认为 tar 被篡改并停下来问人。
-  背景见 TECHNICAL-GUIDE 8.9。
+  确认现场打出的 `base-files` tar 与 [`base-files/pack.conf`](./base-files/pack.conf)
+  里登记的 `source-md5` 一致，并且在仓库里还要求 `.info` 的 `Source-MD5` 与之一致。
+  **改了 `base-files/` 里任何一个载荷文件都要跑 `./base-files/pack.sh --update`**，
+  否则自举时 Fink 会认为 tar 被篡改并停下来问人。背景见 TECHNICAL-GUIDE 8.9。
+- `make payload_test`（[`scripts/payload_test.sh`](./scripts/payload_test.sh)）是独立的，
+  **不在 `make test` 里**：它只把 `MANIFEST` 列出的文件复制到临时目录，在那儿再跑一遍
+  `make test`。这正是 `fink.info.in` 的 `CompileScript` 执行时的环境 —— 没有
+  `10.9-libcxx/`、没有 `.git`。任何「只在仓库里成立」的假设都会在这一步暴露，
+  而本地 `make test` 是绿的。改了 `Makefile`、`MANIFEST` 或任何构建期脚本后要跑。
 - 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
 - 改 `PkgVersion` / `Engine` / `Services` / `Bootstrap` 后必须重跑全套；只改文档不用跑。
-- VS Code 里有同名任务：`Test: perl suite`、`Verify: all`（见 `.vscode/tasks.json`）。
+- VS Code 里有同名任务：`Test: perl suite`、`Test: payload tree`、`Verify: all`
+  （见 `.vscode/tasks.json`）。
 
 安装器（`finx-install/`）另有一套沙箱自测，**手工验证时必须带测试根**：
 
@@ -93,9 +99,9 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --dry-run
 
 ### CI
 
-`.github/workflows/verify.yml` 是 `Verify: all` 的线上版：覆盖它的全部六步、顺序一致，
-另加「断言工具链」与「跑完工作区必须干净」两条只对 CI 有意义的检查。细节见
-TECHNICAL-GUIDE 9.1。两条规矩：
+`.github/workflows/verify.yml` 是 `Verify: all` 的线上版：覆盖它的全部七步、顺序一致，
+另加「断言工具链」「选定架构」与「跑完工作区必须干净」三条只对 CI 有意义的检查。
+细节见 TECHNICAL-GUIDE 9.1。两条规矩：
 
 - **只有 GitHub Actions 一条流水线**，不接 CircleCI：本仓库是公开仓库，Actions 的
   标准 runner 不计费，而 CircleCI 的免费额度有限，快速迭代期不该半份额度花在往返上。

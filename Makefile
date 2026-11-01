@@ -42,6 +42,12 @@ structure:
 sources_check:
 	./base-files/pack.sh --check
 
+# 在「只有 MANIFEST 文件的树」里跑一遍 make test —— 那就是 fink 包自己的
+# CompileScript 执行时的环境（见 fink.info.in）。故意不挂进 test：那等于在
+# 载荷树里递归调用自己。
+payload_test:
+	FINX_ARCH="$(ARCHITECTURE)" ./scripts/payload_test.sh
+
 # 缩进检查。故意不挂进 test：bootstrap 会跑 make test，而格式瑕疵不该拦住安装。
 # Perl 用 tab、shell 用 4 空格，规则与例外见 scripts/format_check.pl 的注释。
 format:

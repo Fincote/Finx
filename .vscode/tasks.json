@@ -63,6 +63,13 @@
             "problemMatcher": []
         },
         {
+            "label": "Test: payload tree",
+            "detail": "在只有 MANIFEST 文件的树里跑 make test —— fink 包 CompileScript 的真实环境",
+            "type": "shell",
+            "command": "make payload_test",
+            "problemMatcher": []
+        },
+        {
             "label": "Verify: all",
             "detail": "提交前跑这一条：语法、产物同步、两套测试",
             "dependsOrder": "sequence",
@@ -72,6 +79,7 @@
                 "Check: perl syntax",
                 "Check: standalone.sh in sync",
                 "Test: perl suite",
+                "Test: payload tree",
                 "Test: installer selftest"
             ],
             "problemMatcher": []

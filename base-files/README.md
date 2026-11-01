@@ -41,11 +41,21 @@ Fink 的 `find_tarball()` 先搜 `$basepath/src`，找到就不下载。所以�
 细节写在脚本头部注释里。
 
 跨 `bsdtar` 版本仍可能有差异。那种情况由 `make sources_check` 当场抓住，而不是
-留到 bootstrap 跑到一半。改了 `base-files/` 里的任何载荷文件之后：
+留到 bootstrap 跑到一半。
+
+版本与期望的 MD5 记在 [`pack.conf`](./pack.conf)，**不是**在
+`10.9-libcxx/base-files.info` 里。原因值得记一笔：`fink` 包自己的 `CompileScript`
+会跑 `make test`，而那时的工作目录是 `MANIFEST` 打出来的载荷树 —— 里面没有
+`10.9-libcxx/`（被 `MANIFEST.SKIP` 排除）。第一版把这两个值放在 `.info` 里，
+bootstrap 因此死在 phase 3。`pack.conf` 随载荷一起发布，所以载荷树里也读得到；
+`.info` 只作为被交叉校验的一方。
+
+改了 `base-files/` 里的任何载荷文件之后：
 
 ```
-./base-files/pack.sh --update      # 重新登记 MD5
+./base-files/pack.sh --update      # 重新登记 MD5（pack.conf 与 .info 一起）
 make sources_check                 # 确认可复现
+make payload_test                  # 确认载荷树里跑得通
 ```
 
 ## 还没做的

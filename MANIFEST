@@ -24,6 +24,7 @@ base-files/editor.in
 base-files/init.csh.in
 base-files/init.sh.in
 base-files/install.sh
+base-files/pack.conf
 base-files/pack.sh
 base-files/pager.in
 base-files/setup.sh
@@ -101,6 +102,7 @@ readme.pt.html
 readme.ru.html
 readme.zh.html
 scripts/format_check.pl
+scripts/payload_test.sh
 scripts/structure_test.sh
 update/config.guess
 update/config.sub
