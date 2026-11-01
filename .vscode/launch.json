@@ -1,0 +1,57 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // 安装器的安全调试入口：固定 --dry-run 加 FINX_TEST，
+            // 即使断点停住也不会碰到真实的 /opt/finx。
+            "name": "Install: finx-install dry-run (sandboxed)",
+            "type": "bashdb",
+            "request": "launch",
+            "scriptPath": "${workspaceFolder}/finx-install/install.sh",
+            "args": ["--dry-run"],
+            "env": {
+                "FINX_TEST": "/tmp/finx-vscode"
+            },
+            "cwd": "${workspaceFolder}",
+            "terminalKind": "integrated"
+        },
+        {
+            "name": "Test: finx-install selftest",
+            "type": "bashdb",
+            "request": "launch",
+            "scriptPath": "${workspaceFolder}/finx-install/selftest.sh",
+            "args": [],
+            "env": {
+                "FINX_TEST": "/tmp/finx-vscode-selftest"
+            },
+            "cwd": "${workspaceFolder}",
+            "terminalKind": "integrated"
+        },
+        {
+            // 单跑一个 .t：先在编辑器里打开它，再启动这条。
+            "name": "Perl: run current .t under Test::Harness",
+            "type": "perl",
+            "request": "launch",
+            "program": "${file}",
+            "args": [],
+            "cwd": "${workspaceFolder}/t",
+            "env": {
+                "PERL5LIB": "${workspaceFolder}/perlmod",
+                "PREFIX": "/opt/finx"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Perl: run current file",
+            "type": "perl",
+            "request": "launch",
+            "program": "${file}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PERL5LIB": "${workspaceFolder}/perlmod"
+            },
+            "console": "integratedTerminal"
+        }
+    ]
+}

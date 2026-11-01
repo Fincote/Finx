@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "richterger.perl",
+        "timonwong.shellcheck",
+        "rogalmic.bash-debug"
+    ],
+    "unwantedRecommendations": [
+        "ms-python.python"
+    ]
+}

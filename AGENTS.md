@@ -32,10 +32,16 @@
 
 ## 代码风格
 
-- **Perl**：4 个空格缩进，不用制表符；文件头保留 `# -*- mode: Perl; tab-width: 4; -*-`。
-- **Shell**：同样 4 空格；`#!/bin/sh -e` 还是 `#!/bin/bash` 按原文件，不要统一。
-- 唯一权威是仓库根的 [`STYLE`](./STYLE)（纯文本）。`Style.md` 是给 GitHub 看的副本，
-  两者内容应当一致。
+- **Perl 用 tab 缩进，宽度 4** —— 这是 [`STYLE`](./STYLE) 的原文（"tabs are 4 wide"、
+  "use tabs for indention of statements"）。仓库实测 2047 行 tab 缩进、0 行空格缩进。
+  不要"顺手"把 tab 改成空格。
+- **Shell 在仓库里是混的**：`install.sh` 以 tab 为主，`setup.sh` 以 2 空格为主，
+  `pathsetup.sh.in` 两者都有。所以：改既有脚本就跟随该文件已有的风格；
+  `finx-install/` 下的新脚本统一用 4 空格。
+- `#!/bin/sh -e` 还是 `#!/bin/bash` 按原文件，不要统一。
+- 唯一权威是仓库根的 [`STYLE`](./STYLE)（纯文本，2003 年的邮件原文）。
+  `Style.md` 是给 GitHub 看的副本，两者内容应当一致。
+  它只管 Perl；`.vscode/settings.json` 已按它把 `[perl]` 钉成 tab，不要改回空格。
 - 不要为了让 `git diff` 好看去重排缩进；只改你要改的行。
 
 ## 测试

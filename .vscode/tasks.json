@@ -1,0 +1,72 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Test: installer selftest",
+            "detail": "finx-install 的 19 项沙箱断言，全程离线，不碰真实目录",
+            "type": "shell",
+            "command": "./finx-install/selftest.sh",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Test: perl suite",
+            "detail": "t/ 里的 48 个测试文件。make test 会先跑 manifest_check 而它必然失败，所以直接驱动 testmore",
+            "type": "shell",
+            "command": "make test_setup && cd t && ./testmore.pl && find . -name '*.t' | sort | PREFIX=/opt/finx xargs /usr/bin/perl -I\"$(pwd)/../perlmod\" -MTest::Harness -e 'runtests(@ARGV)'",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Check: shell syntax",
+            "detail": "bash -n 覆盖安装器与仓库里的 shell 脚本",
+            "type": "shell",
+            "command": "for f in finx-install/install.sh finx-install/build-bundle.sh finx-install/selftest.sh finx-install/lib/*.sh install.sh setup.sh mirror/install.sh pre-build-test.sh dpkg-checkall.sh; do bash -n \"$f\" || { echo \"FAILED: $f\"; exit 1; }; done && echo 'shell syntax OK'",
+            "problemMatcher": []
+        },
+        {
+            "label": "Check: perl syntax",
+            "detail": "perl -c 覆盖全部模块。必须先 test_setup，否则 perlmod/Fink/FinkVersion.pm 还不存在",
+            "type": "shell",
+            "command": "make test_setup && for f in perlmod/Fink.pm perlmod/Fink/*.pm perlmod/Fink/*/*.pm; do out=$(perl -Iperlmod -c \"$f\" 2>&1) || { echo \"FAILED: $f\"; echo \"$out\"; exit 1; }; done && echo 'perl syntax OK'",
+            "problemMatcher": []
+        },
+        {
+            "label": "Check: standalone.sh in sync",
+            "detail": "改了 finx-install/lib 或 install.sh 之后没重新打包，这里会红",
+            "type": "shell",
+            "command": "./finx-install/build-bundle.sh --check",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build: standalone.sh",
+            "detail": "把 install.sh + lib/*.sh 打平成可 curl 的单文件，产物需要提交",
+            "type": "shell",
+            "command": "./finx-install/build-bundle.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Make: test_setup",
+            "detail": "生成 fink / postinstall.pl / lockwait / FinkVersion.pm 等运行时文件",
+            "type": "shell",
+            "command": "make test_setup",
+            "problemMatcher": []
+        },
+        {
+            "label": "Verify: all",
+            "detail": "提交前跑这一条：语法、产物同步、两套测试",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Check: shell syntax",
+                "Check: perl syntax",
+                "Check: standalone.sh in sync",
+                "Test: perl suite",
+                "Test: installer selftest"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

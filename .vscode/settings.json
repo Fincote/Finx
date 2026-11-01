@@ -1,0 +1,53 @@
+{
+    // STYLE 规定 Perl 用 tab 缩进、宽度 4（不是空格）。仓库里 2047 行 tab 缩进对 0 行
+    // 空格缩进，所以这里强制关掉自动探测，避免编辑器把 tab 文件改写为空格。
+    "[perl]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false
+    },
+    // shell 在仓库里是混的：install.sh 以 tab 为主，setup.sh 以 2 空格为主，
+    // pathsetup.sh.in 两者都有。所以只钉 tabSize，缩进风格交给按文件探测。
+    "[shellscript]": {
+        "editor.tabSize": 4,
+        "editor.detectIndentation": true
+    },
+    "[json]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "[markdown]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.trimAutoWhitespace": false
+    },
+    "files.associations": {
+        "*.info": "properties"
+    },
+    "editor.rulers": [],
+    // make test_setup 与 build-bundle 的产物不进搜索：它们要么由源文件生成，
+    // 要么在 .gitignore 里。finx-install/standalone.sh 是例外，它是提交进仓库的。
+    "search.exclude": {
+        "**/compiler_wrapper*": true,
+        "**/dpkg-lockwait": true,
+        "**/apt-get-lockwait": true,
+        "**/fink": true,
+        "**/fink-virtual-pkgs*": true,
+        "**/fink-instscripts": true,
+        "**/fink-scanpackages": true,
+        "**/fink-dpkg-status-cleanup": true,
+        "**/fink.8": true,
+        "**/fink.conf.5": true,
+        "**/postinstall.pl": true,
+        "**/pathsetup.sh": true,
+        "**/shlibs.default": true,
+        "**/g++-wrapper-*": true,
+        "**/perlmod/Fink.pm": true,
+        "**/perlmod/Fink/FinkVersion.pm": true,
+        "**/t/basepath/etc/apt/sources.list*": true
+    },
+    "files.exclude": {
+        "**/__pycache__": true
+    },
+    "search.useIgnoreFiles": true
+}
