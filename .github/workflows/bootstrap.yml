@@ -124,6 +124,14 @@ jobs:
                   break
               fi
               echo "==== attempt $n failed on a download; retrying ===="
+
+              # 清空前缀，但保留 src/（已下好的 tar 缓存）。
+              # 不清空的话，下一轮 bootstrap 会发现 $PREFIX 里"已有安装"，
+              # 自动跳到 $PREFIX2、$PREFIX3…… 而那个前缀是废的：
+              # bindist_check_prefix 只认 /opt/finx，种子里的绝对路径也会错。
+              # 实测第 4 轮就是这样：attempt 1 失败后 attempt 2 装进了 /opt/finx2。
+              sudo find "$PREFIX" -mindepth 1 -maxdepth 1 \
+                       ! -name src -exec rm -rf {} + 2>/dev/null || true
               sleep 5
           done
 
