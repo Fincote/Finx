@@ -84,16 +84,42 @@ jobs:
         #
         # 用 sudo 而不是让 bootstrap 自己提权：runner 上的 sudo 免密，而
         # bootstrap 的提权分支会从 /dev/tty 读密码，CI 里没有终端。
+        #
+        # 为什么要重试：master 镜像是个轮询 DNS（distfiles.master.finkmirrors.net），
+        # 它的节点里有长期死掉的（例如 distfiles.yeg.ab.ca.finkmirrors.net，直接
+        # 解析失败）。挑中死节点时 curl 退出码 6，Fink 弹出「怎么继续」菜单 ——
+        # 而 stdin 是 /dev/null，EOF 取默认值「Give up」，于是网络抖动变成致命失败。
+        # 第一次实测就是这样：同一份代码，13:45 那轮下载成功，13:55 那轮全灭。
+        #
+        # 重试是安全的：tarball 落在 $PREFIX/src，cmd_fetch_missing 会跳过已有的，
+        # 所以每一轮都从断点继续，不会重下。
         run: |
           set -uo pipefail
           PREFIX="${{ inputs.prefix }}"
           echo "bootstrap into $PREFIX"
           sudo -n true || { echo "FAILED: passwordless sudo unavailable"; exit 1; }
 
-          set +e
-          sudo ./bootstrap .sudo "$PREFIX" < /dev/null 2>&1 | tee bootstrap.log
-          rc=${PIPESTATUS[0]}
-          set -e
+          ATTEMPTS=5
+          rc=1
+          for n in $(seq 1 "$ATTEMPTS"); do
+              echo "==== attempt $n of $ATTEMPTS ===="
+              sudo ./bootstrap .sudo "$PREFIX" < /dev/null 2>&1 \
+                  | tee -a bootstrap.log
+              rc=${PIPESTATUS[0]}
+              if [ "$rc" -eq 0 ]; then
+                  echo "==== attempt $n succeeded ===="
+                  break
+              fi
+              # 只在一轮里确实出现过下载失败时才重试；其它错误（编译失败等）
+              # 重试也没用，只会把真正的错误埋在五份日志里。
+              # 注意匹配的是失败行，不是「Downloading the file」（那行成功时也出现）。
+              if ! tail -300 bootstrap.log | grep -qE 'Downloading the file .* failed'; then
+                  echo "==== attempt $n failed and it was not a download problem; not retrying ===="
+                  break
+              fi
+              echo "==== attempt $n failed on a download; retrying ===="
+              sleep 5
+          done
 
           echo "---- bootstrap exited $rc ----"
           tail -40 bootstrap.log
