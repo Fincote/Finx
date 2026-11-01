@@ -91,8 +91,8 @@ my $para = '';
 my $omit = 0;
 my ($cnt_omit, $cnt_keep) = (0,0);
 while (defined(my $line = <$status_old>)) {
-    $para .= $line;
-    if ($line =~ /\As*\Z/ or eof($status_old)) {
+	$para .= $line;
+	if ($line =~ /\As*\Z/ or eof($status_old)) {
 		# end of paragraph...store if not flagged to omit
 		if ($omit) {
 			$cnt_omit++;
@@ -104,12 +104,12 @@ while (defined(my $line = <$status_old>)) {
 		}
 		$omit = 0;
 		$para = '';
-    } else {
+	} else {
 		# some random paragraph line...
 		if ($line eq "Status: purge ok not-installed\n") {
 			$omit = 1;  # package is purged...flag to omit it
 		}
-    }
+	}
 }
 
 close $status_old;

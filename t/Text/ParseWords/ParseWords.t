@@ -4,10 +4,10 @@
 # converted to Fink namespace by The Fink Project.
 
 BEGIN {
-    if( $ENV{PERL_CORE} ) {
-        chdir 't' if -d 't';
-        @INC = '../lib';
-    }
+		if( $ENV{PERL_CORE} ) {
+				chdir 't' if -d 't';
+				@INC = '../lib';
+		}
 }
 
 use strict;
@@ -21,12 +21,12 @@ is($words[1], 'bar quiz');
 is($words[2], 'zoo');
 
 {
-  # Gonna get some undefined things back
-  no warnings 'uninitialized' ;
+	# Gonna get some undefined things back
+	no warnings 'uninitialized' ;
 
-  # Test quotewords() with other parameters and null last field
-  @words = quotewords(':+', 1, 'foo:::"bar:foo":zoo zoo:');
-  is(join(";", @words), qq(foo;"bar:foo";zoo zoo;));
+	# Test quotewords() with other parameters and null last field
+	@words = quotewords(':+', 1, 'foo:::"bar:foo":zoo zoo:');
+	is(join(";", @words), qq(foo;"bar:foo";zoo zoo;));
 }
 
 # Test $keep eq 'delimiters' and last field zero

@@ -22,11 +22,11 @@
 #
 
 if [ $# -ne 1 ]; then
-  echo "Usage: ./install.sh <prefix>"
-  echo "  Example: ./install.sh /tmp/builddirectory/opt/finx"
-  echo "WARNING: Don't call install.sh directly, use inject.pl instead."
-  echo "         You have been warned."
-  exit 1
+    echo "Usage: ./install.sh <prefix>"
+    echo "  Example: ./install.sh /tmp/builddirectory/opt/finx"
+    echo "WARNING: Don't call install.sh directly, use inject.pl instead."
+    echo "         You have been warned."
+    exit 1
 fi
 
 basepath="$1"
@@ -38,29 +38,29 @@ echo "Creating directories..."
 /bin/chmod 755 "$basepath"
 
 for dir in lib lib/fink lib/fink/mirror lib/fink/URL share share/doc share/doc/fink-mirrors  share/doc/fink ; do
-  /bin/mkdir "$basepath/$dir"
-  /bin/chmod 755 "$basepath/$dir"
+    /bin/mkdir "$basepath/$dir"
+    /bin/chmod 755 "$basepath/$dir"
 done
 
 
 echo "Copying files..."
 
 for file in ChangeLog _keys _list apache apt cpan ctan debian freebsd gimp gnome gnu kde master postgresql rsync sourceforge; do
-  if [ -f $file ]; then
-    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/mirror/"
-  fi
+    if [ -f $file ]; then
+        /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/mirror/"
+    fi
 done
 
 for file in _urls anonymous-cvs cvs-repository developer-cvs website; do
-  if [ -f $file ]; then
-    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/URL/"
-  fi
+    if [ -f $file ]; then
+        /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/URL/"
+    fi
 done
 
 /usr/bin/install -c -p -m 755 postinstall.pl "$basepath/lib/fink/mirror/"
 
 for file in COPYING README README.contacts; do
-  /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink-mirrors/"
+    /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink-mirrors/"
 done
 
 /usr/bin/install -c -p -m 644  NEWS "$basepath/share/doc/fink/NEWS.mirror"

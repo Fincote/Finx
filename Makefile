@@ -12,6 +12,7 @@ all:
 	@echo -e "              ARCHITECTURE can also be set, defaults to x86_64"   
 	@echo -e "\tinstall     install to an existing fink installation"
 	@echo -e "\ttest        perform tests on the fink code"
+	@echo -e "\tformat      check indentation of all Perl and shell sources"
 	@echo -e "\tclean       remove all extraneous files"
 	@echo    ""
 
@@ -26,6 +27,11 @@ test_setup:
 
 manifest_check:
 	perl -MExtUtils::Manifest=fullcheck -e 'my($$missing, $$extra) = fullcheck;exit (@$$missing || @$$extra)'
+
+# 缩进检查。故意不挂进 test：bootstrap 会跑 make test，而格式瑕疵不该拦住安装。
+# Perl 用 tab、shell 用 4 空格，规则与例外见 scripts/format_check.pl 的注释。
+format:
+	./scripts/format_check.pl
 
 test: manifest_check test_setup
 	@# must test with same perl binary as the one to be used to run fink
@@ -64,7 +70,7 @@ podcheck:
 	@find . -name '.git' -prune -o \! -name '.#*' -type f -print | \
 		xargs grep -l '[=]head' | xargs podchecker
 
-.PHONY: all bootstrap install test test_setup manifest_check clean podcheck
+.PHONY: all bootstrap install test test_setup manifest_check format clean podcheck
 
 .SUFFIXES:
 

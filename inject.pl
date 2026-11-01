@@ -38,12 +38,12 @@ Fink::Services->import(qw(&execute));
 ### use sudo
 
 if ($> != 0) {
-    print "This script must be run under sudo, which requires your password.\n";
-    my $cmd = "/usr/bin/sudo $FindBin::RealBin/$0";
-    if ($#ARGV >= 0) {
+	print "This script must be run under sudo, which requires your password.\n";
+	my $cmd = "/usr/bin/sudo $FindBin::RealBin/$0";
+	if ($#ARGV >= 0) {
 	$cmd .= " '".join("' '", @ARGV)."'";
-    }
-    exit &execute($cmd,quiet=>1);
+	}
+	exit &execute($cmd,quiet=>1);
 }
 
 ### create FinkVersion.pm from FinkVersion.pm.in (we don't care about the
@@ -87,7 +87,7 @@ my $param = shift;
 
 my $result = inject_package($package, $packagefiles, $info_script, $param);
 if ($result == 1) {
-    exit 1;
+	exit 1;
 }
 
 ### eof

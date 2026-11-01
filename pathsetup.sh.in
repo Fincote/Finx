@@ -81,10 +81,10 @@ msg_append () {
     echo I will append a line
     echo
     case $ONCONSOLE in 
-	YES)
+    YES)
     echo \\\"$SOURCECMD\\\"
     ;;
-	NO)
+    NO)
     echo "   \"$SOURCECMD\""
     ;;
     esac
@@ -99,7 +99,7 @@ msg_choose (){
     echo you can answer \\\"No\\\" here  
     echo and do it later manually.
     ;;
-	NO)
+    NO)
     echo "you can answer \"No\" here and do it later manually."
     ;;
     esac
@@ -111,15 +111,15 @@ display_choose () {
     case $ONCONSOLE in
         YES)
 # display choice popup
-   osascript <<-EOF
+    osascript <<-EOF
    tell application "Finder"
       activate
       set dd to display dialog "`msg_title`\nYour login shell: $LOGINSHELL\n\n`$MSG` \n\n`msg_choose`\n" buttons {"No, thanks", "YES"} default button 2 giving up after 30
       set UserResponse to button returned of dd
    end tell
 EOF
-   ;;
-	NO)
+    ;;
+    NO)
 # display choice dialog
     msg_title; echo "Your login shell: $LOGINSHELL"; echo ""
     $MSG; echo ""
@@ -128,7 +128,7 @@ EOF
     read -t 20 answer
     answer=`echo $answer | sed 's/^[yY].*$/y/'`
     if [ ! -z "$answer" -a "x$answer" != "xy" ]; then
-       answer="No, thanks"
+        answer="No, thanks"
     fi
     ;;
     esac
@@ -138,17 +138,17 @@ display_result (){
 # display final result
     case $ONCONSOLE in
         YES)
-   osascript <<-EOF
+    osascript <<-EOF
    tell application "Finder"
       activate
       set dd to display dialog "`msg_title`\n$Result\n" buttons {"OK"} default button 1 with icon caution giving up after 20
       set UserResponse to button returned of dd
    end tell
 EOF
-   ;;
-	NO)
-   /usr/bin/printf "$Result" 
-   ;;
+    ;;
+    NO)
+    /usr/bin/printf "$Result" 
+    ;;
     esac
 }
 
@@ -158,19 +158,19 @@ display_choose_do (){
         YES)
     answer=`display_choose`
     ;;
-	NO)
+    NO)
     display_choose
     ;;
     esac
     if [ "$answer" != "No, thanks" ]; then
-	echo "" >> $HOME/$RC
-	echo "$SOURCECMD" >> $HOME/$RC
-	chown $USER $HOME/$RC
-	do_login_test
-	if grep @PREFIX@/sbin $TMPFILE >/dev/null 2>&1 ; then
-	    Result="\n Your Fink setup should be fine now.\n\n"
-	else
-	    Result="\n
+    echo "" >> $HOME/$RC
+    echo "$SOURCECMD" >> $HOME/$RC
+    chown $USER $HOME/$RC
+    do_login_test
+    if grep @PREFIX@/sbin $TMPFILE >/dev/null 2>&1 ; then
+        Result="\n Your Fink setup should be fine now.\n\n"
+    else
+        Result="\n
 Hmm. I tried my best, but it still does not work.
 The code I put into $RC has no effect.\n
 Please check your $LOGINSHELL startup scripts.
@@ -178,9 +178,9 @@ Perhaps some other file like\n
 	    ~/.login\n
 is resetting the PATH after $RC is executed.
 		   \n"
-	fi		    
+    fi		    
     else
-	Result="OK, as you wish.\nYou are on your own. Good luck\n" 
+    Result="OK, as you wish.\nYou are on your own. Good luck\n" 
     fi
     display_result
 }
@@ -201,7 +201,7 @@ display_already_setup (){
     end tell
 EOF
     ;;
-	NO)
+    NO)
     msg_title; echo""; msg_already_setup
     ;;
     esac
@@ -228,9 +228,9 @@ else
     # No: we need to do something
     eval `grep LOGINSHELL $TMPFILE`
     if [ -z $LOGINSHELL ]; then
-	Result="\nYour startup scripts contain an error.\nI am giving up. Bye.\n"
-	display_result
-	exit
+    Result="\nYour startup scripts contain an error.\nI am giving up. Bye.\n"
+    display_result
+    exit
     fi
     LOGINSHELL=`basename $LOGINSHELL`
     case $LOGINSHELL in
@@ -238,70 +238,70 @@ else
     # For csh and tcsh
         SOURCECMD="test -r @PREFIX@/bin/init.csh && source @PREFIX@/bin/init.csh"
         if [ -f $HOME/.tcshrc ]; then
-	    RC=.tcshrc
-	elif [ -f $HOME/.cshrc ]; then
-	    RC=.cshrc
-	else
-	    RC=new
-	fi
- 	case $RC in
-	new)
-	    RC=.cshrc
-	    MSG=msg_create
-	    ;;
-	*)
-	    MSG=msg_append
-	    ;;
-	esac
-	display_choose_do
+        RC=.tcshrc
+    elif [ -f $HOME/.cshrc ]; then
+        RC=.cshrc
+    else
+        RC=new
+    fi
+    case $RC in
+    new)
+        RC=.cshrc
+        MSG=msg_create
+        ;;
+    *)
+        MSG=msg_append
+        ;;
+    esac
+    display_choose_do
     ;;
     bash)
     # Only bash here; other sh type shells are not supported
         SOURCECMD="test -r @PREFIX@/bin/init.sh && . @PREFIX@/bin/init.sh"
         if [ -f $HOME/.bash_profile ]; then
-	    RC=.bash_profile
-	elif [ -f $HOME/.bash_login ]; then
-	    RC=.bash_login
+        RC=.bash_profile
+    elif [ -f $HOME/.bash_login ]; then
+        RC=.bash_login
         elif [ -f $HOME/.profile ]; then
-	    RC=.profile
-	else
-	    RC=new
-	fi
-	case $RC in
-	  new)
-	    RC=.profile
-	    MSG=msg_create
-	  ;;
-	  *)
-	    MSG=msg_append
-	  ;;
-	esac
-	display_choose_do
+        RC=.profile
+    else
+        RC=new
+    fi
+    case $RC in
+        new)
+        RC=.profile
+        MSG=msg_create
+        ;;
+        *)
+        MSG=msg_append
+        ;;
+    esac
+    display_choose_do
     ;;
     zsh)
     # Only zsh here; other sh type shells are not supported
         SOURCECMD="test -r @PREFIX@/bin/init.sh && . @PREFIX@/bin/init.sh"
         if [ -f $HOME/.zprofile ]; then
-	    RC=.zprofile
+        RC=.zprofile
         elif [ -f $HOME/.zlogin ]; then
-	    RC=.zlogin
-	else
-	    RC=new
-	fi
-	case $RC in
-	  new)
-	    RC=.zlogin
-	    MSG=msg_create
-	  ;;
-	  *)
-	    MSG=msg_append
-	  ;;
-	esac
-	display_choose_do
+        RC=.zlogin
+    else
+        RC=new
+    fi
+    case $RC in
+        new)
+        RC=.zlogin
+        MSG=msg_create
+        ;;
+        *)
+        MSG=msg_append
+        ;;
+    esac
+    display_choose_do
     ;;
     *)
     # Any shell except *csh, bash, and zsh
-	Result="\n
+    Result="\n
 Since you have changed your login shell to $LOGINSHELL,
 I am confident that you know what you are doing.\n
 So now add a line equivalent to
@@ -313,7 +313,7 @@ and you will be set up for using Fink.
 	    
     Have a nice day.
 	    \n"
-	display_result
+    display_result
     ;;
     esac	    
 fi

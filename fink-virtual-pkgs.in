@@ -39,12 +39,12 @@ UseFinkModules();
 Getopt::Long::Configure(qw(bundling ignore_case require_order));
 my ($dlist, $hash, $pkgname, @versions, $field, $provides);
 my %options = 
-   (
+	(
 		"apt" => 0,
 		"debug" => 0,
 		"dpkg" => 0,
 		"outfile" => undef,
-   );
+	);
 GetOptions(
 	'apt|a' => \$options{apt},
 	'debug' => \$options{debug},
@@ -205,9 +205,9 @@ END
 sub UseFinkModules {
 	# Be careful about using fink modules
 	eval { 
-        die unless -d "$libpath";
-        require lib;
-        lib->import($libpath);
+		die unless -d "$libpath";
+		require lib;
+		lib->import($libpath);
 
 		require Fink::FinkVersion;
 		require Fink::VirtPackage;
@@ -223,8 +223,8 @@ sub UseFinkModules {
 		my $configpath = "$basepath/etc/fink.conf";
 		if (-f $configpath) {
 			$config = read_config($configpath,
-                                              { Basepath => "$basepath" }
-                                             );
+															{ Basepath => "$basepath" }
+															);
 		} else {
 			$standalone=1;
 		}

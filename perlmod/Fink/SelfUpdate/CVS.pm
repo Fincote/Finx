@@ -226,8 +226,8 @@ sub setup_direct_cvs {
 						"is empty).");
 		if ($repository =~ s/^:local://)  {
 			$cmd = "$cvs ${verbosity} -z3 -d$repository";
- 		}
- 		else {
+	}
+	else {
 			$cmd = qq(cvs -d":pserver${proxcmd}:anonymous\@$repository" login);
 			if ($username ne "root") {
 				$cmd = "/usr/bin/su $username -c '$cmd'";
@@ -238,7 +238,7 @@ sub setup_direct_cvs {
 			else {
 				$cmd = qq(cvs ${verbosity} -z3 -d":pserver${proxcmd}:anonymous\@$repository");
 			}
- 		}
+	}
 	} else {
 		if (-f "$basepath/lib/fink/URL/developer-cvs") {
 			$repository = cat "$basepath/lib/fink/URL/developer-cvs";

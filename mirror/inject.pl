@@ -39,14 +39,14 @@ my $package = "fink-mirrors";
 
 my ($file);
 foreach $file (qw(NEWS _keys _list)) {
-    if (not -e $file) {
+	if (not -e $file) {
 	print "ERROR: Package incomplete, '$file' is missing.\n";
 	exit 1;
-    }
+	}
 }
 
 my $packagefiles = "COPYING NEWS README README.contacts install.sh postinstall.pl.in " .
-    "_keys _list _urls anonymous-cvs apache apt cpan ctan cvs-repository debian developer-cvs freebsd gimp gnome gnu kde master postgresql rsync sourceforge website" ;
+	"_keys _list _urls anonymous-cvs apache apt cpan ctan cvs-repository debian developer-cvs freebsd gimp gnome gnu kde master postgresql rsync sourceforge website" ;
 
 my $info_script = "";
 
@@ -58,7 +58,7 @@ my $param = shift;
 
 my $result = inject_package($package, $packagefiles, $info_script, $param);
 if ($result == 1) {
-    exit 1;
+	exit 1;
 }
 
 ### eof

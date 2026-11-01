@@ -22,9 +22,9 @@
 #
 
 if [ $# -ne 2 ]; then
-  echo "Usage: ./setup.sh <prefix> <architecture>"
-  echo "  Example: ./setup.sh /opt/finx x86_64"
-  exit 1
+    echo "Usage: ./setup.sh <prefix> <architecture>"
+    echo "  Example: ./setup.sh /opt/finx x86_64"
+    exit 1
 fi
 
 basepath=$1
@@ -37,19 +37,19 @@ osMajorVer=`uname -r | cut -d. -f1`
 osMinorVer=`uname -r | cut -d. -f2`
 
 if [ $osMajorVer -eq 11 -o $osMajorVer -eq 12 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.12"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.12"
 elif [ $osMajorVer -eq 13 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.16"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.16"
 elif [ $osMajorVer -gt 13 -a $osMajorVer -le 19 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.18"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.18"
 elif [ $osMajorVer -eq 20 -a $osMinorVer -le 3 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.28"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.28"
 elif [ $osMajorVer -ge 20 -a $osMajorVer -le 22 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.30"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.30"
 elif [ $osMajorVer -eq 23 -a $osMinorVer -le 3 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.30"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.30"
 elif [ $osMajorVer -ge 23 -a $osMajorVer -le 27 ]; then
-  perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.34"
+    perlexe="/usr/bin/arch -arch $architecture /usr/bin/perl5.34"
 fi
 
 
@@ -57,8 +57,8 @@ echo "Creating $fink..."
 sed -e "s|@BASEPATH@|$basepath|g" -e "s|@PERLEXE@|$perlexe|g" < fink.in > fink
 
 for bin in fink-{virtual-pkgs,instscripts,scanpackages}; do
-	echo "Creating $bin..."
-	/usr/bin/sed -e "s|@BASEPATH@|$basepath|g" -e "s|@LIBPATH@|\$basepath/lib/perl5|g" < "$bin.in" > "$bin"
+    echo "Creating $bin..."
+    /usr/bin/sed -e "s|@BASEPATH@|$basepath|g" -e "s|@LIBPATH@|\$basepath/lib/perl5|g" < "$bin.in" > "$bin"
 done
 
 echo "Creating pathsetup.sh..."
@@ -72,12 +72,12 @@ echo "Creating Fink.pm..."
 
 echo "Creating man pages..."
 /usr/bin/sed "s|@PREFIX@|$basepath|g" <fink.8.in \
-  | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
-  >fink.8
+    | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
+    >fink.8
 
 /usr/bin/sed "s|@PREFIX@|$basepath|g" <fink.conf.5.in \
-  | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
-  >fink.conf.5
+    | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
+    >fink.conf.5
 
 echo "Creating shlibs default file..."
 /usr/bin/sed "s|@PREFIX@|$basepath|g" <shlibs.default.in >shlibs.default
@@ -99,16 +99,16 @@ packargs='"qqiss", 0, 0'
 
 echo "Creating lockwait wrappers..."
 for prog in dpkg; do
-	/usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PROG@|$prog|g" -e "s|@PACKARGS@|$packargs|" <lockwait.in >$prog-lockwait
+    /usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PROG@|$prog|g" -e "s|@PACKARGS@|$packargs|" <lockwait.in >$prog-lockwait
 done
 for prog in apt-get; do
-	/usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PROG@|$basepath/bin/$prog|g" -e "s|@PACKARGS@|$packargs|" <lockwait.in >$prog-lockwait
+    /usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PROG@|$basepath/bin/$prog|g" -e "s|@PACKARGS@|$packargs|" <lockwait.in >$prog-lockwait
 done
 
 echo "Creating g++ wrappers..."
 for gccvers in 3.3 4.0; do
-	/usr/bin/sed -e "s|@GCCVERS@|$gccvers|g" <g++-wrapper.in \
-		>"g++-wrapper-$gccvers"
+    /usr/bin/sed -e "s|@GCCVERS@|$gccvers|g" <g++-wrapper.in \
+        >"g++-wrapper-$gccvers"
 done
 
 echo "Creating compiler wrapper"

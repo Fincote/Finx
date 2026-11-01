@@ -1,0 +1,58 @@
+# 缩进规则的编辑器侧落地。权威是 STYLE（Perl）与 scripts/format_check.pl（两者）。
+#
+#   Perl   tab
+#   Shell  4 空格
+#
+# 这里只是让编辑器与检查器一致，判断本身由 scripts/format_check.pl 按 shebang 做 ——
+# .in 里既有 Perl 也有 shell，扩展名判不出来，所以下面按文件名逐个点名。
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# ---- Perl -----------------------------------------------------------------
+
+[*.{pl,pm,t}]
+indent_style = tab
+indent_size = 4
+
+# Perl 的 .in 模板（按 shebang 判定，扩展名不可靠）
+[{postinstall.pl.in,fink-virtual-pkgs.in,fink-instscripts.in,fink-scanpackages.in,fink-dpkg-status-cleanup.in,lockwait.in,Fink.pm.in,FinkVersion.pm.in,fink.in}]
+indent_style = tab
+indent_size = 4
+
+# ---- Shell ----------------------------------------------------------------
+
+[*.{sh,bash}]
+indent_style = space
+indent_size = 4
+
+# Shell 的 .in 模板
+[{pathsetup.sh.in,g++-wrapper.in,compiler_wrapper-10.6.in,compiler_wrapper-10.7.in,compiler_wrapper-10.9.in,shlibs.default.in}]
+indent_style = space
+indent_size = 4
+
+# ---- 其它 ----------------------------------------------------------------
+
+[Makefile]
+indent_style = tab
+indent_size = 4
+
+[*.{json,yaml,yml}]
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+# 第三方与上游文件：按它们自己的样子，不要被编辑器改写
+[update/config.{guess,sub}]
+indent_style = space
+indent_size = 2
+
+[update/ltconfig]
+indent_style = space
+indent_size = 2

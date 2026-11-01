@@ -335,8 +335,8 @@ sub fetch_url_to_file {
 		# user chose to give up/out of mirrors
 			return 1;
 		}
-  	}
-  	return 0;
+	}
+	return 0;
 }
 
 sub download_cmd {

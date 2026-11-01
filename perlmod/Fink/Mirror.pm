@@ -151,22 +151,22 @@ sub new_from_field {
 ### construct from single url (for sites without mirrors, to use master mirrors also)
 
 sub new_from_url {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-  my $url = shift;
-  my $package = shift || "unknown package";
+	my $proto = shift;
+	my $class = ref($proto) || $proto;
+	my $url = shift;
+	my $package = shift || "unknown package";
 
-  my $self = {};
-  bless($self, $class);
+	my $self = {};
+	bless($self, $class);
 
-  $self->{name} = "Original URL";
-  $self->{package} = $package;
+	$self->{name} = "Original URL";
+	$self->{package} = $package;
 
-  $self->{data}->{"primary"} = [ $url ];
+	$self->{data}->{"primary"} = [ $url ];
 
-  $self->initialize();
+	$self->initialize();
 
-  return $self;
+	return $self;
 
 }
 
@@ -190,7 +190,7 @@ sub merge_master_mirror {
 		}
 	}
 
-  	delete $self->{data}->{timestamp};
+	delete $self->{data}->{timestamp};
 }
 
 ### self-initialization

@@ -8,20 +8,20 @@ use strict;
 use warnings;
 
 BEGIN {
-    if ( $ENV{PERL_CORE} ) {
-        chdir 't' if -d 't';
-        @INC = '../lib';
-        require Config;
-        no warnings 'once';
-        if ($Config::Config{extensions} !~ /\bList\/Util\b/) {
-            print "1..0 # Skip: Scalar::Util was not built\n";
-            exit 0;
-        }
-        if (exists($Config::Config{taint_support}) && not $Config::Config{taint_support}) {
-            print "1..0 # Skip: your perl was built without taint support\n";
-            exit 0;
-        }
-    }
+	if ( $ENV{PERL_CORE} ) {
+		chdir 't' if -d 't';
+		@INC = '../lib';
+		require Config;
+		no warnings 'once';
+		if ($Config::Config{extensions} !~ /\bList\/Util\b/) {
+			print "1..0 # Skip: Scalar::Util was not built\n";
+			exit 0;
+		}
+		if (exists($Config::Config{taint_support}) && not $Config::Config{taint_support}) {
+			print "1..0 # Skip: your perl was built without taint support\n";
+			exit 0;
+		}
+	}
 }
 
 use Fink::Text::ParseWords qw(shellwords old_shellwords);

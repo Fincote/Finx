@@ -27,22 +27,22 @@ can_ok('Fink::Config','set_options');  # 5
 # OS X 10.2 mktemp does not have the -p flag implemented
 my $mktemp;
 foreach (qw| /usr/bin/mktemp /bin/mktemp |) {
-    if (-x $_) {
+				if (-x $_) {
 	$mktemp = $_;
 	last;
-    }
+				}
 }
 if (!defined $mktemp) {
-    print "Bail out! Cannot create scratchdir (no mktemp found)\n";
-    die "\n";
+				print "Bail out! Cannot create scratchdir (no mktemp found)\n";
+				die "\n";
 }
 
 my $tmpdir = `$mktemp -d /tmp/execute_nonroot_okay.t_XXXXX`;
 chomp $tmpdir;
 
 if (!defined $tmpdir or !length $tmpdir or !-d $tmpdir) {
-    print "Bail out! Cannot create scratchdir\n";
-    die "\n";
+				print "Bail out! Cannot create scratchdir\n";
+				die "\n";
 }
 chmod 0755, $tmpdir;  # must have only root be able to write to dir but all read
 
@@ -60,7 +60,7 @@ chmod 0755, $tmpdir;  # must have only root be able to write to dir but all read
 		$ENV{'PERL5LIB'} = defined $ENV{'PERL5LIB'}
 			? "$libdir:$ENV{'PERL5LIB'}"
 			: $libdir;
-    }
+				}
 }
 
 chdir "/tmp";         # set local dir to where user="nobody" can start shells
@@ -70,70 +70,70 @@ Fink::Config::set_options( {'build_as_nobody' => 0} );
 cmp_ok( &execute("/usr/bin/touch $tmpdir/f1", nonroot_okay=>1),
 	'==', 0,
 	'disabling build_as_nobody causes normal execution'
-      );
+						);
 
 # 7
 Fink::Config::set_options( {'build_as_nobody' => 1} );
 cmp_ok( &execute("/usr/bin/touch $tmpdir/f2"),
 	'==', 0,
 	'omitting nonroot_okay option causes normal execution'
-      );
+						);
 
 # 8
 Fink::Config::set_options( {'build_as_nobody' => 1} );
 cmp_ok( &execute("/usr/bin/touch $tmpdir/f3", nonroot_okay=>0),
-      '==', 0,
+						'==', 0,
 	'false nonroot_okay option causes normal execution'
-      );
+						);
 
 # 9
- SKIP: {
-     Fink::Config::set_options( {'build_as_nobody' => 1} );
-     skip "You must be non-root for this test", 1 if $> == 0;
-     # this touch should fail noisily, so redirect
-     cmp_ok( &execute("/usr/bin/touch $tmpdir/f4 > /dev/null 2>&1", nonroot_okay=>1),
+	SKIP: {
+					Fink::Config::set_options( {'build_as_nobody' => 1} );
+					skip "You must be non-root for this test", 1 if $> == 0;
+					# this touch should fail noisily, so redirect
+					cmp_ok( &execute("/usr/bin/touch $tmpdir/f4 > /dev/null 2>&1", nonroot_okay=>1),
 	     '!=', 0,
 	     'try to switch users when not root'
 	   );
- }
+	}
 
 # 10
- SKIP: {
-     Fink::Config::set_options( {'build_as_nobody' => 1} );
-     skip "You must be root for this test", 1 if $> != 0;
-     # this touch should fail noisily, so redirect
-     cmp_ok( &execute("/usr/bin/touch $tmpdir/f5 > /dev/null 2>&1", nonroot_okay=>1, delete_tempfile=>1),
+	SKIP: {
+					Fink::Config::set_options( {'build_as_nobody' => 1} );
+					skip "You must be root for this test", 1 if $> != 0;
+					# this touch should fail noisily, so redirect
+					cmp_ok( &execute("/usr/bin/touch $tmpdir/f5 > /dev/null 2>&1", nonroot_okay=>1, delete_tempfile=>1),
 	     '!=', 0,
 	     'requires normal user but build_as_nobody enabled'
 	   );
- }
+	}
 
 # 11
- SKIP: {
-     Fink::Config::set_options( {'build_as_nobody' => 1} );
-     skip "You must be root for this test", 1 if $> != 0;
-     my $file = "$tmpdir/f6";
-     open FOO, ">$file";
-     close FOO;
-     chmod 0666, $file;  # create a file that all users can touch
-     cmp_ok( &execute("/usr/bin/touch $file", nonroot_okay=>1),
+	SKIP: {
+					Fink::Config::set_options( {'build_as_nobody' => 1} );
+					skip "You must be root for this test", 1 if $> != 0;
+					my $file = "$tmpdir/f6";
+					open FOO, ">$file";
+					close FOO;
+					chmod 0666, $file;  # create a file that all users can touch
+					cmp_ok( &execute("/usr/bin/touch $file", nonroot_okay=>1),
 	     '==', 0,
 	     'user "nobody" can do this and build_as_nobody enabled'
 	   );
- }
+	}
 
 # 12
- SKIP: {
-     skip "You must be root for this test", 1 if $> != 0;
+	SKIP: {
+					skip "You must be root for this test", 1 if $> != 0;
 
-     # this test should use the exact same perl binary as is running
-     # this test (which is the same as the one to be used to run fink)
-     Fink::Config::set_options( {'build_as_nobody' => 1} );
-     cmp_ok( &execute('/usr/bin/perl -e "1;"', nonroot_okay=>1),
+					# this test should use the exact same perl binary as is running
+					# this test (which is the same as the one to be used to run fink)
+					Fink::Config::set_options( {'build_as_nobody' => 1} );
+					cmp_ok( &execute('/usr/bin/perl -e "1;"', nonroot_okay=>1),
 	     '==', 0,
 	     'command is not run under setuid'
 	   );
- }
+	}
 
 # We cannot use tempdir(CLEANUP=>1) because that works by installing
 # an END block to do the cleanup, which breaks us because &execute may

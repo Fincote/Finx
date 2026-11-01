@@ -118,19 +118,19 @@ if ($arch eq "i386") {
 # is Darwin at least 9?
 	if ((defined $vers) and ($vers >= 9)) {
 # check for 64bit capability
-        my $is64bit = 0;
-        if (open(SYSCTL, 'sysctl -a 2>/dev/null |')) {
+		my $is64bit = 0;
+		if (open(SYSCTL, 'sysctl -a 2>/dev/null |')) {
 			my ($key, $value);
 			while (<SYSCTL>) {
-                        ($key, $value) = $_ =~ /^(\S+)\s*\:\s*(.*?)\s*$/;
-                        next unless (defined $key and defined $value);
-                        if ($key =~ /^(hw.optional.x86_64|hw.optional.64bitops|hw.cpu64bit_capable)$/ and $value eq "1") {
-                                $is64bit = 1;
-                                last;
-                        }
+								($key, $value) = $_ =~ /^(\S+)\s*\:\s*(.*?)\s*$/;
+								next unless (defined $key and defined $value);
+								if ($key =~ /^(hw.optional.x86_64|hw.optional.64bitops|hw.cpu64bit_capable)$/ and $value eq "1") {
+										$is64bit = 1;
+										last;
+								}
 			}
 			close(SYSCTL);
-        }
+		}
 		if (!$is64bit && $vers > 10) {
 			# 10.7+ 32bit: non-supported configuration!
 			print "ERROR: fink requires a 64-bit-capable CPU for your version of macOS\n";
@@ -400,7 +400,7 @@ my $xcode_version;
 	}
 	print "Verifying that installed Xcode Command Line Tools version is supported...\n";
 	# Die if there are no Xcode CLI tools, at minimum.
-    die "ERROR:\n\tNo Xcode command-line tools installed.  Install them (or all of Xcode).\n" unless (-x "/usr/bin/xcodebuild");
+	die "ERROR:\n\tNo Xcode command-line tools installed.  Install them (or all of Xcode).\n" unless (-x "/usr/bin/xcodebuild");
 	# check Xcode version here since there are monolithic Xcode options for 10.7
 	($xcode_version) = (`xcodebuild -version` =~ /Xcode\s(\d+\.\d+\.?(\d+)?)\n/);
 	$xcode_version = '0.0' if !defined $xcode_version; # set a value for later
@@ -637,9 +637,9 @@ if (not -d $installto) {
 }
 
 {
-    my @cmd_out = `/bin/df -P "$installto"`;
-    @cmd_out = split /\s+/, $cmd_out[1];
-    my $cmd = "/usr/sbin/diskutil info \"$cmd_out[-1]\" 2>&1";
+	my @cmd_out = `/bin/df -P "$installto"`;
+	@cmd_out = split /\s+/, $cmd_out[1];
+	my $cmd = "/usr/sbin/diskutil info \"$cmd_out[-1]\" 2>&1";
 	@cmd_out = `$cmd`;
 
 	if (!@cmd_out || $?) {
@@ -723,7 +723,7 @@ if (($arch eq "x86_64") and ($distribution eq "10.5")) {
 print "Creating f-v-p bootstrap configuration...\n";
 
 my $cmd = 'sed -e "s|@BASEPATH@|' . $installto . '|g" -e "s|@LIBPATH@|' . $homebase . '/perlmod|g" < "fink-virtual-pkgs.in" > "fink-virtual-pkgs-bootstrap";';
-   $cmd .= "chmod +x fink-virtual-pkgs-bootstrap;";
+	$cmd .= "chmod +x fink-virtual-pkgs-bootstrap;";
 
 if (&execute($cmd, quiet=>0)) {
 	exit 1;
@@ -872,12 +872,12 @@ print "\n";
 &print_breaking($endmsg);
 print "\n";
 &print_breaking(
-    "Run '. $installto/bin/init.sh' to set up this terminal session ".
-    "environment to use Fink. To make the software installed by Fink ".
-    "available in all of your future terminal shells, add ". 
-    "'. $installto/bin/init.sh' to the init scripts '.zprofile', ".
-    "'.profile', or '.bash_profile' in your home directory. The program ".
-    "$installto/bin/pathsetup.sh can help with this. Enjoy."
+	"Run '. $installto/bin/init.sh' to set up this terminal session ".
+	"environment to use Fink. To make the software installed by Fink ".
+	"available in all of your future terminal shells, add ". 
+	"'. $installto/bin/init.sh' to the init scripts '.zprofile', ".
+	"'.profile', or '.bash_profile' in your home directory. The program ".
+	"$installto/bin/pathsetup.sh can help with this. Enjoy."
 );
 print "\n";
 

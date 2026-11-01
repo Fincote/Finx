@@ -665,10 +665,10 @@ Called by bootstrap and fink's inject.pl.
 sub check_files {
 	my ($file);
 	foreach $file (qw(fink.in install.sh COPYING VERSION
-  		perlmod/Fink update fink.info.in postinstall.pl.in
-  		update/config.guess perlmod/Fink/Config.pm fink-virtual-pkgs.in
+	perlmod/Fink update fink.info.in postinstall.pl.in
+	update/config.guess perlmod/Fink/Config.pm fink-virtual-pkgs.in
 		fink-instscripts.in fink-scanpackages.in fink-dpkg-status-cleanup.in
- 	)) {
+	)) {
 		if (not -e $file) {
 			print "ERROR: Package incomplete, '$file' is missing.\n";
 			return 1;

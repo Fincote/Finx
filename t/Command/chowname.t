@@ -3,19 +3,19 @@
 use Test::More;
 
 if( $> == 0 ) {
-    plan 'no_plan';
+	plan 'no_plan';
 }
 else {
-    # can anyone think of a way to test chown without being root?
-    plan skip_all => "You must be root to test chowname";
+	# can anyone think of a way to test chown without being root?
+	plan skip_all => "You must be root to test chowname";
 }
 
 use Fink::Command qw(chowname touch);
 
 sub ugcheck { 
-    my $file = shift;
-    my($uid, $gid) = (stat $file)[4,5];
-    return( scalar getpwuid($uid), getgrgid($gid) );
+	my $file = shift;
+	my($uid, $gid) = (stat $file)[4,5];
+	return( scalar getpwuid($uid), getgrgid($gid) );
 }
 
 touch "foo";

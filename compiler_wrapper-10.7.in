@@ -4,27 +4,27 @@ save_IFS="$IFS"
 IFS=:
 newpath=
 for dir in $PATH ; do
-  case $dir in
-    *var/lib/fink/path-prefix*) ;;
-    *) newpath="${newpath:+${newpath}:}$dir" ;;
-  esac
+    case $dir in
+        *var/lib/fink/path-prefix*) ;;
+        *) newpath="${newpath:+${newpath}:}$dir" ;;
+    esac
 done
 IFS="$save_IFS"
 export PATH="$newpath"
 if [ "$compiler" = "cc" -o "$compiler" = "gcc" ]; then
-   compiler="clang"
+    compiler="clang"
 fi
 if [ "$compiler" = "c++" -o "$compiler" = "g++" ]; then
-  compiler="clang++"
+    compiler="clang++"
 fi
 # To avoid extra warning spew, don't add 
 # -Wno-error=unused-command-line-argument-hard-error-in-future
 # when clang doesn't support it .
 clang_version=`clang --version | head -n1 | cut -d- -f2 | cut -d'.' -f1`
 if [[ ($clang_version -lt "503") || ($clang_version -ge "600") ]]; then
-	suppress_hard_error=""
+    suppress_hard_error=""
 else
-	suppress_hard_error="-Wno-error=unused-command-line-argument-hard-error-in-future"
+    suppress_hard_error="-Wno-error=unused-command-line-argument-hard-error-in-future"
 fi
 exec $compiler "$suppress_hard_error" "$@"
 # strip path-prefix to avoid finding this wrapper again

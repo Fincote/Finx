@@ -23,11 +23,11 @@
 #
 
 if [ $# -ne 2 ]; then
-  echo "Usage: ./install.sh <prefix> <architecture>"
-  echo "  Example: ./install.sh /tmp/builddirectory/opt/finx i386"
-  echo "WARNING: Don't call install.sh directly, use inject.pl instead."
-  echo "         You have been warned."
-  exit 1
+    echo "Usage: ./install.sh <prefix> <architecture>"
+    echo "  Example: ./install.sh /tmp/builddirectory/opt/finx i386"
+    echo "WARNING: Don't call install.sh directly, use inject.pl instead."
+    echo "         You have been warned."
+    exit 1
 fi
 
 basepath="$1"
@@ -36,7 +36,7 @@ version=`cat VERSION`
 
 archdir="${architecture}-darwin"
 if [ "${architecture}" == "arm64" ]; then
-	archdir="aarch64-darwin"
+    archdir="aarch64-darwin"
 fi
 
 echo "Creating directories..."
@@ -45,36 +45,36 @@ echo "Creating directories..."
 /bin/chmod 755 "$basepath"
 
 for dir in bin sbin \
-	lib lib/${archdir} lib/perl5 lib/perl5/Fink \
-	lib/perl5/Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} \
-	lib/fink lib/fink/update lib/fink/update-packages \
-	etc etc/dpkg \
-	share share/doc share/doc/fink \
-	share/man share/man/man{3,5,8} \
-	share/fink share/fink/images \
-	var var/run var/run/fink var/run/fink/buildlock \
-	var/lib var/lib/fink var/lib/fink/path-prefix-g++-{3.3,4.0} \
-	var/lib/fink/path-prefix-10.6 \
-	var/lib/fink/path-prefix-clang \
-	var/lib/fink/path-prefix-libcxx ; do
-  /bin/mkdir "$basepath/$dir"
-  /bin/chmod 755 "$basepath/$dir"
+    lib lib/${archdir} lib/perl5 lib/perl5/Fink \
+    lib/perl5/Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} \
+    lib/fink lib/fink/update lib/fink/update-packages \
+    etc etc/dpkg \
+    share share/doc share/doc/fink \
+    share/man share/man/man{3,5,8} \
+    share/fink share/fink/images \
+    var var/run var/run/fink var/run/fink/buildlock \
+    var/lib var/lib/fink var/lib/fink/path-prefix-g++-{3.3,4.0} \
+    var/lib/fink/path-prefix-10.6 \
+    var/lib/fink/path-prefix-clang \
+    var/lib/fink/path-prefix-libcxx ; do
+    /bin/mkdir "$basepath/$dir"
+    /bin/chmod 755 "$basepath/$dir"
 done
 
 if [ "${architecture}" == "arm64" ]; then
-  pushd "$basepath/lib" && /bin/ln -s "${archdir}" "arm64-darwin"; popd
+    pushd "$basepath/lib" && /bin/ln -s "${archdir}" "arm64-darwin"; popd
 fi
 
 if [ "$architecture" == "i386" ]; then
-  /bin/mkdir "$basepath/etc/profile.d"
-  /bin/chmod 755 "$basepath/etc/profile.d"
+    /bin/mkdir "$basepath/etc/profile.d"
+    /bin/chmod 755 "$basepath/etc/profile.d"
 fi
 
 echo "Copying files..."
 
 if [ "$architecture" == "i386" ]; then
-  /usr/bin/install -c -p -m 755 fink.csh "$basepath/etc/profile.d"
-  /usr/bin/install -c -p -m 755 fink.sh "$basepath/etc/profile.d"
+    /usr/bin/install -c -p -m 755 fink.csh "$basepath/etc/profile.d"
+    /usr/bin/install -c -p -m 755 fink.sh "$basepath/etc/profile.d"
 fi
 
 /usr/bin/install -c -p -m 755 postinstall.pl "$basepath/lib/fink/"
@@ -85,117 +85,117 @@ fi
 
 # copy executables
 for bin in fink fink-{virtual-pkgs,instscripts,scanpackages} pathsetup.sh \
-		{dpkg,apt-get}-lockwait; do
-	/usr/bin/install -c -p -m 755 $bin "$basepath/bin/"
+        {dpkg,apt-get}-lockwait; do
+    /usr/bin/install -c -p -m 755 $bin "$basepath/bin/"
 done
 /usr/bin/install -c -m 755 fink-dpkg-status-cleanup "$basepath/sbin/"
 
 # copy all perl modules
 for subdir in . Fink Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} ; do
-  for file in perlmod/${subdir}/*.pm ; do
-    if [ -f $file ]; then
-      /usr/bin/install -c -p -m 644 $file "$basepath/lib/perl5/$subdir"
-    fi
-  done
+    for file in perlmod/${subdir}/*.pm ; do
+        if [ -f $file ]; then
+            /usr/bin/install -c -p -m 644 $file "$basepath/lib/perl5/$subdir"
+        fi
+    done
 done
 
 for file in update-packages/* ; do
-  /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update-packages/"
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update-packages/"
 done
 
 for file in update/config.guess update/config.sub update/ltconfig ; do
-  /usr/bin/install -c -p -m 755 $file "$basepath/lib/fink/update/"
+    /usr/bin/install -c -p -m 755 $file "$basepath/lib/fink/update/"
 done
 for file in update/ltmain.sh update/Makefile.in.in ; do
-  /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update/"
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update/"
 done
 
 for file in AUTHORS COPYING README README.html README.removing-fink-bld readme.*.html \
             INSTALL INSTALL.html NEWS STYLE TODO* USAGE USAGE.html ; do
-  /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink/"
+    /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink/"
 done
 
 for gccvers in 3.3 4.0; do
-	/usr/bin/install -c -p -m 755 "g++-wrapper-$gccvers" \
-		"$basepath/var/lib/fink/path-prefix-g++-$gccvers/g++"
-	/bin/ln -s -n -f g++ "$basepath/var/lib/fink/path-prefix-g++-$gccvers/c++" 
+    /usr/bin/install -c -p -m 755 "g++-wrapper-$gccvers" \
+        "$basepath/var/lib/fink/path-prefix-g++-$gccvers/g++"
+    /bin/ln -s -n -f g++ "$basepath/var/lib/fink/path-prefix-g++-$gccvers/c++" 
 done
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper" \
-	    "$basepath/var/lib/fink/path-prefix-10.6/compiler_wrapper"
+        "$basepath/var/lib/fink/path-prefix-10.6/compiler_wrapper"
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper-10.7" \
-	    "$basepath/var/lib/fink/path-prefix-clang/compiler_wrapper"
+        "$basepath/var/lib/fink/path-prefix-clang/compiler_wrapper"
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper-10.9" \
-	    "$basepath/var/lib/fink/path-prefix-libcxx/compiler_wrapper"
+        "$basepath/var/lib/fink/path-prefix-libcxx/compiler_wrapper"
 
 for file in \
-	cc \
-	c++ c++-4.0 c++-4.2 \
-	gcc gcc-4.0 gcc-4.2 \
-	g++ g++-4.0 g++-4.2 \
-	clang clang++ \
+    cc \
+    c++ c++-4.0 c++-4.2 \
+    gcc gcc-4.0 gcc-4.2 \
+    g++ g++-4.0 g++-4.2 \
+    clang clang++ \
 ; do
-    /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-10.6/$file"
+        /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-10.6/$file"
 done
 
 for file in cc c++ gcc g++ clang clang++ \
 ; do
-	/bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-clang/$file"
+    /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-clang/$file"
 done
 
 for file in c++ g++ clang++ \
 ; do
-	/bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-libcxx/$file"
+    /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-libcxx/$file"
 done
 
 
 # Gotta do this in install.sh, takes too long for setup.sh
 echo "Creating man pages from POD..."
 function manify_bin () {
-	echo "  $1.$2"
-	/usr/bin/pod2man --center "Fink documentation" --release "Fink $version" \
-		--section $2 $1 "$basepath/share/man/man$2/$1.$2"
+    echo "  $1.$2"
+    /usr/bin/pod2man --center "Fink documentation" --release "Fink $version" \
+        --section $2 $1 "$basepath/share/man/man$2/$1.$2"
 }
 function manify_pm () {
-	echo "  $1.3pm"
-	pm=`echo $1 | perl -ne 'chomp; s,::,/,g; print "perlmod/$_.pm"'`
-	/usr/bin/pod2man --center "Fink documentation" --release "Fink $version" \
-		--section 3 "$pm" "$basepath/share/man/man3/$1.3pm"
+    echo "  $1.3pm"
+    pm=`echo $1 | perl -ne 'chomp; s,::,/,g; print "perlmod/$_.pm"'`
+    /usr/bin/pod2man --center "Fink documentation" --release "Fink $version" \
+        --section 3 "$pm" "$basepath/share/man/man3/$1.3pm"
 }
 manify_bin fink-scanpackages 8
 for p in \
-		Fink				\
-		Fink::Base			\
-		Fink::Bootstrap		\
-		Fink::Checksum		\
-		Fink::CLI			\
-		Fink::Command		\
-		Fink::Config		\
-		Fink::Configure		\
-		Fink::Engine		\
-		Fink::Finally		\
-		Fink::Finally::BuildConflicts	\
-		Fink::Finally::Buildlock		\
-		Fink::FinkVersion	\
-		Fink::Notify		\
-		Fink::Package		\
-		Fink::PkgVersion	\
-		Fink::Scanpackages	\
-		Fink::SelfUpdate	\
-		Fink::SelfUpdate::Base	\
-		Fink::SelfUpdate::CVS	\
-		Fink::SelfUpdate::rsync	\
-		Fink::SelfUpdate::point	\
-		Fink::Services		\
-		Fink::SysState		\
-		Fink::Text::DelimMatch			\
-		Fink::Text::ParseWords			\
-		Fink::Tie::IxHash	\
-		Fink::VirtPackage	\
-		; do
-	manify_pm $p
+        Fink				\
+        Fink::Base			\
+        Fink::Bootstrap		\
+        Fink::Checksum		\
+        Fink::CLI			\
+        Fink::Command		\
+        Fink::Config		\
+        Fink::Configure		\
+        Fink::Engine		\
+        Fink::Finally		\
+        Fink::Finally::BuildConflicts	\
+        Fink::Finally::Buildlock		\
+        Fink::FinkVersion	\
+        Fink::Notify		\
+        Fink::Package		\
+        Fink::PkgVersion	\
+        Fink::Scanpackages	\
+        Fink::SelfUpdate	\
+        Fink::SelfUpdate::Base	\
+        Fink::SelfUpdate::CVS	\
+        Fink::SelfUpdate::rsync	\
+        Fink::SelfUpdate::point	\
+        Fink::Services		\
+        Fink::SysState		\
+        Fink::Text::DelimMatch			\
+        Fink::Text::ParseWords			\
+        Fink::Tie::IxHash	\
+        Fink::VirtPackage	\
+        ; do
+    manify_pm $p
 done
 
 echo "Done."

@@ -8,10 +8,10 @@ require_ok('Fink::Base');
 isa_ok( Fink::Base->new(), 'Fink::Base', 'new' );
 
 my $fb = Fink::Base->new_from_properties({ foo => "ugg", 
-                                           bar => 0, 
-                                           _wiffle => "something",
-                                           baz => undef
-                                         });
+										bar => 0, 
+										_wiffle => "something",
+										baz => undef
+										});
 isa_ok( $fb, 'Fink::Base', 'new_from_properties' );
 
 is( $fb->param("foo"), 'ugg' );

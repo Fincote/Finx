@@ -1083,7 +1083,7 @@ sorted lowest-to-highest. See the Debian Policy Manual, section 5.6.11
 =cut
 
 sub my_version_cmp {
-        version_cmp($a,"<=>",$b)
+		version_cmp($a,"<=>",$b)
 		}
 
 sub sort_versions {

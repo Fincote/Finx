@@ -550,8 +550,8 @@ Options include 'quick' to expedite choices.
 sub choose_mirrors {
 	my $mirrors_postinstall = shift; # boolean value, =1 if we've been
 					# called from the postinstall script
- 					# of the fink-mirrors package
- 	my %options = (quick => 0, @_);
+	# of the fink-mirrors package
+	my %options = (quick => 0, @_);
 
 	my ($answer, $missing, $default, $def_value);
 	my ($continent, $country);

@@ -28,6 +28,13 @@
             "problemMatcher": []
         },
         {
+            "label": "Check: indentation",
+            "detail": "Perl 用 tab、shell 用 4 空格；heredoc 与 POD 自动跳过。修正用 scripts/format_check.pl --fix",
+            "type": "shell",
+            "command": "make format",
+            "problemMatcher": []
+        },
+        {
             "label": "Check: perl syntax",
             "detail": "perl -c 覆盖全部模块。必须先 test_setup，否则 perlmod/Fink/FinkVersion.pm 还不存在",
             "type": "shell",
@@ -61,6 +68,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Check: shell syntax",
+                "Check: indentation",
                 "Check: perl syntax",
                 "Check: standalone.sh in sync",
                 "Test: perl suite",

@@ -33,16 +33,25 @@
 ## 代码风格
 
 - **Perl 用 tab 缩进，宽度 4** —— 这是 [`STYLE`](./STYLE) 的原文（"tabs are 4 wide"、
-  "use tabs for indention of statements"）。仓库实测 2047 行 tab 缩进、0 行空格缩进。
-  不要"顺手"把 tab 改成空格。
-- **Shell 在仓库里是混的**：`install.sh` 以 tab 为主，`setup.sh` 以 2 空格为主，
-  `pathsetup.sh.in` 两者都有。所以：改既有脚本就跟随该文件已有的风格；
-  `finx-install/` 下的新脚本统一用 4 空格。
+  "use tabs for indention of statements"）。
+- **Shell 用 4 空格** —— `STYLE` 只管 Perl；shell 此前没有规矩，统一成 4 空格。
+- 唯一权威是 [`STYLE`](./STYLE)（Perl，纯文本，2003 年的邮件原文）与
+  [`scripts/format_check.pl`](./scripts/format_check.pl)（两者，可执行）。
+  [`.editorconfig`](./.editorconfig) 让编辑器跟随同一套规则。
+- 提交前跑：
+
+  ```
+  make format                          # 检查
+  ./scripts/format_check.pl --fix      # 修正
+  ```
+
+  `make format` **故意不挂进 `make test`**：bootstrap 会跑 `make test`，格式瑕疵
+  不该拦住安装。
+- 检查器有两类例外，因为它们不是缩进：heredoc 正文、跨行引号内的续行、
+  POD 块、`__END__` 之后。另外 `update/config.guess`、`config.sub`、`ltconfig`
+  与三个 CPAN 派生模块整体不检查。细节见脚本头部注释。
 - `#!/bin/sh -e` 还是 `#!/bin/bash` 按原文件，不要统一。
-- 唯一权威是仓库根的 [`STYLE`](./STYLE)（纯文本，2003 年的邮件原文）。
-  `Style.md` 是给 GitHub 看的副本，两者内容应当一致。
-  它只管 Perl；`.vscode/settings.json` 已按它把 `[perl]` 钉成 tab，不要改回空格。
-- 不要为了让 `git diff` 好看去重排缩进；只改你要改的行。
+- 不要为了让 `git diff` 好看去重排缩进；要重排就跑 `scripts/format_check.pl --fix`。
 
 ## 测试
 

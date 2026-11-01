@@ -11,44 +11,44 @@ ok( chdir $scratch_dir );
 END { chdir '../..';  rm_rf $scratch_dir }
 
 {
-    open FILE, '>foo';
-    print FILE "some stuff\n";
-    close FILE;
+	open FILE, '>foo';
+	print FILE "some stuff\n";
+	close FILE;
 
-    cp 'foo', 'bar';
-    use File::Compare;
-    is( compare('foo', 'bar'), 0 );
+	cp 'foo', 'bar';
+	use File::Compare;
+	is( compare('foo', 'bar'), 0 );
 
-    mkdir 'something';
-    cp 'foo', 'bar', 'something';
-    ok( -e 'something/foo' );
-    ok( -e 'something/bar' );
+	mkdir 'something';
+	cp 'foo', 'bar', 'something';
+	ok( -e 'something/foo' );
+	ok( -e 'something/bar' );
 
-    rm_f 'something/*';
-    ok( !-e 'something/foo' );
-    ok( !-e 'something/bar' );
+	rm_f 'something/*';
+	ok( !-e 'something/foo' );
+	ok( !-e 'something/bar' );
 
-    mv 'foo', 'bar', 'something';
-    ok( -e 'something/foo' );
-    ok( -e 'something/bar' );
-    ok( !-e 'foo' );
-    ok( !-e 'bar' );
+	mv 'foo', 'bar', 'something';
+	ok( -e 'something/foo' );
+	ok( -e 'something/bar' );
+	ok( !-e 'foo' );
+	ok( !-e 'bar' );
 
-    rm_rf 'something';
-    ok( !-e 'something' );
+	rm_rf 'something';
+	ok( !-e 'something' );
 }
 
 {
-    ok( !-e 'this' );
-    mkdir_p 'this/that';
-    ok( -e 'this/that' );
+	ok( !-e 'this' );
+	mkdir_p 'this/that';
+	ok( -e 'this/that' );
 
-    rm_rf('this/that');
+	rm_rf('this/that');
 }
 
 {
-    touch 'foo', 'bar';
-    ok( -e 'bar' );
-    symlink_f 'foo', 'bar';
-    ok( -l 'bar' );
+	touch 'foo', 'bar';
+	ok( -e 'bar' );
+	symlink_f 'foo', 'bar';
+	ok( -l 'bar' );
 }

@@ -49,33 +49,33 @@ use File::Find;
 # parse a typical CVS/Root
 my $sentinel_cvs = '@PREFIX@/fink/dists/CVS';
 if (-d $sentinel_cvs) {
-    my ($method_user, $repo, $repo_file, $stored_repo);
+	my ($method_user, $repo, $repo_file, $stored_repo);
 
-    open(IN,'<',"$sentinel_cvs/Root") or die "can't open $sentinel_cvs/Root: $!";
-    while (defined($_=<IN>)) {
-        chomp;
-        if (/^(:\S+:\S+)@(.+)$/) { # allow for proxy
-            $method_user = $1;
-            $repo = $2;
-        }
-    }
-    close(IN);
-    die "couldn't parse $sentinel_cvs/Root\n" unless ((defined $method_user) and (defined $repo));
-    if (defined $method_user and $method_user =~ /^:pserver(.*):anonymous$/) { #allow for proxy
+	open(IN,'<',"$sentinel_cvs/Root") or die "can't open $sentinel_cvs/Root: $!";
+	while (defined($_=<IN>)) {
+		chomp;
+		if (/^(:\S+:\S+)@(.+)$/) { # allow for proxy
+			$method_user = $1;
+			$repo = $2;
+		}
+	}
+	close(IN);
+	die "couldn't parse $sentinel_cvs/Root\n" unless ((defined $method_user) and (defined $repo));
+	if (defined $method_user and $method_user =~ /^:pserver(.*):anonymous$/) { #allow for proxy
 	$repo_file = "@PREFIX@/lib/fink/URL/anonymous-cvs";
-    } else {
+	} else {
 	$repo_file = "@PREFIX@/lib/fink/URL/developer-cvs";
-    }
+	}
 
-    # read "correct" Root path from fink-mirrors pkg
-    open(IN,'<',$repo_file) or die "can't open $repo_file: $!\n";
-    while (defined($_=<IN>)) {
+	# read "correct" Root path from fink-mirrors pkg
+	open(IN,'<',$repo_file) or die "can't open $repo_file: $!\n";
+	while (defined($_=<IN>)) {
 	chomp;
 	$stored_repo = $_;  # we are assuming that this file only has one line
-    }
-    close(IN);
+	}
+	close(IN);
 
-    if (defined $stored_repo and $stored_repo ne $repo) {
+	if (defined $stored_repo and $stored_repo ne $repo) {
 	# active CVS/Root doesn't match current path; fix so it does
 	warn "Updating CVS/Root data...\n";
 
@@ -87,7 +87,7 @@ if (-d $sentinel_cvs) {
 	};
 
 	File::Find::find({wanted => $replace_cvs_root}, '@PREFIX@/fink');
-    }
+	}
 }
 
 exit;

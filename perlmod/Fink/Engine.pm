@@ -537,7 +537,7 @@ sub do_real_list {
 				sub {$sel_opts{installedstate} |= $ISTATE_TOONEW   ;},
 				'Only list packages whose installed version is newer than '
 				. 'anything fink knows about, including packages which '
-                . 'have been removed from the distribution.' ],
+				. 'have been removed from the distribution.' ],
 			[ 'buildonly|b'		=> \$sel_opts{'buildonly'},
 				'Only list packages which are Build Depends Only' ],
 			[ 'section|s=s'		=> \$sel_opts{'section'},
@@ -2034,7 +2034,7 @@ sub real_install {
 	   		 	"$install_source" .
 	   		 	"Or you can get them via direct download from developer.apple.com\n" .
 	   		 	"(free registration required) if you don't want to install Xcode.app.\n";
-      	}
+	}
 	
 		# check whether the command-line tools and Xcode.app are compatible.
 		my $xcode_cli_version = ${${Fink::VirtPackage->list}{'xcode'}}{'version'};
@@ -2643,7 +2643,7 @@ HELPFORMAT
 					 $_ =~ /^update(configguess|libtool)indirs$/ or
 					 $_ =~ /^set/ or $_ =~ /^jarfiles$/ or
 					 $_ =~ /^patch(|file\d*|file\d*-md5|file\d*-checksum)$/ or $_ eq 'appbundles' or
- 					 $_ eq 'infodocs' or $_ =~ /^daemonicname$/
+	$_ eq 'infodocs' or $_ =~ /^daemonicname$/
 					) {
 				# singleline fields start on the same line, have
 				# embedded newlines removed, and are not wrapped

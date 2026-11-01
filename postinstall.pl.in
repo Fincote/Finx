@@ -55,8 +55,8 @@ if (-f $configpath) {
 										  { Basepath => '@PREFIX@' }
 										  );
 } else {
-  print "ERROR: Configuration file \"$configpath\" not found.\n";
-  exit 1;
+	print "ERROR: Configuration file \"$configpath\" not found.\n";
+	exit 1;
 }
 
 
@@ -70,8 +70,8 @@ if ($expectedConfFileCompatVersion > $actualConfFileCompatVersion) {
 }
 elsif ($expectedConfFileCompatVersion < $actualConfFileCompatVersion) {
 	&print_breaking("\nWARNING: Your fink configuration file \"$configpath\" " .
-        "was created from a fink version newer than this one! Try to run " .
-        "'fink configure' or reinstall the latest fink to correct this.\n\n");
+				"was created from a fink version newer than this one! Try to run " .
+				"'fink configure' or reinstall the latest fink to correct this.\n\n");
 }
 
 
@@ -85,8 +85,8 @@ my ($distribution);
 $host = `$basepath/lib/fink/update/config.guess`;
 chomp($host);
 if ($host =~ /^\s*$/) {
-  print " ERROR: Can't determine host type.\n";
-  exit 1;
+	print " ERROR: Can't determine host type.\n";
+	exit 1;
 }
 print " $host\n";
 
@@ -138,9 +138,9 @@ if (-d "$distdir/CVS") {
 ### Error out when running on an unsupported old systems.
 
 if (($distribution eq "10.1") or
-    ($distribution eq "10.2") or
-    ($distribution eq "10.3") or
-    ($distribution eq "10.4-transitional")) {
+		($distribution eq "10.2") or
+		($distribution eq "10.3") or
+		($distribution eq "10.4-transitional")) {
 	print "ERROR: The current version of fink cannot be used with the $distribution distribution.\nPlease use an appropriate earlier version of fink.\n";
 	exit 1;
 }
@@ -260,7 +260,7 @@ if ($updating) {
 # Currently applies to 10.9-10.15 platforms coming from a
 # dist that used the "10.7" subdir (regardless of actual platform)
 if ( $distribution eq "10.9" or $distribution eq "10.10" or $distribution eq "10.11" or $distribution eq "10.12" or $distribution eq "10.13" or $distribution eq "10.14" or $distribution eq "10.14.5" or $distribution eq "10.15"
-     and -d "$basepath/fink/10.7" ) {
+		and -d "$basepath/fink/10.7" ) {
 	my @deb_list = glob "$basepath/fink/debs/*.deb";
 	my $copy_debs = 1;
 	foreach my $file ( @deb_list ) {
@@ -324,8 +324,8 @@ pre_scanpackages();
 
 if ($configNeedsUpdate) {
 	&print_breaking("\nThis fink version introduces new settings stored in the " .
-        "fink configuration file \"$configpath\". You should rerun the " .
-        "configuration process.\n");
+				"fink configuration file \"$configpath\". You should rerun the " .
+				"configuration process.\n");
 	my $answer = &prompt_boolean("Do you want to configure now?", default => 0, timeout => 60);
 	if ($answer) {
 		require Fink::Configure;

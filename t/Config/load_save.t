@@ -13,9 +13,9 @@ END { unlink $Config_File }
 use Fink::Config;
 
 my $config = Fink::Config->new_with_path($Config_File, 
-                                         { Basepath => "TheDefault",
-                                           Something => "A Default",
-                                         });
+										{ Basepath => "TheDefault",
+										Something => "A Default",
+										});
 isa_ok( $config, 'Fink::Config' );
 
 is( $config->{Basepath}, undef, 'defaults lowercased' );
@@ -24,25 +24,25 @@ is( $config->param('Something'), 'A Default' );
 
 
 sub ck_config {
-    my $config = shift;
+	my $config = shift;
 
-    is( $config->get_path,      $Config_File, 'get_path' );
-    is_deeply( [$config->get_treelist], 
-               [qw(local/main stable/main stable/crypto local/bootstrap)],
-               'get_treelist'
-             );
+	is( $config->get_path,      $Config_File, 'get_path' );
+	is_deeply( [$config->get_treelist], 
+			[qw(local/main stable/main stable/crypto local/bootstrap)],
+			'get_treelist'
+			);
 
-    open CONFIG, $Config_File;
-    my %Expected_Params = map { /^([^:]+):\s*(.*)$/; ($1 => $2) }
-                            grep !/^#/, grep /\S/, <CONFIG>;
-    close CONFIG;
+	open CONFIG, $Config_File;
+	my %Expected_Params = map { /^([^:]+):\s*(.*)$/; ($1 => $2) }
+							grep !/^#/, grep /\S/, <CONFIG>;
+	close CONFIG;
 
-    while ( my($key, $val) = each %Expected_Params ) {
-        ok( $config->has_param($key),   "has_param($key)" );
-        is( $config->param($key), $val, "param($key)" );
-        is( $config->param(uc $key), $val, "param(uc $key)" );
-        is( $config->param(lc $key), $val, "param(lc $key)" );
-    }
+	while ( my($key, $val) = each %Expected_Params ) {
+		ok( $config->has_param($key),   "has_param($key)" );
+		is( $config->param($key), $val, "param($key)" );
+		is( $config->param(uc $key), $val, "param(uc $key)" );
+		is( $config->param(lc $key), $val, "param(lc $key)" );
+	}
 }
 
 

@@ -13,6 +13,6 @@ sub initialize { $init_called++ }
 isa_ok( My::Fink->new(), 'My::Fink', 'new()' );
 is( $init_called, 1, 'initialize called' );
 isa_ok( My::Fink->new_from_properties({}), 'My::Fink', 
-                                        'new_from_properties()' );
+										'new_from_properties()' );
 is( $init_called, 2, 'initialize called' );
 

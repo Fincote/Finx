@@ -89,6 +89,7 @@ readme.ja.html
 readme.pt.html
 readme.ru.html
 readme.zh.html
+scripts/format_check.pl
 update/config.guess
 update/config.sub
 update/ltconfig

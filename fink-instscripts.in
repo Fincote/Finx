@@ -16,12 +16,12 @@ print "$pcmd\n", map "\t'$_'\n", @dpkg_args;
 
 my($package, $dpkg_script, $dpkg_mode);
 while (defined ($package = shift @dpkg_args)) {
-    print "trying $package...\n";
-    if ($package =~ s,$PREFIX/var/lib/dpkg/info/(\S+)\.((?:pre|post)(?:inst|rm)),$1,) {
+	print "trying $package...\n";
+	if ($package =~ s,$PREFIX/var/lib/dpkg/info/(\S+)\.((?:pre|post)(?:inst|rm)),$1,) {
 	$dpkg_script = $2;
 	$dpkg_mode = shift @dpkg_args;
 	last;
-    }
+	}
 }
 if (not defined $dpkg_mode) {
 	die "Could not parse \"$pcmd\"\n";

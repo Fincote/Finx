@@ -4,10 +4,10 @@ save_IFS="$IFS"
 IFS=:
 newpath=
 for dir in $PATH ; do
-  case $dir in
-    *var/lib/fink/path-prefix*) ;;
-    *) newpath="${newpath:+${newpath}:}$dir" ;;
-  esac
+    case $dir in
+        *var/lib/fink/path-prefix*) ;;
+        *) newpath="${newpath:+${newpath}:}$dir" ;;
+    esac
 done
 IFS="$save_IFS"
 export PATH="$newpath"

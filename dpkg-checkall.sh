@@ -30,18 +30,18 @@ echo "Checking for missing files (Package - Missing files):"
 echo " "
 for FILELIST in $fink_path/var/lib/dpkg/info/*.list
 do
-  PACKAGE=`basename $FILELIST .list`
+    PACKAGE=`basename $FILELIST .list`
 # trick to allow for spaces in file names: remove them from IFS 
 IFS="
 "
 for FILE in `cat $FILELIST`
-  do
-    if ! test -e "$FILE" 
-    then
-        NONE=0
-        echo $PACKAGE "-" $FILE
-    fi
-  done
+    do
+        if ! test -e "$FILE" 
+        then
+                NONE=0
+                echo $PACKAGE "-" $FILE
+        fi
+    done
 done
 [ $NONE -gt 0 ] &&  echo "No files missing. Congratulations!"
 
