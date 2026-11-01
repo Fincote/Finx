@@ -90,6 +90,7 @@ readme.pt.html
 readme.ru.html
 readme.zh.html
 scripts/format_check.pl
+scripts/structure_test.sh
 update/config.guess
 update/config.sub
 update/ltconfig

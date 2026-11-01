@@ -58,14 +58,20 @@
 完整方法见 [`docs/TECHNICAL-GUIDE.md`](./docs/TECHNICAL-GUIDE.md) 第九节。要点：
 
 ```
-make test          # manifest_check → test_setup → 跑完 t/ 全部测试
+make test          # manifest_check → structure → test_setup → 跑完 t/ 全部测试
 ```
 
 - 基线：**48 个测试文件、1059 项断言**全通过。
 - `make test` 会先跑 `manifest_check`，它校验两件事：仓库里每个文件都在 `MANIFEST`
-  里（否则不会进发行 tarball），且生成物都被 `MANIFEST.SKIP` 排除。
+  里（否则不会进载荷 tar），且生成物都被 `MANIFEST.SKIP` 排除。
   新增需要随程序分发的文件要登记进 `MANIFEST`；生成物则加进 `MANIFEST.SKIP` 与
   `.gitignore` 两处。
+- 接着跑 `structure`（[`scripts/structure_test.sh`](./scripts/structure_test.sh)）：
+  在临时目录里建「只有 git 文件的树」与「只有 MANIFEST 文件的树」，各跑一遍
+  `setup.sh` + `install.sh`，两边的安装结果必须逐字节一致。
+  它守的是 `MANIFEST` 与实际安装是否同步 —— `manifest_check` 只看得见 `MANIFEST`
+  一侧，看不见 `install.sh` 到底装了什么。改了 `install.sh` 的文件列表或
+  `MANIFEST` 后务必跑一次。
 - 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
 - 改 `PkgVersion` / `Engine` / `Services` / `Bootstrap` 后必须重跑全套；只改文档不用跑。
 - VS Code 里有同名任务：`Test: perl suite`、`Verify: all`（见 `.vscode/tasks.json`）。
@@ -107,8 +113,11 @@ TECHNICAL-GUIDE 9.1。两条规矩：
   `finx-install/install.sh` 后必须跑 `./finx-install/build-bundle.sh`，否则线上那条
   `curl | bash` 跑的还是旧逻辑。`build-bundle.sh --check` 负责发现漂移。
 - `10.9-libcxx/*.patch` 与 `10.9-libcxx/dpkg.patch`：上游源码的补丁载荷，动一个字节就装不上。
-- `MANIFEST`：tar 打包清单。只有新增「要随程序分发的文件」才加进去；
-  `.md` 已被 `MANIFEST.SKIP` 的 `\.md$` 自动排除，文档不必登记。
+- **`MANIFEST` 是载荷清单，不是发行清单。** 它只列「要打进载荷 tar 的文件」；
+  `fink.info.in`、`10.9-libcxx/`、`mirror/` 被 `MANIFEST.SKIP` 排除是**刻意**的 ——
+  前者的用途是生成包描述，后者由 bootstrap 单独 `cp`。`Bootstrap::check_files`
+  查的是另一件事（源码树完整性），两者不同集，不要套包含关系。
+  这条曾被我判断错，纠正过程见 TECHNICAL-GUIDE 10.5。
 - `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE 第一节。
 - **种子的 tar 包不进仓库。** git 单文件 100 MiB 硬限，种子是编译产物，放进去会让
   历史永久膨胀且无法删除。产物发到 GitHub Releases，清单留在 `finx-install/seed/`

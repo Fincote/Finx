@@ -584,6 +584,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | `setup.sh` 变量拼写错误 | 原来第 117 行（现 [118](../setup.sh:118)）把 `$basepath` 写成 `$basepeath`，`compiler_wrapper-10.9` 里的前缀被替换成空串 | **已修**，见 10.2。影响仅限一行注释 |
 | phase 2 被执行两次 | [bootstrap:794](../bootstrap) 在错误检查之前多了一次裸的 `execute`，第一次的返回值被丢弃 | **已修**，见 10.3 |
 | 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`fink-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | **已修**，见 10.4 |
+| 三份手写清单互不校验 | `MANIFEST`、`check_files`、`install.sh` 是同一份事实的三个副本 | **已修**，见 10.5 |
 | 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 是 0.45.99.git | 未修。新文档以本手册为准 |
 | `NEWS` 里的旧路径 | 历史条目仍写 `/sw`、`/opt/sw` | 刻意保留，见 [AGENTS.md](../AGENTS.md) |
 
@@ -663,14 +664,62 @@ packargs='"qqiss", 0, 0'
 grep -h 'pack(@\|pack("' dpkg-lockwait fink-dpkg-status-cleanup   # 两行必须逐字相同
 ```
 
-### 10.5 未修的根因：三份手写清单互不校验
+### 10.5 已修：三份手写清单互不校验
 
-`MANIFEST`（tar 打包）、`Bootstrap::check_files`（[Bootstrap.pm:665](../perlmod/Fink/Bootstrap.pm:665)，
-自举前完整性）、`install.sh` 的 `for file in ...`（实际安装）**是同一份事实的三个副本**，
-手工维护，没有任何交叉检查。
+`MANIFEST`（打载荷 tar 用）、`Bootstrap::check_files`（[Bootstrap.pm:665](../perlmod/Fink/Bootstrap.pm:665)，
+自举前断言源码树完整）、`install.sh` 的 `for file in ...`（实际安装）**是同一份事实的三个
+副本**，手工维护，没有任何交叉检查。`readme.de.html` 那次事故就是三份不同步的产物。
 
-`readme.de.html` 那次事故正是三份不同步的产物，且只被 `MANIFEST` 一侧偶然发现。修好
-`manifest_check` 只是让其中一份变可靠，不是让三份一致。
+修好 `manifest_check` 只是让其中一份变可靠，不是让三份一致。真正的修法是
+[`scripts/structure_test.sh`](../scripts/structure_test.sh)，已挂进 `make test`。
 
-正确做法是加一个 `scripts/structure_test.sh`，做集合运算：`install.sh` 装的 ⊆ `MANIFEST`
-⊆ 仓库文件，且生成物不出现在仓库文件集里。**这项待做。**
+#### 为什么是"执行"而不是"解析"
+
+`install.sh` 的写法是
+
+```sh
+for file in update-packages/* ; do
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update-packages/"
+done
+```
+
+解析它要重写一遍 shell 的通配符、循环、变量展开规则，而**与真实行为不一致的那一处，
+正是 bug 藏身的地方**。所以脚本不解析，而是执行：在临时目录里建两棵树，
+
+| 树 | 内容 |
+| --- | --- |
+| `tree-git` | 只有 `git ls-files` 列出的文件 |
+| `tree-manifest` | 只有 `MANIFEST` 列出的文件 |
+
+各跑一遍 `setup.sh` + `install.sh`，然后 `diff -r` 比对装出来的东西。
+
+两棵树的结果必须完全一致。少了 = MANIFEST 漏登记；多了 = MANIFEST 多登记或
+`install.sh` 读了目录里碰巧存在的东西。
+
+另外还有一条**语义断言**：`bin/`、`sbin/` 下的文件必须可执行，`lib/perl5/` 下的模块必须
+不带可执行位。这条不能靠两棵树比对来实现 —— 两棵树共用同一个 `install.sh`，把
+`-m 755` 写成 `-m 644` 两边会错得一样，比对恒真。所以它检查的是「装出来的东西对不对」，
+而不是「两棵树是否一样」。
+
+三条检测路径都做过反向验证：从 `MANIFEST` 里删掉 `readme.de.html` → 报
+`Only in tree-git.prefix/share/doc/fink: readme.de.html`；加一条不存在的文件 → 报
+"打 tar 时会被静默跳过"；往 `check_files` 里塞一个不存在的名字 → 报"自举会在这里 die"；
+把 `install.sh` 里 `$bin` 那行的 `-m 755` 改成 `-m 644` → 逐条列出 `bin/fink` 等七个
+文件"没有可执行位"。
+
+不在 git 工作区里运行时（例如从 tarball 解出来的树）跳过双树比对，只做静态检查——
+bootstrap 会在那种场景下跑 `make test`，不该因此失败。
+
+#### 顺带纠正：`MANIFEST` 不是发行清单，是载荷清单
+
+一度以为 `check_files ⊆ MANIFEST` 应当成立，而 `fink.info.in` 违反了它。查下来是**理解错了**：
+
+- `fink.info.in` 被 [`MANIFEST.SKIP:18`](../MANIFEST.SKIP:18) 明确排除，是**对的**。
+  它不是载荷，是元数据模板：`bootstrap` 从当前目录读它，经 `copy_description`
+  生成为包描述，再把 `MANIFEST` 打出来的 tar 填进该描述的 `Source` 字段。
+- `check_files` 查的是"源码树是否完整到可以自举"，`MANIFEST` 查的是"载荷 tar 里有什么"。
+  两者本来就不同集，套用同一条包含关系是错的。
+
+这就是第 8.7 节「一个概念四个名字」的另一种形态：**两个名字听起来是同一件事
+（"清单"），实际是两个不同的集合。** `10.9-libcxx/` 与 `mirror/` 同样只被
+`MANIFEST.SKIP` 排除、不进载荷 tar，理由相同。

@@ -12,6 +12,7 @@ all:
 	@echo -e "              ARCHITECTURE can also be set, defaults to x86_64"   
 	@echo -e "\tinstall     install to an existing fink installation"
 	@echo -e "\ttest        perform tests on the fink code"
+	@echo -e "\tstructure   cross-check git, MANIFEST and what install.sh really installs"
 	@echo -e "\tformat      check indentation of all Perl and shell sources"
 	@echo -e "\tclean       remove all extraneous files"
 	@echo    ""
@@ -28,12 +29,18 @@ test_setup:
 manifest_check:
 	perl -MExtUtils::Manifest=fullcheck -e 'my($$missing, $$extra) = fullcheck;exit (@$$missing || @$$extra)'
 
+# 三份清单（git、MANIFEST、install.sh 实际装出来的东西）的交叉校验。
+# 挂进 test 的理由与 manifest_check 相同：不一致会直接让安装缺文件，
+# 属于正确性问题，不是格式洁癖。完整背景见 scripts/structure_test.sh 的注释。
+structure:
+	FINX_ARCH="$(ARCHITECTURE)" ./scripts/structure_test.sh
+
 # 缩进检查。故意不挂进 test：bootstrap 会跑 make test，而格式瑕疵不该拦住安装。
 # Perl 用 tab、shell 用 4 空格，规则与例外见 scripts/format_check.pl 的注释。
 format:
 	./scripts/format_check.pl
 
-test: manifest_check test_setup
+test: manifest_check structure test_setup
 	@# must test with same perl binary as the one to be used to run fink
 	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
 	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
