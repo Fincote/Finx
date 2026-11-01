@@ -110,3 +110,7 @@ TECHNICAL-GUIDE 9.1。两条规矩：
 - `MANIFEST`：tar 打包清单。只有新增「要随程序分发的文件」才加进去；
   `.md` 已被 `MANIFEST.SKIP` 的 `\.md$` 自动排除，文档不必登记。
 - `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE 第一节。
+- **种子的 tar 包不进仓库。** git 单文件 100 MiB 硬限，种子是编译产物，放进去会让
+  历史永久膨胀且无法删除。产物发到 GitHub Releases，清单留在 `finx-install/seed/`
+  并由 git 记录 —— 清单是校验锚点，与被校验的产物不能同源。理由与命名规则见
+  TECHNICAL-GUIDE 8.8。
