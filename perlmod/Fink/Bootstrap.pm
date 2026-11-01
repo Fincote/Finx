@@ -539,6 +539,12 @@ sub bootstrap1 {
 	my $package_list = additional_packages();
 	my @addlist = @{$package_list};
 
+	# 把仓库内置的源码就地打成 tar。必须在这里、在 cmd_fetch_missing 之前 ——
+	# 那是唯一会去网络取 base-files 的地方。放在 bootstrap2 里太晚：那时
+	# find_tarball 已经下载了镜像上的原件，而 .info 里的 Source-MD5 登记的是
+	# 我们自己打的 tar，两者不符，Fink 会停下来问用户要不要重新下载。
+	&pack_included_sources();
+
 	print "\n";
 	&print_breaking("BOOTSTRAP PHASE ONE: download tarballs.");
 	print "\n";
@@ -596,9 +602,8 @@ sub bootstrap2 {
 	# disable UseBinaryDist during bootstrap
 	Fink::Config::set_options( { 'use_binary' => -1 });
 
-	# 把仓库内置的源码就地打成 tar；放在 require_packages 之前，让后面
-	# cmd_install 里的 find_tarball 直接命中，不再联网。
-	&pack_included_sources();
+	# 内置源码的 tar 已在 bootstrap1 里生成（那里才是会联网取包的地方）。
+	# 这里不再重复打一次。
 
 	# make sure we have the package descriptions
 	Fink::Package->require_packages();

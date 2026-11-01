@@ -13,6 +13,7 @@ CVS/
 ^fink-dpkg-status-cleanup$
 ^fink-instscripts$
 ^fink-virtual-pkgs$
+^fink-virtual-pkgs-bootstrap$
 ^fink.conf.5$
 ^fink.info$
 ^fink.info.in$
@@ -24,6 +25,7 @@ CVS/
 ^g\+\+-wrapper-\d.*$
 ^lockwait.in$
 ^postinstall.pl$
+^pathsetup\.command$
 ^pathsetup.sh$
 ^shlibs.default$
 ^perlmod/Fink.pm$

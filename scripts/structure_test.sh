@@ -84,6 +84,56 @@ fi
 
 IN_GIT=0
 
+# 生成物必须同时进 .gitignore 与 MANIFEST.SKIP。只加一处的时候：加在
+# .gitignore 里 → git 干净了，但 make manifest_check 会在下次 bootstrap 之后
+# 突然变红；加在 MANIFEST.SKIP 里 → tarball 干净了，但文件会被误提交。
+#
+# 真实事故：fink-virtual-pkgs-bootstrap 只在 .gitignore 里，于是每次
+# ./bootstrap 跑完之后 make test 都失败，而报错只说 "Not in MANIFEST"，
+# 完全看不出是少了一条 SKIP 规则。
+#
+# 判定方式是用 MANIFEST.SKIP 里的**正则**去匹配 .gitignore 里的名字 ——
+# 不能比字符串，因为有一半条目是模式（`^g\+\+-wrapper-\d.*$`）。
+check_ignore_pairing() {
+    [ -f .gitignore ] && [ -f MANIFEST.SKIP ] || return 0
+
+    perl -e '
+        use strict; use warnings;
+        open(my $gi, "<", ".gitignore")   or exit 0;
+        open(my $ms, "<", "MANIFEST.SKIP") or exit 0;
+
+        chomp(my @skip = <$ms>);
+        @skip = grep { /\S/ && !/^#/ } @skip;
+
+        my @names;
+        while (<$gi>) {
+            chomp;
+            next unless m{^/([A-Za-z0-9_.+-]+)$};
+            push @names, $1;
+        }
+
+        my @unpaired;
+        NAME: foreach my $name (@names) {
+            foreach my $re (@skip) {
+                my $ok = eval { $name =~ /$re/ };
+                next NAME if $ok;   # 任意一条 SKIP 规则命中即可
+            }
+            push @unpaired, $name;
+        }
+
+        print "$_\n" for @unpaired;
+    ' > "$WORK/unpaired" 2>/dev/null
+
+    if [ -s "$WORK/unpaired" ]; then
+        bad "这些生成物只在 .gitignore 里，缺 MANIFEST.SKIP 的对应条目"
+        sed 's/^/    /' "$WORK/unpaired"
+        printf '    症状：跑过 bootstrap 之后 make test 会突然变红，而报错只说\n'
+        printf '    "Not in MANIFEST"，不说是哪条 SKIP 规则漏了。\n'
+    fi
+}
+
+check_ignore_pairing
+
 if git rev-parse --git-dir >/dev/null 2>&1; then
     IN_GIT=1
     git ls-files | sort -u > "$WORK/tracked"
