@@ -792,7 +792,6 @@ if ($distribution eq "10.6") {
 
 $cmd = "/usr/bin/env -i $perlexe $cmd $installto";
 
-&execute($cmd, quiet=>0);
 if (&execute($cmd, quiet=>0)) {
 	print "\nERROR: Bootstrap phase 2 failed!\n";
 	exit 1;

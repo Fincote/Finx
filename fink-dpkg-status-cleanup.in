@@ -42,7 +42,7 @@ if ($> == 0 && !$dryrun) {
 	#       short   l_type;     /* lock type: read/write, etc. */
 	#       short   l_whence;   /* type of l_start */
 	#   };
-	my $struct_flock = pack("lllliss", (0, 0), (0, 0), 0, F_WRLCK, SEEK_SET);
+	my $struct_flock = pack(@PACKARGS@, 0, F_WRLCK, SEEK_SET);
 	my $lock_ok = fcntl(LOCK, F_SETLK, $struct_flock);
 	unless ($lock_ok || $! == EOPNOTSUPP || $! == ENOLCK) {
 		die "lockwait: Can't get lock: $!" unless $! == EAGAIN || $! == EACCES;

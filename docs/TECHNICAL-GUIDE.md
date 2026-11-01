@@ -581,9 +581,9 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | 问题 | 症状 | 状态 |
 | --- | --- | --- |
 | `manifest_check` 曾经必然失败 | 见 10.1 | **已修** |
-| `setup.sh` 变量拼写错误 | 第 117 行把 `$basepath` 写成 `$basepeath`，`compiler_wrapper-10.9` 里的前缀被替换成空串 | 未修。属于既有缺陷，不在前缀迁移范围内 |
-| phase 2 被执行两次 | [bootstrap:777](../bootstrap) 附近连续两行 `execute`，第一次的返回值被丢弃 | 未修。会白跑一遍自举 |
-| 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`fink-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | 未修。64 位下偏移恰好一致，32 位会错位 |
+| `setup.sh` 变量拼写错误 | 原来第 117 行（现 [118](../setup.sh:118)）把 `$basepath` 写成 `$basepeath`，`compiler_wrapper-10.9` 里的前缀被替换成空串 | **已修**，见 10.2。影响仅限一行注释 |
+| phase 2 被执行两次 | [bootstrap:794](../bootstrap) 在错误检查之前多了一次裸的 `execute`，第一次的返回值被丢弃 | **已修**，见 10.3 |
+| 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`fink-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | **已修**，见 10.4 |
 | 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 是 0.45.99.git | 未修。新文档以本手册为准 |
 | `NEWS` 里的旧路径 | 历史条目仍写 `/sw`、`/opt/sw` | 刻意保留，见 [AGENTS.md](../AGENTS.md) |
 
@@ -608,3 +608,69 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 - 要随程序分发的文件必须登记（`install.sh` 里的 `for file in ...` 列表是最好的对照）；
 - 生成物要**同时**进 `MANIFEST.SKIP` 与 `.gitignore`，只加一处会出现"git 干净了但
   tarball 里混进生成物"，或反之。
+
+这两条规则靠人守是不可靠的——见 10.5。
+
+### 10.2 已修：`setup.sh` 的 `$basepeath`
+
+[setup.sh:118](../setup.sh:118) 把 `$basepath` 拼成了 `$basepeath`。因为 `sh` 不报未定义
+变量，`sed -e "s|@PREFIX@|$basepeath|g"` 展开成 `s|@PREFIX@||g`，前缀被替换成空串。
+
+**但它没有功能影响**：`@PREFIX@` 在整个 `compiler_wrapper-10.9.in` 里只出现一次，
+在第 25 行那条被 `exec` 挡住的注释中：
+
+```sh
+exec $compiler -stdlib=libc++ "$suppress_hard_error" "$@"
+# strip path-prefix to avoid finding this wrapper again
+# @PREFIX@/bin is needed to pick up ccache-default
+```
+
+所以症状只是生成出来的注释写成 `# /bin is needed ...`。修它是为了不留错字，不是因为它在
+弄坏构建。判断这类问题要靠 `grep -c '@PREFIX@' <模板>`，不能只看 sed 命令长什么样。
+
+### 10.3 已修：phase 2 被执行两次
+
+[bootstrap:794](../bootstrap) 在错误检查之前多了一次裸的 `&execute($cmd, quiet=>0);`。
+`git log -L` 显示这是 `e3efa1a0`（Remove force-depends）的副作用：该提交把注释掉的
+错误检查取消注释，但忘了删掉紧邻的旧调用。
+
+代价没有"白跑一遍自举"那么大：`bootstrap-phase2.pl` 只调 `Bootstrap::bootstrap2()`，
+后者走 `Engine::cmd_install(@elist, @addlist)`；第二遍会被判定为"已安装"而跳过，不会重新
+编译。真正的损失是那行错误检查落在了**第二遍**的结果上——第一遍才是干活的那次。
+
+### 10.4 已修：两个锁实现不一致
+
+`lockwait.in` 与 `fink-dpkg-status-cleanup.in` 的文件头互相要求保持同步，但只有前者用
+`@PACKARGS@` 模板，后者硬编码 `pack("lllliss", (0,0), (0,0), 0, F_WRLCK, SEEK_SET)`。
+
+这两个格式**当前恰好等价**，但不是因为它们正确。Perl 的 `l` 是 `long`，实测本机
+`length(pack("l",0)) == 4`，于是 `"lllliss"` 也是 8+8+4+2+2=24 字节、字段落在正确偏移。
+而 `q` 是恒定 64 位，`"qqiss"` 不随 perl 构建变化——这才是 `lockwait.in` 用 `q` 的原因。
+换句话说：**硬编码的那份当时写对了，只是靠了本机 perl 的一个偶然性质。**
+
+修法是把 `packargs` 的定义提到 `fink-dpkg-status-cleanup` 的 `sed` 之前，让两个模板共用
+同一个 `@PACKARGS@`：
+
+```sh
+# setup.sh，在生成任何 lock 脚本之前
+packargs='"qqiss", 0, 0'
+```
+
+验证方式（不依赖机器差异）：
+
+```sh
+./setup.sh /opt/finx arm64
+grep -h 'pack(@\|pack("' dpkg-lockwait fink-dpkg-status-cleanup   # 两行必须逐字相同
+```
+
+### 10.5 未修的根因：三份手写清单互不校验
+
+`MANIFEST`（tar 打包）、`Bootstrap::check_files`（[Bootstrap.pm:665](../perlmod/Fink/Bootstrap.pm:665)，
+自举前完整性）、`install.sh` 的 `for file in ...`（实际安装）**是同一份事实的三个副本**，
+手工维护，没有任何交叉检查。
+
+`readme.de.html` 那次事故正是三份不同步的产物，且只被 `MANIFEST` 一侧偶然发现。修好
+`manifest_check` 只是让其中一份变可靠，不是让三份一致。
+
+正确做法是加一个 `scripts/structure_test.sh`，做集合运算：`install.sh` 装的 ⊆ `MANIFEST`
+⊆ 仓库文件，且生成物不出现在仓库文件集里。**这项待做。**

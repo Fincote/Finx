@@ -85,17 +85,18 @@ echo "Creating shlibs default file..."
 echo "Creating postinstall script..."
 /usr/bin/sed "s|@PREFIX@|$basepath|g" <postinstall.pl.in >postinstall.pl
 
+# set arguments for pack() up in an architecture-appropriate manner
+# These are appropriate for x86_64:
+packargs='"qqiss", 0, 0'
+
 echo "Creating dpkg helper script..."
-/usr/bin/sed "s|@PREFIX@|$basepath|g" <fink-dpkg-status-cleanup.in >fink-dpkg-status-cleanup
+/usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PACKARGS@|$packargs|" \
+    <fink-dpkg-status-cleanup.in >fink-dpkg-status-cleanup
 
 # note: because they are used at different times during bootstrapping,
 # it is important to NOT use the full path to the dpkg executable in
 # dpkg-lockwait, but to GIVE the full path to the apt-get executable in
 # apt-get-lockwait
-
-# set arguments for pack() up in an architecture-appropriate manner
-# These are appropriate for x86_64:
-packargs='"qqiss", 0, 0'
 
 echo "Creating lockwait wrappers..."
 for prog in dpkg; do
@@ -114,6 +115,6 @@ done
 echo "Creating compiler wrapper"
 /usr/bin/sed -e "s|@ARCHITECTURE@|$architecture|g" -e "s|@PREFIX@|$basepath|g" < compiler_wrapper-10.6.in >"compiler_wrapper"
 /usr/bin/sed -e "s|@PREFIX@|$basepath|g" < compiler_wrapper-10.7.in >"compiler_wrapper-10.7"
-/usr/bin/sed -e "s|@PREFIX@|$basepeath|g" < compiler_wrapper-10.9.in >"compiler_wrapper-10.9"
+/usr/bin/sed -e "s|@PREFIX@|$basepath|g" < compiler_wrapper-10.9.in >"compiler_wrapper-10.9"
 
 exit 0
