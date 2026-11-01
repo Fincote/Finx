@@ -32,7 +32,7 @@ finx-install/
 ├── install.sh            模块化入口：解析参数、编排七个阶段
 ├── standalone.sh         生成物：自包含单文件，供 curl | bash 使用
 ├── build-bundle.sh       把 install.sh + lib/*.sh 打平成 standalone.sh
-├── selftest.sh           沙箱自测：12 项断言，全程离线
+├── selftest.sh           沙箱自测：19 项断言，全程离线
 ├── lib/
 │   ├── common.sh         输出、错误、trap、临时目录、sha256、测试根
 │   ├── detect.sh         宿主探测（macOS 版本 / 架构）、目标目录状态、写权限
@@ -114,7 +114,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
 
 ## 七、自测
 
-一条命令跑完 12 项断言，全程离线、不碰真实目录：
+一条命令跑完 19 项断言，全程离线、不碰真实目录：
 
 ```
 ./finx-install/selftest.sh
@@ -128,7 +128,17 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 
 覆盖的场景：dry-run 不留痕、默认前缀落在测试根内、种子解包正确、`fink.conf` 记录沙箱前缀、
 重复安装被拒、越界前缀被拒（含 `..` 与符号链接两种逃逸）、sha256 不符被拒且不留目录、
-管道模式可装、`standalone.sh` 与源同步。
+管道模式可装、`standalone.sh` 与源同步、多镜像回退、清单不可达被拒。
+
+假种子里刻意放了两样容易被忽略的东西：
+
+- **一个真的 Mach-O**（用 `cc` 现场编）。否则 `resign_macho` 只会打印 `re-signed 0`，
+  签名分支等于从没执行过。断言要求它确实被重签，且 `codesign -v` 通过。
+  机器上没有 `cc` 时明说跳过，不假装通过。
+- **`init.sh`**。安装器的收尾提示会让用户 `source` 它，假种子缺了这条提示就是空话。
+
+下载路径也真的走了一遍：多镜像那组用 `file://` URL 模拟，第一个地址指向不存在的文件，
+断言安装仍然成功、且日志里报告了那次镜像失败。
 
 手工验证时也建议走同一个根：
 

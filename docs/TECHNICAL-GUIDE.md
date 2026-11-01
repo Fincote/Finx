@@ -299,7 +299,7 @@ url     https://host/b/seed.tar.gz
 `FINX_TEST=<绝对路径>` 把整次运行关进该目录（作用等同于 MacWave 的 `MACWAVE_TEST`）：
 默认前缀变成 `<测试根>/opt/finx`，`TMPDIR` 改到 `<测试根>/tmp`，`--prefix` 越界即中止。
 相对路径、`/`、解析后落在系统目录的路径一律拒绝 —— 测试根写错时宁可中止，也不降级到真实目录。
-`finx-install/selftest.sh` 用这个机制跑 12 项断言，全程离线。
+`finx-install/selftest.sh` 用这个机制跑 19 项断言，全程离线。
 
 ### 8.6 前缀归属：必须是 root
 

@@ -70,10 +70,27 @@ case "$1" in
 esac
 STUB
 chmod 755 "$SEED/bin/fink"
+
+# 安装器收尾会提示 source 它，假种子也得有，否则那句提示对不上真实产物
+cat > "$SEED/bin/init.sh" <<'STUB'
+# stub init.sh for the selftest sandbox
+STUB
+chmod 755 "$SEED/bin/init.sh"
+
 printf 'Debian dpkg version 1.19.7 (stub)\n' > "$SEED/bin/dpkg-stub"
 chmod 755 "$SEED/bin/dpkg-stub"
 echo "0.46.0" > "$SEED/lib/fink/version"
 printf 'placeholder\n' > "$SEED/etc/seed.txt"
+
+# 放一个真的 Mach-O 进去，否则 resign_macho 只是在空转（re-signed 0）。
+# 没有可用的 cc 就跳过随之而来的两条断言，而不是假装通过。
+EXPECT_MACHO=0
+if command -v cc >/dev/null 2>&1; then
+    printf 'int main(void){return 0;}\n' > "$ROOT/probe.c"
+    if cc -o "$SEED/bin/hello" "$ROOT/probe.c" 2>/dev/null; then
+        EXPECT_MACHO=1
+    fi
+fi
 
 tar -czf "$ROOT/seed.tar.gz" -C "$SEED" . || exit 1
 SEED_SIZE=$(wc -c < "$ROOT/seed.tar.gz" | tr -d ' ')
@@ -87,7 +104,14 @@ write_manifest() {
 
 write_manifest "$ROOT/manifest"
 
+LOG=$ROOT/last-install.log
+
 printf '== selftest: FINX_TEST=%s\n\n' "$ROOT"
+if [ "$EXPECT_MACHO" -eq 1 ]; then
+    printf '   (fake seed carries a compiled Mach-O)\n\n'
+else
+    printf '   (no cc available; re-signing assertions will be skipped)\n\n'
+fi
 
 # ---- 1. dry-run 不得创建前缀 --------------------------------------------
 
@@ -97,7 +121,7 @@ printf '== selftest: FINX_TEST=%s\n\n' "$ROOT"
 
 # ---- 2. 默认前缀落在测试根内 --------------------------------------------
 
-if "$INSTALL" --seed-dir="$ROOT" >/dev/null 2>&1; then
+if "$INSTALL" --seed-dir="$ROOT" >"$LOG" 2>&1; then
     pass "install with default prefix"
 else
     failed "install with default prefix"
@@ -107,6 +131,28 @@ if [ -f "$ROOT/opt/finx/bin/fink" ]; then
     pass "seed extracted into the test root"
 else
     failed "seed not extracted into the test root"
+fi
+
+if [ -f "$ROOT/opt/finx/bin/init.sh" ]; then
+    pass "init.sh the closing message points at really exists"
+else
+    failed "closing message points at a missing init.sh"
+fi
+
+# 重签名：假种子里有真 Mach-O 时才断言，否则明说跳过
+if [ "$EXPECT_MACHO" -eq 1 ]; then
+    if grep -q 're-signed 1 Mach-O' "$LOG"; then
+        pass "the Mach-O in the seed was actually re-signed"
+    else
+        failed "resign_macho did not touch the compiled Mach-O"
+    fi
+    if codesign -v "$ROOT/opt/finx/bin/hello" >/dev/null 2>&1; then
+        pass "re-signed binary verifies"
+    else
+        failed "re-signed binary does not verify"
+    fi
+else
+    printf 'skip re-signing assertions (no cc available)\n'
 fi
 
 if grep -qx "Basepath: $ROOT/opt/finx" "$ROOT/opt/finx/etc/fink.conf" 2>/dev/null; then
@@ -157,6 +203,40 @@ fi
 # ---- 7. 单文件必须与源同步 ----------------------------------------------
 
 check_ok "standalone.sh is not stale" "$HERE/build-bundle.sh" --check
+
+# ---- 8. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
+
+MIRROR=$ROOT/mirror
+mkdir -p "$MIRROR" || exit 1
+cp "$ROOT/seed.tar.gz" "$MIRROR/" || exit 1
+{
+    printf 'schema 1\nrelease 0.46.0\narch %s\nseed seed.tar.gz\nsize %s\nsha256 %s\n' \
+        "$HOST_ARCH" "$SEED_SIZE" "$SEED_SHA"
+    printf 'url file://%s/missing/seed.tar.gz\n' "$ROOT"
+    printf 'url file://%s/seed.tar.gz\n' "$MIRROR"
+} > "$MIRROR/manifest"
+
+if "$INSTALL" --manifest-url="file://$MIRROR/manifest" --prefix="$ROOT/replica" >"$LOG" 2>&1; then
+    pass "manifest-url install falls back to the second mirror"
+else
+    failed "manifest-url install failed"
+fi
+
+if grep -q 'mirror failed' "$LOG"; then
+    pass "dead mirror was reported and skipped"
+else
+    failed "dead mirror was not reported"
+fi
+
+if [ -f "$ROOT/replica/bin/fink" ]; then
+    pass "downloaded seed landed in the sandbox"
+else
+    failed "downloaded seed did not land in the sandbox"
+fi
+
+# 清单本身取不到时必须中止，而不是拿个空文件继续
+check_fails "unreachable manifest is refused" \
+    "$INSTALL" --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/nomanifest"
 
 # ---- 汇总 ---------------------------------------------------------------
 
