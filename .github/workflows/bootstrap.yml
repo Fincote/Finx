@@ -72,72 +72,19 @@ jobs:
           ' "$(uname -m)"
 
       - name: Run bootstrap
-        # 两个参数，顺序不能换：
-        #   .sudo      —— 第一个参数以 "." 开头时被当作 rootmethod（见
-        #                 bootstrap:272）。这正是脚本提权重启自己时传的写法，
-        #                 显式给出来就不必依赖 stdin 的默认值。
-        #   /opt/finx  —— 安装前缀（bootstrap:503 的 shift）。
+        # 逻辑全在 scripts/ci_bootstrap.sh 里，CircleCI 调同一个脚本。
+        # 这里只保留一句：为什么重试，以及为什么用 .sudo。
         #
-        # stdin 重定向到 /dev/null：configure() 的每个提问读到 EOF 时返回空串，
-        # 空串一律取默认值 —— 这就是无人值守的机制，不需要改 Fink。
-        # 已在 finx-install/README.md 记录并实测过。
-        #
-        # 用 sudo 而不是让 bootstrap 自己提权：runner 上的 sudo 免密，而
-        # bootstrap 的提权分支会从 /dev/tty 读密码，CI 里没有终端。
-        #
-        # 为什么要重试：master 镜像是个轮询 DNS（distfiles.master.finkmirrors.net），
-        # 它的节点里有长期死掉的（例如 distfiles.yeg.ab.ca.finkmirrors.net，直接
-        # 解析失败）。挑中死节点时 curl 退出码 6，Fink 弹出「怎么继续」菜单 ——
-        # 而 stdin 是 /dev/null，EOF 取默认值「Give up」，于是网络抖动变成致命失败。
-        # 第一次实测就是这样：同一份代码，13:45 那轮下载成功，13:55 那轮全灭。
-        #
-        # 重试是安全的：tarball 落在 $PREFIX/src，cmd_fetch_missing 会跳过已有的，
-        # 所以每一轮都从断点继续，不会重下。
+        #   .sudo      —— bootstrap:272 把第一个以 "." 开头的参数当作 rootmethod，
+        #                 这正是它提权重启自己时的写法；显式给出就不依赖 stdin 默认值。
+        #   为什么重试 —— master 镜像 distfiles.master.finkmirrors.net 是轮询 DNS，
+        #                 节点里有长期死掉的（如 distfiles.yeg.ab.ca.finkmirrors.net
+        #                 直接解析失败）。挑中死节点时 curl 退出码 6，Fink 弹「怎么继续」
+        #                 菜单，而 stdin 是 /dev/null 会立刻取默认值「Give up」——
+        #                 网络抖动于是变成致命失败。
         run: |
-          set -uo pipefail
-          PREFIX="${{ inputs.prefix }}"
-          echo "bootstrap into $PREFIX"
-          sudo -n true || { echo "FAILED: passwordless sudo unavailable"; exit 1; }
-
-          ATTEMPTS=5
-          rc=1
-          for n in $(seq 1 "$ATTEMPTS"); do
-              echo "==== attempt $n of $ATTEMPTS ===="
-              # 必须显式 set +e：GitHub Actions 的 run: 默认是 bash -e，
-              # 而这里的 set -uo pipefail 只增不减。少了这两行，bootstrap
-              # 一旦失败整个脚本立刻退出，下面的重试逻辑根本不会执行 ——
-              # 上一轮就是这样：日志里连 "attempt 1 failed ... retrying" 都没有。
-              set +e
-              sudo ./bootstrap .sudo "$PREFIX" < /dev/null 2>&1 \
-                  | tee -a bootstrap.log
-              rc=${PIPESTATUS[0]}
-              set -e
-              if [ "$rc" -eq 0 ]; then
-                  echo "==== attempt $n succeeded ===="
-                  break
-              fi
-              # 只在一轮里确实出现过下载失败时才重试；其它错误（编译失败等）
-              # 重试也没用，只会把真正的错误埋在五份日志里。
-              # 注意匹配的是失败行，不是「Downloading the file」（那行成功时也出现）。
-              if ! tail -300 bootstrap.log | grep -qE 'Downloading the file .* failed'; then
-                  echo "==== attempt $n failed and it was not a download problem; not retrying ===="
-                  break
-              fi
-              echo "==== attempt $n failed on a download; retrying ===="
-
-              # 清空前缀，但保留 src/（已下好的 tar 缓存）。
-              # 不清空的话，下一轮 bootstrap 会发现 $PREFIX 里"已有安装"，
-              # 自动跳到 $PREFIX2、$PREFIX3…… 而那个前缀是废的：
-              # bindist_check_prefix 只认 /opt/finx，种子里的绝对路径也会错。
-              # 实测第 4 轮就是这样：attempt 1 失败后 attempt 2 装进了 /opt/finx2。
-              sudo find "$PREFIX" -mindepth 1 -maxdepth 1 \
-                       ! -name src -exec rm -rf {} + 2>/dev/null || true
-              sleep 5
-          done
-
-          echo "---- bootstrap exited $rc ----"
-          tail -40 bootstrap.log
-          exit "$rc"
+          set -euo pipefail
+          scripts/ci_bootstrap.sh "${{ inputs.prefix }}" 5
 
       - name: Collect the built packages
         if: always()

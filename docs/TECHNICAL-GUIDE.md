@@ -663,8 +663,14 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 
 三条与"为什么这么设"有关的决定：
 
-- **只有一条流水线。** Finx 是公开仓库，GitHub Actions 的标准 runner 对公开仓库
-  不计费；CircleCI 的免费额度有限，快速迭代期不该有半份额度花在 CI 往返上。
+- **日常只有一条流水线。** Finx 是公开仓库，GitHub Actions 的标准 runner 对公开
+  仓库不计费；CircleCI 的免费层是共享额度、macOS executor 最贵，不该有半份额度花在
+  CI 往返上。
+- **`.circleci/config.yml` 是备用方案，不是第二条流水线。** 它只在 CircleCI 后台
+  Add Project 之后才可能运行，且被 `filters` 限成只认 `ci-*` / `ci-bootstrap-*` 标签。
+  其中不复制任何检查逻辑 —— 两边都调 `make` 目标与 `scripts/ci_bootstrap.sh`。
+  注意它的 arm64 macOS resource_class 未经核实（查证时 CircleCI 文档全部 404），
+  接上之前须自行确认计划是否支持；只有 Intel 可用时，自举产物是 ELF，对 macOS 无用。
 - **`concurrency` 开了 `cancel-in-progress`。** 连推几次时，被新提交取代的旧任务
   就地取消，不必等它跑完。
 - **一个 job，不做矩阵。** `ARCHITECTURE` 取自 runner 自己的 `uname -m`

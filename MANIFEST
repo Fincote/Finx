@@ -101,6 +101,7 @@ readme.ja.html
 readme.pt.html
 readme.ru.html
 readme.zh.html
+scripts/ci_bootstrap.sh
 scripts/format_check.pl
 scripts/payload_test.sh
 scripts/structure_test.sh

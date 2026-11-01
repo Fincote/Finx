@@ -1,0 +1,207 @@
+# CircleCI 配置 —— 目前**不启用**，留作备用
+#
+# 这份配置刻意只在打 `ci-*` 标签时运行，普通 push 与 PR 一概不触发。
+# 原因写在 AGENTS.md 与 docs/TECHNICAL-GUIDE.md 9.1：
+#
+#   本仓库是公开仓库，GitHub Actions 的标准 runner 完全免费且不计配额；
+#   而 CircleCI 的免费层是共享的 2.5 万 credits/月，macOS executor 是最贵的
+#   资源类。两条流水线并行等于把同一件事跑两遍，还多一份要同步的配置。
+#
+# 所以这里不是"第二条流水线"，是一份**备用方案**：当 GitHub 的 macOS runner
+# 长期排队、而自举又必须频繁跑时，把它接上就能立刻用。
+#
+# ## 启用步骤
+#
+#   1. 在 CircleCI 里 Add Project，选中 Fincote/Finx（不做这步，这个文件
+#      完全惰性 —— CircleCI 不会因为仓库里有 .circleci/ 就跑）
+#   2. 按需调下面的 resource_class（见"macOS executor"一节）
+#   3. 打标签触发：
+#
+#        git tag ci-$(date +%Y%m%d-%H%M) && git push origin --tags
+#        git tag ci-bootstrap-$(date +%Y%m%d-%H%M) && git push origin --tags
+#
+#      或者临时把 verify 任务的 filters 去掉，改成随 push 运行。
+#
+# ## 与 GitHub Actions 的关系
+#
+# 两边**不各写一份逻辑**。所有检查都调用仓库里同一批入口：
+#
+#   make format               缩进
+#   make test                 manifest_check → structure → sources_check → t/ 测试
+#   make payload_test         在只有 MANIFEST 文件的树里再跑一遍 make test
+#   ./finx-install/selftest.sh
+#   scripts/ci_bootstrap.sh   真自举（带重试），GitHub 也调它
+#
+# 这是刻意的：上一轮把重试循环内联在 GitHub 的 YAML 里，改一次忘了
+# `set +e`，整段逻辑静默失效而日志看不出少了什么。同一份逻辑只该有一个副本。
+#
+# ## macOS executor（我没能核实的地方）
+#
+# 自举产物必须是 arm64 Mach-O（dpkg 用 --build=%m-apple-darwin 编译），
+# 所以 executor 必须是 Apple Silicon。据我所知 CircleCI 的 arm64 macOS
+# resource_class 在免费层不可用，下面的 macos.m1.medium.gen1 需要付费计划。
+#
+# 这一点**未经验证**：查证时 CircleCI 的 docs 与 support 页面全部 404。
+# 接上之前请自己在 CircleCI 后台确认当前计划支持哪个 resource_class。
+# 如果只有 Intel x86_64 可用，bootstrap 任务跑出来的种子是 ELF 平台的，
+# 对 macOS 用户无用 —— 那种情况下只启用 verify 任务。
+
+version: 2.1
+
+# xcode 镜像与 resource_class 在两处任务里重复，用一个 anchor 收口，
+# 换镜像只改这里。
+anchors:
+  macos-executor: &macos-executor
+    macos:
+      xcode: 16.4.0
+    resource_class: macos.m1.medium.gen1
+
+jobs:
+  # 与 .github/workflows/verify.yml 逐条对应，顺序一致。
+  verify:
+    <<: *macos-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Report the toolchain
+          command: |
+            set -euo pipefail
+            echo "arch   = $(uname -m)"
+            echo "darwin = $(uname -r)"
+            sw_vers
+            xcodebuild -version | head -2
+            /usr/bin/perl -v | sed -n '2p'
+            /usr/bin/make --version | head -1
+            # 下限 5.16：README 声明支持 macOS 10.9+，那一版自带的 perl 就是 5.16。
+            /usr/bin/perl -e 'exit($] >= 5.016 ? 0 : 1)' \
+              || { echo "FAILED: /usr/bin/perl is older than 5.16"; exit 1; }
+
+      - run:
+          name: "Check: shell syntax"
+          command: |
+            set -euo pipefail
+            fail=0; count=0
+            for file in $(git ls-files '*.sh'); do
+                count=$((count + 1))
+                bash -n "$file" || { echo "FAILED: $file"; fail=1; }
+            done
+            [ "$fail" -eq 0 ] || exit 1
+            echo "shell syntax OK ($count files)"
+
+      - run:
+          name: "Check: indentation"
+          command: make format
+
+      - run:
+          name: "Check: perl syntax"
+          # 必须先 test_setup：perlmod/Fink/FinkVersion.pm 是它生成的。
+          command: |
+            set -euo pipefail
+            make test_setup ARCHITECTURE="$(uname -m)"
+            fail=0
+            for file in perlmod/Fink.pm perlmod/Fink/*.pm perlmod/Fink/*/*.pm; do
+                if ! out=$(/usr/bin/perl -Iperlmod -c "$file" 2>&1); then
+                    echo "FAILED: $file"; echo "$out"; fail=1
+                fi
+            done
+            [ "$fail" -eq 0 ] || exit 1
+            echo "perl syntax OK"
+
+      - run:
+          name: "Check: standalone.sh in sync"
+          command: ./finx-install/build-bundle.sh --check
+
+      - run:
+          name: "Test: perl suite"
+          command: make test ARCHITECTURE="$(uname -m)"
+
+      - run:
+          name: "Test: payload tree"
+          command: make payload_test ARCHITECTURE="$(uname -m)"
+
+      - run:
+          name: "Test: installer selftest"
+          command: ./finx-install/selftest.sh
+
+      - run:
+          name: Assert the tree is still clean
+          command: |
+            set -euo pipefail
+            if [ -n "$(git status --porcelain)" ]; then
+                echo "FAILED: the test run left files behind:"
+                git status --porcelain
+                exit 1
+            fi
+            echo "working tree clean"
+
+  # 真自举。耗时以十分钟计，且需要 arm64 macOS。
+  bootstrap:
+    <<: *macos-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Report how bootstrap will judge this host
+          command: |
+            set -euo pipefail
+            make test_setup ARCHITECTURE="$(uname -m)" >/dev/null
+            PERL5LIB=perlmod /usr/bin/perl -Iperlmod -e '
+                require Fink::Bootstrap;
+                my $host = `./update/config.guess`; chomp $host;
+                my $d = Fink::Bootstrap::check_host($host, 1, shift);
+                print "host         = $host\n";
+                print "distribution = $d\n";
+                print "tree         = ", Fink::Bootstrap::get_selfupdatetrees($d), "\n";
+            ' "$(uname -m)"
+
+      - run:
+          name: Bootstrap
+          # 重试、清空、只认下载失败 —— 全在脚本里，与 GitHub 共用。
+          no_output_timeout: 20m
+          command: |
+            set -euo pipefail
+            scripts/ci_bootstrap.sh /opt/finx 5
+
+      - run:
+          name: Collect the built packages
+          when: always
+          command: |
+            set -uo pipefail
+            mkdir -p essential-debs
+            if [ -d /opt/finx/fink/debs ]; then
+                sudo find -L /opt/finx/fink/debs -maxdepth 1 -name '*.deb' \
+                    -exec cp {} essential-debs/ \; 2>/dev/null || true
+                sudo chown -R "$(id -u):$(id -g)" essential-debs || true
+            fi
+            echo "collected $(ls -1 essential-debs 2>/dev/null | wc -l | tr -d ' ') .deb"
+
+      - store_artifacts:
+          path: bootstrap.log
+          destination: bootstrap.log
+      - store_artifacts:
+          path: essential-debs
+          destination: essential-debs
+
+workflows:
+  # 两个工作流都只在打 ci-* 标签时触发。
+  #
+  # CircleCI 没有 workflow_dispatch 那种手动按钮；job 级的 filters 是唯一
+  # 可靠的门。branches: ignore: /.*/ 表示任何分支都不跑，只认标签。
+  verify:
+    jobs:
+      - verify:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^ci-.*/
+
+  bootstrap:
+    jobs:
+      - bootstrap:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^ci-bootstrap-.*/

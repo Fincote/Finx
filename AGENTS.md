@@ -103,9 +103,13 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --dry-run
 另加「断言工具链」「选定架构」与「跑完工作区必须干净」三条只对 CI 有意义的检查。
 细节见 TECHNICAL-GUIDE 9.1。两条规矩：
 
-- **只有 GitHub Actions 一条流水线**，不接 CircleCI：本仓库是公开仓库，Actions 的
-  标准 runner 不计费，而 CircleCI 的免费额度有限，快速迭代期不该半份额度花在往返上。
-  不要为了"多一层保障"再加一条 —— 那会重新引入额度问题。
+- **日常只有 GitHub Actions 一条流水线。** 本仓库是公开仓库，Actions 的标准 runner
+  不计费，而 CircleCI 的免费层是共享的 2.5 万 credits/月、macOS executor 最贵。
+  不要为了"多一层保障"把它接成第二条常驻流水线 —— 那会重新引入额度问题。
+- **`.circleci/config.yml` 是备用方案，默认惰性。** 它在 CI 后台 Add Project 之后才
+  可能跑，而且刻意用 `filters` 限成只认 `ci-*` / `ci-bootstrap-*` 标签，普通 push 与
+  PR 一概不触发。它不复制任何逻辑：`make` 目标与 `scripts/ci_bootstrap.sh` 与
+  GitHub 共用同一份。要启用、要换成常驻，见该文件头部注释。
 - **本机绿了再推**。CI 的职责是复核，不是第一次验证。新增或修改测试时先在本地跑
   对应的那一两条（`make test` / `./finx-install/selftest.sh`），再把整条
   `Verify: all` 过一遍。
