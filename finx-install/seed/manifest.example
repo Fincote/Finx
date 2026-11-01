@@ -1,0 +1,13 @@
+# 种子清单示例。真实清单由种子构建流程产出，字段说明见 lib/manifest.sh。
+#
+# 必填：schema / arch / seed / size / sha256，至少一条 url。
+# 顺序无关，重复的 url 会按出现顺序依次尝试。
+
+schema 1
+release 0.46.0
+arch arm64
+seed seed.tar.gz
+size 12345678
+sha256 0000000000000000000000000000000000000000000000000000000000000000
+url https://example.invalid/finx/seed/arm64/seed.tar.gz
+url https://mirror.example.invalid/finx/seed/arm64/seed.tar.gz
