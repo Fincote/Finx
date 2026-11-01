@@ -103,9 +103,15 @@ jobs:
           rc=1
           for n in $(seq 1 "$ATTEMPTS"); do
               echo "==== attempt $n of $ATTEMPTS ===="
+              # 必须显式 set +e：GitHub Actions 的 run: 默认是 bash -e，
+              # 而这里的 set -uo pipefail 只增不减。少了这两行，bootstrap
+              # 一旦失败整个脚本立刻退出，下面的重试逻辑根本不会执行 ——
+              # 上一轮就是这样：日志里连 "attempt 1 failed ... retrying" 都没有。
+              set +e
               sudo ./bootstrap .sudo "$PREFIX" < /dev/null 2>&1 \
                   | tee -a bootstrap.log
               rc=${PIPESTATUS[0]}
+              set -e
               if [ "$rc" -eq 0 ]; then
                   echo "==== attempt $n succeeded ===="
                   break
