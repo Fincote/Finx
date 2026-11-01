@@ -81,6 +81,7 @@ perlmod/Fink/Tie/IxHash.pm
 perlmod/Fink/Validation.pm
 perlmod/Fink/VirtPackage.pm
 perlmod/Fink.pm.in
+readme.de.html
 readme.en.html
 readme.es.html
 readme.fr.html

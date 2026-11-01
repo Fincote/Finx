@@ -2,6 +2,7 @@
 *.swp
 
 /compiler_wrapper
+/compiler_wrapper-*
 /config*
 /fink
 /fink-dpkg-status-cleanup

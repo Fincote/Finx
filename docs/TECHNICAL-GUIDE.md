@@ -404,12 +404,34 @@ finx-install/
 套件在 `t/`，Test::Harness 驱动。**基线：48 个测试文件、1059 项断言。**
 
 ```
+make test        # manifest_check → test_setup → 跑完 t/ 全部测试
+```
+
+`make test` 的三个阶段各有分工：
+
+| 阶段 | 作用 |
+| --- | --- |
+| `manifest_check` | `MANIFEST` 必须列出仓库里每个文件（漏了就不会进发行 tarball），同时 `MANIFEST.SKIP` 必须排除全部生成物 |
+| `test_setup` | `./setup.sh t/basepath x86_64`，生成 `fink` / `postinstall.pl` / `lockwait` / `FinkVersion.pm` 等运行时文件 |
+| 测试本体 | `cd t && ./testmore.pl && find . -name '*.t' \| sort \| PREFIX=... xargs perl -MTest::Harness` |
+
+维护 `MANIFEST` 的两条经验：
+
+- **要随程序分发的文件必须登记。** `install.sh` 会装 `readme.*.html`，而
+  `readme.de.html` 曾经漏登记 —— 结果是德文 readme 长期不在发行包里，且
+  `manifest_check` 一直红着，把这条真问题掩盖掉了。
+- **生成物要同时进 `MANIFEST.SKIP` 与 `.gitignore`。** 只加一处会出现"git 干净了但
+  tar 里混进生成物"，或反之。`setup.sh` 生成的 `compiler_wrapper-10.7` / `-10.9`
+  就曾漏在 `MANIFEST.SKIP` 之外，导致每次 `make test_setup` 之后 `make test` 都失败。
+  排除模式写成 `^compiler_wrapper(-\d+\.\d+)?$`，注意别把 `.in` 源文件一起吞掉。
+
+只想跳过完整性检查、直接跑测试时：
+
+```
 make test_setup
 cd t && ./testmore.pl && find . -name '*.t' | sort | \
     PREFIX=/opt/finx xargs /usr/bin/perl -I$(pwd)/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
 ```
-
-`make test` 会先跑 `manifest_check`，而它目前必然失败（见第十节），所以本地直接用上面第二条。
 
 `t/basepath/` 是一套假安装，`PREFIX` 只影响少数用例。
 
@@ -429,9 +451,31 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 
 | 问题 | 症状 | 状态 |
 | --- | --- | --- |
-| `manifest_check` 必然失败 | `make test` 在第一步就退出：`compiler_wrapper-10.7` / `-10.9` / `readme.de.html` 不在 `MANIFEST` 且未被 `MANIFEST.SKIP` 覆盖 | 未修。绕过见第九节 |
+| `manifest_check` 曾经必然失败 | 见 10.1 | **已修** |
 | `setup.sh` 变量拼写错误 | 第 117 行把 `$basepath` 写成 `$basepeath`，`compiler_wrapper-10.9` 里的前缀被替换成空串 | 未修。属于既有缺陷，不在前缀迁移范围内 |
 | phase 2 被执行两次 | [bootstrap:777](../bootstrap) 附近连续两行 `execute`，第一次的返回值被丢弃 | 未修。会白跑一遍自举 |
 | 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`fink-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | 未修。64 位下偏移恰好一致，32 位会错位 |
 | 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 是 0.45.99.git | 未修。新文档以本手册为准 |
 | `NEWS` 里的旧路径 | 历史条目仍写 `/sw`、`/opt/sw` | 刻意保留，见 [AGENTS.md](../AGENTS.md) |
+
+### 10.1 已修：`manifest_check` 必然失败
+
+原因不止一个，拆开看：
+
+| 症状 | 根因 | 修法 |
+| --- | --- | --- |
+| `Not in MANIFEST: readme.de.html` | 该文件确实没登记，而 `install.sh` 会装 `readme.*.html` —— **德文 readme 从未进过发行包** | 登记进 `MANIFEST` |
+| `Not in MANIFEST: compiler_wrapper-10.7` / `-10.9` | 它们由 `setup.sh` 从 `.in` 生成，而 `MANIFEST.SKIP` 只写了 `^compiler_wrapper$` | 改为 `^compiler_wrapper(-\d+\.\d+)?$`，`.gitignore` 同步加 `/compiler_wrapper-*` |
+
+排除模式不能图省事写成 `^compiler_wrapper-.*$`：那样会把 `compiler_wrapper-10.6.in`
+这类**源文件**一起排除，tarball 里就缺模板，构建直接失败。正则里的 `\d+\.\d+` 就是为了
+停在版本号上。
+
+这个缺陷真正危险的地方在于它长期"只是红着"：`make test` 第一步就退出，于是后面的测试
+从来没跑过；而它同时压住了 `readme.de.html` 那个真 bug —— **一个假警报掩护了一个真问题**。
+
+维护 `MANIFEST` 的两条规则因此固定下来：
+
+- 要随程序分发的文件必须登记（`install.sh` 里的 `for file in ...` 列表是最好的对照）；
+- 生成物要**同时**进 `MANIFEST.SKIP` 与 `.gitignore`，只加一处会出现"git 干净了但
+  tarball 里混进生成物"，或反之。

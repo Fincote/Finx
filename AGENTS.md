@@ -49,15 +49,17 @@
 完整方法见 [`docs/TECHNICAL-GUIDE.md`](./docs/TECHNICAL-GUIDE.md) 第九节。要点：
 
 ```
-make test_setup                      # 生成 fink / postinstall.pl / lockwait 等运行时文件
-cd t && ./testmore.pl && find . -name '*.t' | sort | \
-    PREFIX=/opt/finx xargs /usr/bin/perl -I$(pwd)/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
+make test          # manifest_check → test_setup → 跑完 t/ 全部测试
 ```
 
 - 基线：**48 个测试文件、1059 项断言**全通过。
-- `make test` 会先跑 `manifest_check`，而它目前**必然失败**（生成物没进 `MANIFEST.SKIP`，
-  见 TECHNICAL-GUIDE 第十节），所以本地请直接用上面的 `t/` 命令。
+- `make test` 会先跑 `manifest_check`，它校验两件事：仓库里每个文件都在 `MANIFEST`
+  里（否则不会进发行 tarball），且生成物都被 `MANIFEST.SKIP` 排除。
+  新增需要随程序分发的文件要登记进 `MANIFEST`；生成物则加进 `MANIFEST.SKIP` 与
+  `.gitignore` 两处。
+- 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
 - 改 `PkgVersion` / `Engine` / `Services` / `Bootstrap` 后必须重跑全套；只改文档不用跑。
+- VS Code 里有同名任务：`Test: perl suite`、`Verify: all`（见 `.vscode/tasks.json`）。
 
 安装器（`finx-install/`）另有一套沙箱自测，**手工验证时必须带测试根**：
 

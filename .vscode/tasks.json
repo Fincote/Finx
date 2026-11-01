@@ -14,9 +14,9 @@
         },
         {
             "label": "Test: perl suite",
-            "detail": "t/ 里的 48 个测试文件。make test 会先跑 manifest_check 而它必然失败，所以直接驱动 testmore",
+            "detail": "manifest_check + test_setup + t/ 里的 48 个测试文件",
             "type": "shell",
-            "command": "make test_setup && cd t && ./testmore.pl && find . -name '*.t' | sort | PREFIX=/opt/finx xargs /usr/bin/perl -I\"$(pwd)/../perlmod\" -MTest::Harness -e 'runtests(@ARGV)'",
+            "command": "make test",
             "group": "test",
             "problemMatcher": []
         },

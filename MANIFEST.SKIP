@@ -8,7 +8,7 @@ CVS/
 ^finx-install/
 
 ^apt-get-lockwait$
-^compiler_wrapper$
+^compiler_wrapper(-\d+\.\d+)?$
 ^dpkg-lockwait$
 ^fink-dpkg-status-cleanup$
 ^fink-instscripts$
