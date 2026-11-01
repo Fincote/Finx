@@ -30,7 +30,7 @@ emit() {
     printf 'set -u\n'
     printf 'set -o pipefail\n'
 
-    for module in common detect manifest extract; do
+    for module in common detect manifest extract source; do
         printf '\n# ======== lib/%s.sh ========\n' "$module"
         cat "$FINX_HOME/lib/$module.sh" || return 1
     done

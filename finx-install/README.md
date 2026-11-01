@@ -25,6 +25,34 @@
 ./finx-install/install.sh --dry-run
 ```
 
+### 它怎么决定装法
+
+```
+给了 --seed-dir / --manifest-url   → 种子（严格，不换源）
+否则先探默认种子清单
+    探到                          → 种子
+    探不到                        → 源码自举，并说明原因
+给了 --from-source                → 直接源码自举
+给了 --no-fallback                → 探不到种子就失败
+```
+
+**两条路的差别：**
+
+| | 种子 | 源码自举 |
+| --- | --- | --- |
+| 耗时 | 几十秒 | 十几分钟起，视机器而定 |
+| 需要 Xcode CLT | 否 | **是**（要现编 `tar` 与 `dpkg`） |
+| 需要 root | 写入 `/opt/finx` 时 | 是 |
+| 现在的状态 | **还没有种子** | 可用 |
+
+也就是说：**今天跑那条命令，走的是源码自举**。第一条 `warn` 会明确说明这一点，不会让人以为在装预编译包。
+
+### 源码模式为什么不用改 Fink
+
+`bootstrap` 的所有提问都走 `Fink::CLI::get_input`，读到 EOF 返回空串，而每个提问都把空串当成「取默认值」。所以把 stdin 接到 `/dev/null` 就是全程回车 —— 不需要给 bootstrap 加 `--ci`，也不需要维护第二套交互逻辑。
+
+提权由安装器先做（`sudo -v`），这样 `bootstrap` 一进来就是 root，不会走到它自己那个「Choose a method」提问。
+
 ## 二、目录结构
 
 ```
@@ -37,7 +65,8 @@ finx-install/
 │   ├── common.sh         输出、错误、trap、临时目录、sha256、测试根
 │   ├── detect.sh         宿主探测（macOS 版本 / 架构）、目标目录状态、写权限
 │   ├── manifest.sh       清单解析、多镜像下载与续传、体积与 sha256 校验
-│   └── extract.sh        解包、权限归一、Mach-O ad-hoc 重签名、写配置、重建索引
+│   ├── extract.sh        解包、权限归一、Mach-O ad-hoc 重签名、写配置、重建索引
+│   └── source.sh         源码回落：取源码树、检查前置条件、跑 bootstrap
 └── seed/
     └── manifest.example  清单格式参考
 ```
@@ -58,19 +87,35 @@ finx-install/
 改完 `lib/` 里的任何文件后必须重新生成，否则线上那条命令跑的还是旧逻辑。
 `--check` 就是防这个漂移的。
 
-## 四、七个阶段
+## 四、阶段
 
 ```
 1. 体检      macOS 版本、架构、目标目录状态、写权限
-2. 解析清单  本地目录（--seed-dir）或远端 URL（--manifest-url）
-3. 取产物    本地拷贝，或按清单里的 url 逐个尝试（.part 续传）
-4. 校验      体积 + SHA256，任一不符即中止
-5. 落盘      mkdir 前缀 → tar 解到前缀
-6. 收尾      权限归一、Mach-O ad-hoc 重签名、写 fink.conf
-7. 收束      fink scanpackages，提示 source <prefix>/bin/init.sh
+2. 选装法    探种子，或按参数决定（见第一节）
+```
+
+**种子模式**
+
+```
+3. 解析清单  本地目录（--seed-dir）或远端 URL（--manifest-url）
+4. 取产物    本地拷贝，或按清单里的 url 逐个尝试（.part 续传）
+5. 校验      体积 + SHA256，任一不符即中止
+6. 落盘      mkdir 前缀 → tar 解到前缀
+7. 收尾      权限归一、Mach-O ad-hoc 重签名、写 fink.conf
+8. 收束      fink scanpackages，提示 source <prefix>/bin/init.sh
 ```
 
 **校验在落盘之前**：失败时不会留下一个空壳目录。
+
+**源码模式**
+
+```
+3. 取源码树  codeload 的 tar.gz，解包，确认含 bootstrap 与 VERSION
+4. 查前置    cc、pod2man、perl —— 先查再跑，免得半小时后才失败
+5. 自举      sudo ./bootstrap <prefix> < /dev/null
+```
+
+bootstrap 自己会建前缀、写配置、建索引，所以源码模式没有收尾阶段。
 
 ## 五、设计取舍
 
@@ -84,7 +129,46 @@ finx-install/
 | 不做「警告后继续」 | 校验失败即中止，与 `docs/TECHNICAL-GUIDE.md` 8.1 的强校验要求一致 |
 | 前缀归 root，不 chown 给调用者 | 见 TECHNICAL-GUIDE 8.6：chown 既免不了 `fink install` 的密码，又会让 `$prefix/bin/dpkg` 变成 root 的可控输入。这里采纳 MacPorts 模型 —— 每次装包都要 sudo，但只需要一份系统级二进制分发 |
 
-## 六、测试根：`FINX_TEST`
+## 六、还没做的（按优先级）
+
+| 待办 | 为什么 | 影响 |
+| --- | --- | --- |
+| **产出并发布种子** | 有了它，那条命令才真正是几十秒装完 | 一条命令的体验从「十几分钟」变成「几十秒」 |
+| **`--ci`** | 参照 MacWave `install.sh` 的 `--ci`：绝不等待输入，提权只接受已是 root 或免密 sudo，否则直接失败 | 没有它，CI 里提权会卡在密码提示上 |
+| `--dir-option=N` | MacWave 用它免菜单选目录 | Finx 目前只有单一规范前缀，暂时用不上 |
+| 种子清单签名 | 现在只有 SHA256，清单本身如何被信任还没解 | 决定校验链的顶端 |
+| **镜像环境变量** | 仿照 MacWave 的 `MACWAVE_*_DOMAIN`：通过环境变量整体替换地址，不设则回落官方 | 决定国内可用性；命名与语义见下 |
+
+`--ci` 的实现要点（写在这里，免得以后重新想）：在 `run_bootstrap` 决定提权方式时判断，
+`CI_MODE=1` 时用 `sudo -n true` 探免密，探不到就带解释退出；非 CI 时照旧 `sudo -v`。
+
+### 镜像环境变量：命名与语义（设计草案，未实现）
+
+MacWave 的做法是**一个镜像主机下切若干路径**，一个账号覆盖全部：
+
+```
+MACWAVE_API_DOMAIN       包索引        infosource
+MACWAVE_SELFUPDATE_DOMAIN 自更新数据    selfupdate
+MACWAVE_PYTHON_DOMAIN    自带解释器     python
+MACWAVE_CORE_DOMAIN      MacWave 自身   core
+```
+
+Finx 需要覆盖的地址目前只有两个，但语义上应该分得更细，因为它们的更新频率与校验方式不同：
+
+| 变量 | 覆盖什么 | 现在是否有实现 |
+| --- | --- | --- |
+| `FINX_SEED_DOMAIN` | 种子清单与种子归档（`<域名>/<arch>/manifest`） | 已有内部常量 `DEFAULT_MANIFEST_URL`，未暴露成变量 |
+| `FINX_SOURCE_DOMAIN` | 源码归档（默认 codeload） | 只有 `--source-url`，未做成变量 |
+| `FINX_INDEX_DOMAIN` | 包索引 / 包描述树 | 未实现（对应 Fink 的 `dists`） |
+| `FINX_BINARY_DOMAIN` | 二进制 `.deb` 分发 | 未实现（对应 `bindist`） |
+
+三条约束，写在这里是为了以后不要走偏：
+
+1. **只有地址可以被替换，校验不能被跳过。** 换镜像不改变 SHA256，改了就必须失败。
+2. **部分设置必须可用。** 任何一个变量没设，就回落官方地址，不能要求用户配齐。
+3. **不设即官方。** 变量存在的意义是加速，不是必需；默认路径必须始终能走通。
+
+## 七、测试根：`FINX_TEST`
 
 `FINX_TEST=<绝对路径>` 把整次运行关进这个目录，作用等同于 MacWave 的 `MACWAVE_TEST`：
 
@@ -112,7 +196,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
 - **失败即中止，不降级。** 测试根写错时不会"当作没设置"继续跑真实目录 —— 那是唯一可能
   误伤真实安装的路径。
 
-## 七、自测
+## 八、自测
 
 一条命令跑完 19 项断言，全程离线、不碰真实目录：
 

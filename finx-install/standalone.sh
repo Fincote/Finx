@@ -159,6 +159,9 @@ apply_test_root() {
     TMPDIR=$TEST_ROOT/tmp
     export TMPDIR
 
+    # 沙箱里装的都是假东西，源码自举那条路不该向用户要 root
+    IN_TEST_ROOT=1
+
     if [ "${PREFIX_EXPLICIT:-0}" -eq 1 ]; then
         prefix_real=$(resolve_path "$PREFIX")
         case $prefix_real in
@@ -257,6 +260,18 @@ do_mkdir() {
 #   sha256  <64 位十六进制>
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
+
+# 尚未发布的默认种子位置。probe_url 探不到时，install.sh 会退回源码自举。
+DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-https://finx.sh/finx/seed/manifest}
+
+# 只探存在性，不下载全文。用于决定走种子还是走源码。
+probe_url() {
+    url=$1
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        return 1
+    fi
+    curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
+}
 
 # 解析清单，设置 MANIFEST_FILE / ARTIFACT_BASE / ARTIFACT_FILE /
 # SEED_NAME / SEED_SIZE / SEED_SHA256 / SEED_RELEASE。
@@ -509,6 +524,99 @@ run_scanpackages() {
     return 0
 }
 
+# ======== lib/source.sh ========
+# shellcheck shell=bash
+#
+# 源码回落：没有可用种子时，直接取源码树并跑它自带的 bootstrap。
+#
+# 为什么需要这条路：种子是「一台参考机上 bootstrap 成功之后的 /opt/finx 快照」。
+# 在种子发布之前，一条命令要能用，只能退回到自举本身 —— 代价是要 Xcode
+# Command Line Tools，且首次要现编 tar 与 dpkg。
+#
+# 无人值守：bootstrap 的所有提问都走 Fink::CLI::get_input，读到 EOF 时返回空串，
+# 而每个提问都把空串解释成「取默认值」。所以把 stdin 接到 /dev/null 就等于
+# 全程回车 —— 不需要改 Fink 内核，也不需要维护第二套交互逻辑。
+
+# 源码归档位置。codeload 与 GitHub 网页的「Download ZIP」是同一个后端，
+# 但返回 tar.gz，省掉解压 zip 的工具依赖。
+default_source_url() {
+    printf 'https://codeload.github.com/Fincote/Finx/tar.gz/%s\n' "${SOURCE_REF:-main}"
+}
+
+# 取并解源码树，设置 SOURCE_ROOT 为解出来的顶层目录。
+fetch_source() {
+    ensure_tmp
+
+    src_url=${SOURCE_URL:-$(default_source_url)}
+    info "source $src_url"
+
+    SOURCE_ARCHIVE=$FINX_TMP/finx-source.tar.gz
+    fetch_one "$src_url" "$SOURCE_ARCHIVE" \
+        || die "cannot download the source archive from $src_url"
+
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        info "would extract $SOURCE_ARCHIVE"
+        SOURCE_ROOT=$FINX_TMP/src
+        return 0
+    fi
+
+    SOURCE_ROOT=$FINX_TMP/src
+    mkdir -p "$SOURCE_ROOT" || die "cannot create $SOURCE_ROOT"
+    tar -xzf "$SOURCE_ARCHIVE" -C "$SOURCE_ROOT" \
+        || die "cannot extract $SOURCE_ARCHIVE"
+
+    # 归档里只有一个顶层目录（Finx-<ref>/），把它找出来
+    set -- "$SOURCE_ROOT"/*
+    [ $# -eq 1 ] && [ -d "$1" ] || die "unexpected layout in the source archive"
+    SOURCE_ROOT=$1
+
+    [ -f "$SOURCE_ROOT/bootstrap" ] \
+        || die "the source archive does not contain bootstrap"
+    [ -f "$SOURCE_ROOT/VERSION" ] \
+        || die "the source archive does not contain VERSION"
+    info "source tree $(cat "$SOURCE_ROOT/VERSION" 2>/dev/null) at $SOURCE_ROOT"
+}
+
+# 自举的硬要求，先查再跑：免得等了半小时才在某个 make 里失败。
+require_bootstrap_prerequisites() {
+    [ -x /usr/bin/cc ] || die "no C compiler at /usr/bin/cc; install the Xcode Command Line Tools
+       (xcode-select --install) and try again"
+    [ -x /usr/bin/pod2man ] || die "no /usr/bin/pod2man; bootstrap needs it to build man pages"
+    [ -x /usr/bin/perl ] || die "no /usr/bin/perl; bootstrap is a Perl script"
+}
+
+# 跑 bootstrap。第一次自举会现编 tar 与 dpkg，慢是正常的。
+run_bootstrap() {
+    target=$1
+
+    require_bootstrap_prerequisites
+
+    # bootstrap 自己会在非 root 时提问并 exec sudo，但那时 stdin 已是 /dev/null，
+    # sudo 读不到密码。所以先提权，让 bootstrap 一进来就是 root。
+    sudo_prefix=""
+    if [ "$(id -u)" -ne 0 ]; then
+        if [ "${IN_TEST_ROOT:-0}" -eq 1 ]; then
+            # 测试根里装的都是假东西，不需要真 root
+            :
+        else
+            have sudo || die "root is required and sudo is not available"
+            # sudo 从 /dev/tty 读密码，所以 stdin 接 /dev/null 也不影响
+            sudo -v || die "could not obtain sudo privileges"
+            sudo_prefix="sudo "
+        fi
+    fi
+
+    info "running bootstrap (this compiles tar and dpkg; it can take a while)"
+
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        info "would run: ${sudo_prefix}./bootstrap $target < /dev/null"
+        return 0
+    fi
+
+    ( cd "$SOURCE_ROOT" && ${sudo_prefix}./bootstrap "$target" < /dev/null ) \
+        || die "bootstrap failed; see its output above for the failing step"
+}
+
 # ======== install.sh ========
 PREFIX=/opt/finx
 PREFIX_EXPLICIT=0
@@ -518,6 +626,15 @@ ARCH_OVERRIDE=""
 DRY_RUN=0
 FORCE=0
 
+# 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
+MODE=""
+FROM_SOURCE=0
+ALLOW_FALLBACK=1
+SOURCE_URL=""
+SOURCE_REF=main
+IN_TEST_ROOT=0
+INSTALLED_RELEASE=""
+
 usage() {
     cat <<'USAGE'
 Usage: install.sh [options]
@@ -526,6 +643,10 @@ Usage: install.sh [options]
   --seed-dir=DIR      use a local manifest and seed; no network access
   --manifest-url=URL  absolute URL of the seed manifest
   --arch=ARCH         override the detected architecture (arm64 / x86_64)
+  --from-source       skip the seed and build from source
+  --source-url=URL    source archive to build (default: codeload tar.gz)
+  --ref=REF           branch or commit for the default source archive (default: main)
+  --no-fallback       fail when no seed is reachable instead of building from source
   --dry-run           print what would happen, change nothing
   --force             replace an existing installation
   -h, --help          show this help
@@ -553,6 +674,12 @@ parse_args() {
             --manifest-url)   shift; [ $# -gt 0 ] || die "--manifest-url needs a value"; MANIFEST_URL=$1 ;;
             --arch=*)         ARCH_OVERRIDE=${1#*=} ;;
             --arch)           shift; [ $# -gt 0 ] || die "--arch needs a value"; ARCH_OVERRIDE=$1 ;;
+            --from-source)    FROM_SOURCE=1 ;;
+            --source-url=*)   SOURCE_URL=${1#*=} ;;
+            --source-url)     shift; [ $# -gt 0 ] || die "--source-url needs a value"; SOURCE_URL=$1 ;;
+            --ref=*)          SOURCE_REF=${1#*=} ;;
+            --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
+            --no-fallback)    ALLOW_FALLBACK=0 ;;
             --dry-run)        DRY_RUN=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
@@ -596,6 +723,53 @@ main() {
     info "macOS $HOST_MACOS_MAJOR, arch $HOST_ARCH, prefix $PREFIX"
     require curl
 
+    step "Choosing install method"
+    resolve_method
+
+    case $MODE in
+        seed)   install_from_seed ;;
+        source) install_from_source ;;
+    esac
+
+    printf '\n'
+    info "Finx ${INSTALLED_RELEASE:-unknown} installed in $PREFIX"
+    info "Add it to this shell with: . $PREFIX/bin/init.sh"
+    info "Package operations run as root, like MacPorts; fink asks for sudo itself."
+}
+
+# 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，
+# 因为那说明调用方指定了来源，静默换源会让校验失去意义。
+resolve_method() {
+    if [ -n "$SEED_DIR" ] || [ -n "$MANIFEST_URL" ]; then
+        MODE=seed
+        info "seed, from an explicit location"
+        return 0
+    fi
+
+    if [ "$FROM_SOURCE" -eq 1 ]; then
+        MODE=source
+        info "source, because --from-source was given"
+        return 0
+    fi
+
+    if [ "$ALLOW_FALLBACK" -eq 0 ]; then
+        MODE=seed
+        info "seed, from the default manifest"
+        return 0
+    fi
+
+    MANIFEST_URL=$DEFAULT_MANIFEST_URL
+    if probe_url "$MANIFEST_URL"; then
+        MODE=seed
+        info "seed, from $MANIFEST_URL"
+    else
+        MODE=source
+        warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
+        warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg"
+    fi
+}
+
+install_from_seed() {
     step "Resolving seed manifest"
     resolve_manifest
 
@@ -622,10 +796,22 @@ main() {
     write_config "$PREFIX"
     run_scanpackages "$PREFIX"
 
-    printf '\n'
-    info "Finx ${SEED_RELEASE:-unknown} installed in $PREFIX"
-    info "Add it to this shell with: . $PREFIX/bin/init.sh"
-    info "Package operations run as root, like MacPorts; fink asks for sudo itself."
+    INSTALLED_RELEASE=${SEED_RELEASE:-unknown}
+}
+
+install_from_source() {
+    step "Checking target"
+    check_target
+    require_write_access "$PREFIX"
+
+    step "Obtaining the source tree"
+    fetch_source
+
+    # bootstrap 自己会创建前缀并写配置、建索引，这里不再重复一遍
+    step "Bootstrapping"
+    run_bootstrap "$PREFIX"
+
+    INSTALLED_RELEASE=$(cat "$SOURCE_ROOT/VERSION" 2>/dev/null || echo unknown)
 }
 
 main "$@"

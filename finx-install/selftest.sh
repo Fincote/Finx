@@ -204,7 +204,49 @@ fi
 
 check_ok "standalone.sh is not stale" "$HERE/build-bundle.sh" --check
 
-# ---- 8. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
+# ---- 8. 源码回落 ---------------------------------------------------------
+
+SRCROOT=$ROOT/fake-src
+mkdir -p "$SRCROOT/Finx-main" || exit 1
+cat > "$SRCROOT/Finx-main/bootstrap" <<'STUB'
+#!/bin/bash
+set -e
+prefix=$1
+mkdir -p "$prefix/bin"
+printf '#!/bin/sh\nexit 0\n' > "$prefix/bin/fink"
+chmod 755 "$prefix/bin/fink"
+printf 'ran %s\n' "$prefix" > "$prefix/marker"
+STUB
+chmod 755 "$SRCROOT/Finx-main/bootstrap"
+echo "0.46.0-stub" > "$SRCROOT/Finx-main/VERSION"
+tar -czf "$ROOT/finx-src.tar.gz" -C "$SRCROOT" Finx-main || exit 1
+
+if "$INSTALL" --from-source --source-url="file://$ROOT/finx-src.tar.gz" \
+        --prefix="$ROOT/fromsource" >"$LOG" 2>&1; then
+    pass "--from-source builds from the source archive"
+else
+    failed "--from-source failed"
+fi
+
+if [ -s "$ROOT/fromsource/marker" ]; then
+    pass "bootstrap received the requested prefix"
+else
+    failed "bootstrap did not run, or ran with the wrong prefix"
+fi
+
+# 真归档、但缺 bootstrap：用来确认「内容检查」而不是「解包失败」拦住了它
+mkdir -p "$SRCROOT/Finx-empty" || exit 1
+echo "0.46.0-stub" > "$SRCROOT/Finx-empty/VERSION"
+tar -czf "$ROOT/finx-noboot.tar.gz" -C "$SRCROOT" Finx-empty || exit 1
+
+check_fails "a source archive without bootstrap is refused" \
+    "$INSTALL" --from-source --source-url="file://$ROOT/finx-noboot.tar.gz" --prefix="$ROOT/noboot"
+
+# 显式指定了来源时不回落：--no-fallback 且探不到种子必须失败
+check_fails "--no-fallback refuses a missing seed" \
+    "$INSTALL" --no-fallback --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/strict"
+
+# ---- 9. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
 
 MIRROR=$ROOT/mirror
 mkdir -p "$MIRROR" || exit 1

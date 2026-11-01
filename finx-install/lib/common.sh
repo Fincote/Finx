@@ -144,6 +144,9 @@ apply_test_root() {
     TMPDIR=$TEST_ROOT/tmp
     export TMPDIR
 
+    # 沙箱里装的都是假东西，源码自举那条路不该向用户要 root
+    IN_TEST_ROOT=1
+
     if [ "${PREFIX_EXPLICIT:-0}" -eq 1 ]; then
         prefix_real=$(resolve_path "$PREFIX")
         case $prefix_real in

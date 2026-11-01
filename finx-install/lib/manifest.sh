@@ -14,6 +14,18 @@
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
 
+# 尚未发布的默认种子位置。probe_url 探不到时，install.sh 会退回源码自举。
+DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-https://finx.sh/finx/seed/manifest}
+
+# 只探存在性，不下载全文。用于决定走种子还是走源码。
+probe_url() {
+    url=$1
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        return 1
+    fi
+    curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
+}
+
 # 解析清单，设置 MANIFEST_FILE / ARTIFACT_BASE / ARTIFACT_FILE /
 # SEED_NAME / SEED_SIZE / SEED_SHA256 / SEED_RELEASE。
 resolve_manifest() {
