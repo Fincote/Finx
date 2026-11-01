@@ -445,6 +445,38 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 **手工验证安装器时必须带 `FINX_TEST`。** 不带的话默认前缀就是真实的 `/opt/finx`，
 会真的往机器上装东西。
 
+### 9.1 CI：一条流水线，就是 `Verify: all` 的线上版
+
+`.github/workflows/verify.yml` 覆盖了 `.vscode/tasks.json` 里 `Verify: all` 的
+**全部六步，顺序也一致**，另外加两条只对 CI 有意义的断言（下表的 0 与 7）。
+这样本机与线上出结论的地方总是同一处：
+
+| # | 步骤 | 失败意味着 |
+| --- | --- | --- |
+| 0 | 断言工具链 | runner 换了镜像：`/usr/bin/perl` 低于 5.16，或架构不是 arm64 / x86_64 |
+| 1 | `bash -n` 全部 `git ls-files '*.sh'` | 引号或 `if/fi` 不配对 |
+| 2 | `make format` | 缩进不合 `STYLE` |
+| 3 | `make test_setup` + `perl -c` 全部模块 | 模块有语法错（必须先 test_setup，否则报的是「找不到模块」） |
+| 4 | `build-bundle.sh --check` | 改了 `finx-install/lib/` 却没重建 `standalone.sh` |
+| 5 | `make test` | 1059 项断言里有失败 |
+| 6 | `./finx-install/selftest.sh` | 安装器沙箱的 19 项里有一条不成立 |
+| 7 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |
+
+三条与"为什么这么设"有关的决定：
+
+- **只有一条流水线。** Finx 是公开仓库，GitHub Actions 的标准 runner 对公开仓库
+  不计费；CircleCI 的免费额度有限，快速迭代期不该有半份额度花在 CI 往返上。
+- **`concurrency` 开了 `cancel-in-progress`。** 连推几次时，被新提交取代的旧任务
+  就地取消，不必等它跑完。
+- **一个 job，不做矩阵。** `ARCHITECTURE` 取自 runner 自己的 `uname -m`
+  （`test_setup` 会把它写进 `t/basepath`），所以跑的是这台机器的架构，不是
+  Makefile 里那个默认的 `x86_64`。要覆盖另一种架构就再加一个 job，别加在同一个
+  job 里循环 —— 那样第二次运行会覆盖第一次的 `t/basepath`。
+
+`/usr/bin/perl` 而不是 PATH 上的 `perl`：Makefile 的 `test` 目标与
+`t/Services/execute_nonroot_okay.t` 都把它写死了，CI 里做语法检查的也必须是同一个
+二进制，否则「查过的」和「跑过的」不是一回事。
+
 ---
 
 ## 十、已知问题与地雷

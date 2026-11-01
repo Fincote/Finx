@@ -80,6 +80,19 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --dry-run
 `FINX_TEST` 会把默认前缀变成 `<根>/opt/finx`、把 `TMPDIR` 挪进 `<根>/tmp`，
 并拒绝指向根外的 `--prefix`。不带它，默认前缀就是真实的 `/opt/finx`。
 
+### CI
+
+`.github/workflows/verify.yml` 是 `Verify: all` 的线上版：覆盖它的全部六步、顺序一致，
+另加「断言工具链」与「跑完工作区必须干净」两条只对 CI 有意义的检查。细节见
+TECHNICAL-GUIDE 9.1。两条规矩：
+
+- **只有 GitHub Actions 一条流水线**，不接 CircleCI：本仓库是公开仓库，Actions 的
+  标准 runner 不计费，而 CircleCI 的免费额度有限，快速迭代期不该半份额度花在往返上。
+  不要为了"多一层保障"再加一条 —— 那会重新引入额度问题。
+- **本机绿了再推**。CI 的职责是复核，不是第一次验证。新增或修改测试时先在本地跑
+  对应的那一两条（`make test` / `./finx-install/selftest.sh`），再把整条
+  `Verify: all` 过一遍。
+
 ## 不要动
 
 - `NEWS`：历史发布记录。即使里面写着 `/sw`、`/opt/sw` 也不改，改了就成伪造历史。

@@ -1,0 +1,121 @@
+name: Verify
+
+# 「提交前跑这一条」的线上版本 —— 步骤与顺序和 VS Code 的 `Verify: all` 任务一致，
+# 所以本机与 CI 出结论的地方总是同一处。
+#
+# 只有一条流水线：Finx 是公开仓库，GitHub Actions 的标准 runner 对公开仓库不计费，
+# 而 CircleCI 的免费额度有限 —— 快速迭代期不该有半份额度花在 CI 往返上。
+#
+# 想省 Actions 的墙钟时间（而不是额度），改这里的触发条件即可，代价是某些提交
+# 不再被验证。注意本仓库的测试全部离线、一共几秒，慢的是装工具链，
+# 所以这里刻意不装任何东西：只用 macOS 自带的 perl 与 bash。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 快速迭代时最有用的一条：同一分支上来了新提交，还在跑的旧任务就地取消。
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 第一条命令就断言工具链，而不是等某个测试莫名失败。
+      # Makefile 的 test 目标与 t/Services/execute_nonroot_okay.t 都把 /usr/bin/perl
+      # 写死了 —— 跑测试的必须是这一个，PATH 上的 perl 可能是别的版本。
+      - name: Assert the toolchain
+        run: |
+          set -euo pipefail
+          echo "runner arch  = $(uname -m)"
+          echo "macOS        = $(sw_vers -productVersion)"
+          echo -n "perl         = "; /usr/bin/perl -v | sed -n '2p'
+          echo "perl on PATH = $(command -v perl || echo '<none>')"
+
+          # 下限 5.16：README 声明支持 macOS 10.9+，那一版自带的 perl 就是 5.16。
+          # 写成断言是为了让 runner 镜像被换掉时当场失败，而不是等到某个新语法
+          # 在旧 perl 上解析不了才暴露。
+          /usr/bin/perl -e 'exit($] >= 5.016 ? 0 : 1)' || {
+              echo "FAILED: /usr/bin/perl is older than 5.16"; exit 1; }
+
+      # t/basepath 里的架构由 setup.sh 生成，Makefile 默认 x86_64。这里跟着 runner
+      # 走，免得在 arm64 机器上用 x86_64 的配置测完还以为测过 arm64。
+      - name: Pick the architecture
+        run: |
+          set -euo pipefail
+          # 注意：写进 $GITHUB_ENV 的变量要**下一个** step 才可见，本 step 里
+          # 直接引用它会被 set -u 判成未定义。所以先落到本地变量再写出去。
+          case "$(uname -m)" in
+              arm64)  arch=arm64 ;;
+              x86_64) arch=x86_64 ;;
+              *) echo "FAILED: unsupported arch $(uname -m)"; exit 1 ;;
+          esac
+          echo "FINX_ARCH=$arch" >> "$GITHUB_ENV"
+          echo "testing with ARCHITECTURE=$arch"
+
+      - name: "Check: shell syntax"
+        # 用 git 里的清单而不是手写一列 —— 新增脚本自动纳入，不会漏。
+        run: |
+          set -euo pipefail
+          fail=0
+          count=0
+          for file in $(git ls-files '*.sh'); do
+              count=$((count + 1))
+              bash -n "$file" || { echo "FAILED: $file"; fail=1; }
+          done
+          [ "$fail" -eq 0 ] || exit 1
+          echo "shell syntax OK ($count files)"
+
+      - name: "Check: indentation"
+        run: make format
+
+      - name: "Check: perl syntax"
+        # 必须先 test_setup：perlmod/Fink/FinkVersion.pm 是它生成的。没有那个文件，
+        # perl -c 会在「找不到模块」上报错，看着像代码坏了。
+        run: |
+          set -euo pipefail
+          make test_setup ARCHITECTURE="$FINX_ARCH"
+          fail=0
+          for file in perlmod/Fink.pm perlmod/Fink/*.pm perlmod/Fink/*/*.pm; do
+              if ! out=$(/usr/bin/perl -Iperlmod -c "$file" 2>&1); then
+                  echo "FAILED: $file"; echo "$out"; fail=1
+              fi
+          done
+          [ "$fail" -eq 0 ] || exit 1
+          echo "perl syntax OK"
+
+      - name: "Check: standalone.sh in sync"
+        # 生成物：改了 finx-install/lib/ 或 install.sh 却忘了重建，
+        # 线上那条 curl | bash 跑的还是旧逻辑。
+        run: ./finx-install/build-bundle.sh --check
+
+      - name: "Test: perl suite"
+        run: make test ARCHITECTURE="$FINX_ARCH"
+
+      - name: "Test: installer selftest"
+        # 自建临时根，全程离线；不会碰 /opt/finx。
+        run: ./finx-install/selftest.sh
+
+      # 最后一条：跑完必须不留产物。t/basepath 与 setup.sh 生成的文件都该被
+      # .gitignore 挡住；一旦报出东西，说明有生成物没登记 —— 它会被误提交，
+      # 或者让 manifest_check 在下一次提交时莫名变红。
+      - name: Assert the tree is still clean
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+              echo "FAILED: the test run left files behind:"
+              git status --porcelain
+              exit 1
+          fi
+          echo "working tree clean"
