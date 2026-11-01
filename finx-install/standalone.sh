@@ -13,6 +13,21 @@ set -u
 set -o pipefail
 
 # ======== lib/common.sh ========
+# Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
 # shellcheck shell=bash
 #
 # 通用工具：输出、错误、临时目录、命令探测、校验和。
@@ -176,6 +191,21 @@ apply_test_root() {
 }
 
 # ======== lib/detect.sh ========
+# Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
 # shellcheck shell=bash
 #
 # 宿主与目标目录的探测。由 install.sh 以 . 方式加载，不单独执行。
@@ -245,6 +275,21 @@ do_mkdir() {
 }
 
 # ======== lib/manifest.sh ========
+# Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
 # shellcheck shell=bash
 #
 # 种子清单的解析、下载与校验。
@@ -405,6 +450,21 @@ verify_file() {
 }
 
 # ======== lib/extract.sh ========
+# Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
 # shellcheck shell=bash
 #
 # 落盘与收尾：解包、修权限、ad-hoc 重签名、写配置、重建索引。
@@ -525,6 +585,21 @@ run_scanpackages() {
 }
 
 # ======== lib/source.sh ========
+# Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
 # shellcheck shell=bash
 #
 # 源码回落：没有可用种子时，直接取源码树并跑它自带的 bootstrap。
