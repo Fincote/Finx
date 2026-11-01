@@ -161,6 +161,7 @@ main() {
     printf '\n'
     info "Finx ${SEED_RELEASE:-unknown} installed in $PREFIX"
     info "Add it to this shell with: . $PREFIX/bin/init.sh"
+    info "Package operations run as root, like MacPorts; fink asks for sudo itself."
 }
 
 main "$@"

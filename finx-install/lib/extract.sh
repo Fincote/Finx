@@ -18,7 +18,16 @@ extract_seed() {
     tar -xzf "$archive" -C "$target" || die "failed to extract $archive"
 }
 
-# 种子里的文件在打包时已是 root 所有；以非 root 安装时只修目录权限即可。
+# 前缀必须归 root 所有，不能 chown 给调用者。
+#
+# 两个理由，都不是风格问题：
+#   1. 解决不了免密码 —— fink install 的 rootflag 是 1，只看 $>，与归属无关；
+#   2. 会开提权口子 —— dpkg 以 root 执行 postinst，且 Fink 的 dpkg 打了
+#      fink-bld_no_fakeroot 补丁用真 root。前缀一旦用户可写，$prefix/bin/dpkg
+#      与 var/lib/dpkg/status 就成了用户可控的 root 输入。
+#
+# 因此以 root 安装时统一归一为 root:wheel；非 root 只可能发生在 FINX_TEST
+# 沙箱或用户自己拥有的前缀里，此时不动归属。
 fix_permissions() {
     target=$1
 
@@ -28,9 +37,10 @@ fix_permissions() {
     fi
 
     if [ "$(id -u)" -eq 0 ]; then
-        for sub in bin sbin lib etc var/lib/dpkg; do
-            [ -e "$target/$sub" ] && chown -R root:wheel "$target/$sub" 2>/dev/null
-        done
+        chown -R root:wheel "$target" 2>/dev/null \
+            || warn "could not chown $target to root:wheel"
+    else
+        warn "not running as root; $target stays owned by $(id -un)"
     fi
 
     for dir in "$target" "$target/bin" "$target/sbin" "$target/lib" "$target/etc"; do

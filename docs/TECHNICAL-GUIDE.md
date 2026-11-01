@@ -301,7 +301,58 @@ url     https://host/b/seed.tar.gz
 相对路径、`/`、解析后落在系统目录的路径一律拒绝 —— 测试根写错时宁可中止，也不降级到真实目录。
 `finx-install/selftest.sh` 用这个机制跑 12 项断言，全程离线。
 
-### 8.6 命名决定
+### 8.6 前缀归属：必须是 root
+
+**`/opt/finx` 归 root 所有，安装器不会把它 chown 给调用者。** 这不是保守，是两个具体后果：
+
+**一、chown 达不到"免密码"。** `install` 在命令表里的 `rootflag` 是 1
+（[Engine.pm:96](../perlmod/Fink/Engine.pm:96)），`process` 拿到就先
+[restart_as_root](../perlmod/Fink/Engine.pm:346)：
+
+```perl
+sub restart_as_root {
+    return if $> == 0;
+    ...
+    $cmd = "/usr/bin/sudo $env $cmd";
+```
+
+判断只看 `$>`，与前缀归属无关。所以就算把 `/opt/finx` 给了用户，装第一个包时照样弹密码 ——
+只是把一次密码推迟成每次。
+
+**二、chown 会开一个本地提权口子。** dpkg 以 root 执行包的 `postinst`，而 Fink 的 dpkg
+打了 `fink-bld_no_fakeroot` 补丁（[dpkg.info](../10.9-libcxx/dpkg.info:58)），用的是**真 root**。
+前缀一旦用户可写，该用户就能：
+
+| 改什么 | 后果 |
+| --- | --- |
+| `$prefix/bin/dpkg` | 下次 root 跑 `dpkg -i`，执行的是用户的程序 |
+| `$prefix/var/lib/dpkg/status` | 伪造「已安装」，诱导级联卸载或跳过依赖 |
+| `$prefix/src/*.tar`、`--force` 时的 .deb | dpkg 以 root 解包并执行其中的脚本 |
+
+所以安装器以 root 运行时统一把整棵前缀归一为 `root:wheel`
+（[extract.sh](../finx-install/lib/extract.sh) 的 `fix_permissions`）；非 root 只可能发生在
+`FINX_TEST` 沙箱或用户自己的前缀里，此时**不碰归属**，只告警。
+
+**真正免密码的路是换前缀，不是 chown。** 参照 MacWave 的用户级安装
+（`~/.local/macwave`，见其 `lib/configpaths.py`）。Fink 走这条路要同时解开三个结：
+
+| 结 | 现状 | 代价 |
+| --- | --- | --- |
+| `bindist_check_prefix` 钉死 `/opt/finx` | [Config.pm:858](../perlmod/Fink/Config.pm:858) | 改一行，但要同时决定用户前缀还能不能用官方二进制包 |
+| dylib `install_name` 是绝对路径 | 构建期写死 `$prefix/lib/...` | **用户前缀无法复用现有 .deb**，必须自带按该前缀构建的种子 |
+| 配置位置 | `$prefix/etc/fink.conf` | 已是相对路径，天然支持 |
+
+也就是说，"免密码"的成本不是一行 chown，而是一整套按用户前缀构建的二进制分发。
+在做出那个决定之前，保持 root 所有是唯一安全的选择。
+
+**这相当于 MacPorts 的模型**：安装与每次装包都要 `sudo`，但每个操作都作用在系统级前缀上，
+不需要为不同的前缀准备不同的二进制包。Finx 采纳这个模型，因此：
+
+- 安装器在非 root 时拒绝写系统前缀（`require_write_access`）；
+- 装包时由 `restart_as_root` 自动 `sudo`，用户不必手动加；
+- 两条路径共用同一份 `/opt/finx` 二进制分发，不需要按用户重建。
+
+### 8.7 命名决定
 
 面向用户的安装器是一个目录：**`finx-install/`**。
 
@@ -339,7 +390,7 @@ finx-install/
 `Bootstrap::check_files` 两份**互相独立**的清单，漏一处就在自举第一步炸掉。
 所以新东西另起专名，旧约定原样保留。
 
-### 8.7 仍待定
+### 8.8 仍待定
 
 | 待定 | 选项 | 影响 |
 | --- | --- | --- |

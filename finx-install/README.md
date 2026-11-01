@@ -4,7 +4,7 @@
 
 **这不是 `fink` 包的安装阶段脚本。** 那个是仓库根的 [`install.sh`](../install.sh)，
 由 [`fink.info.in`](../fink.info.in) 的 `InstallScript` 调用。两者的命名冲突与取舍见
-[`docs/TECHNICAL-GUIDE.md`](../docs/TECHNICAL-GUIDE.md) 8.6。
+[`docs/TECHNICAL-GUIDE.md`](../docs/TECHNICAL-GUIDE.md) 8.7。
 
 ## 一、一条命令
 
@@ -82,6 +82,7 @@ finx-install/
 | `standalone.sh` 提交进仓库 | 见第三节；用 `--check` 防漂移 |
 | `--seed-dir` 一等公民 | 让整个安装器可以完全离线自测，CI 不需要网络 |
 | 不做「警告后继续」 | 校验失败即中止，与 `docs/TECHNICAL-GUIDE.md` 8.1 的强校验要求一致 |
+| 前缀归 root，不 chown 给调用者 | 见 TECHNICAL-GUIDE 8.6：chown 既免不了 `fink install` 的密码，又会让 `$prefix/bin/dpkg` 变成 root 的可控输入。这里采纳 MacPorts 模型 —— 每次装包都要 sudo，但只需要一份系统级二进制分发 |
 
 ## 六、测试根：`FINX_TEST`
 
