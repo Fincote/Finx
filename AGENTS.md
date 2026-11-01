@@ -58,7 +58,7 @@
 完整方法见 [`docs/TECHNICAL-GUIDE.md`](./docs/TECHNICAL-GUIDE.md) 第九节。要点：
 
 ```
-make test          # manifest_check → structure → test_setup → 跑完 t/ 全部测试
+make test          # manifest_check → structure → sources_check → test_setup → 跑完 t/ 全部测试
 ```
 
 - 基线：**48 个测试文件、1059 项断言**全通过。
@@ -72,6 +72,11 @@ make test          # manifest_check → structure → test_setup → 跑完 t/ �
   它守的是 `MANIFEST` 与实际安装是否同步 —— `manifest_check` 只看得见 `MANIFEST`
   一侧，看不见 `install.sh` 到底装了什么。改了 `install.sh` 的文件列表或
   `MANIFEST` 后务必跑一次。
+- 再跑 `sources_check`（[`base-files/pack.sh`](./base-files/pack.sh) `--check`）：
+  确认现场打出的 `base-files` tar 与 `10.9-libcxx/base-files.info` 里登记的
+  `Source-MD5` 一致。**改了 `base-files/` 里任何一个载荷文件都要跑
+  `./base-files/pack.sh --update`**，否则自举时 Fink 会认为 tar 被篡改并停下来问人。
+  背景见 TECHNICAL-GUIDE 8.9。
 - 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
 - 改 `PkgVersion` / `Engine` / `Services` / `Bootstrap` 后必须重跑全套；只改文档不用跑。
 - VS Code 里有同名任务：`Test: perl suite`、`Verify: all`（见 `.vscode/tasks.json`）。
@@ -119,6 +124,10 @@ TECHNICAL-GUIDE 9.1。两条规矩：
   查的是另一件事（源码树完整性），两者不同集，不要套包含关系。
   这条曾被我判断错，纠正过程见 TECHNICAL-GUIDE 10.5。
 - `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE 第一节。
+- `base-files/` 是从上游 `fink/base-files` 收进来的包源码，见
+  [README](./base-files/README.md)。它与 `10.9-libcxx/base-files.info` 里写死的
+  `Source-MD5` 绑定，改任何一个载荷文件后必须跑 `./base-files/pack.sh --update`，
+  否则自举会卡在「校验和不符」。
 - **种子的 tar 包不进仓库。** git 单文件 100 MiB 硬限，种子是编译产物，放进去会让
   历史永久膨胀且无法删除。产物发到 GitHub Releases，清单留在 `finx-install/seed/`
   并由 git 记录 —— 清单是校验锚点，与被校验的产物不能同源。理由与命名规则见

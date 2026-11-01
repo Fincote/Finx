@@ -13,6 +13,7 @@ all:
 	@echo -e "\tinstall     install to an existing fink installation"
 	@echo -e "\ttest        perform tests on the fink code"
 	@echo -e "\tstructure   cross-check git, MANIFEST and what install.sh really installs"
+	@echo -e "\tsources_check  verify the bundled source tarballs still match their checksums"
 	@echo -e "\tformat      check indentation of all Perl and shell sources"
 	@echo -e "\tclean       remove all extraneous files"
 	@echo    ""
@@ -35,12 +36,18 @@ manifest_check:
 structure:
 	FINX_ARCH="$(ARCHITECTURE)" ./scripts/structure_test.sh
 
+# 内置源码包的 tar 必须与 .info 里登记的 Source-MD5 一致。
+# 换 tar 版本、或改了 base-files/ 里的文件却忘了重新登记，这里当场失败；
+# 否则要等 bootstrap 跑到一半，才发现 Fink 在问「校验和不符」。
+sources_check:
+	./base-files/pack.sh --check
+
 # 缩进检查。故意不挂进 test：bootstrap 会跑 make test，而格式瑕疵不该拦住安装。
 # Perl 用 tab、shell 用 4 空格，规则与例外见 scripts/format_check.pl 的注释。
 format:
 	./scripts/format_check.pl
 
-test: manifest_check structure test_setup
+test: manifest_check structure sources_check test_setup
 	@# must test with same perl binary as the one to be used to run fink
 	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
 	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'

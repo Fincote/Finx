@@ -1,0 +1,137 @@
+# init.sh
+#
+# to use the Fink hierarchy, put the following in your .profile:
+#
+#  . BASEPATH/bin/init.sh
+#
+
+#
+# Fink - a package manager that downloads source and installs it
+# Copyright (c) 2001 Christoph Pfisterer
+# Copyright (c) 2001-2020 The Fink Team
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
+#
+
+# define append_path and prepend_path to add directory paths, e.g. PATH, MANPATH.
+# add to end of path
+append_path()
+{
+  if ! eval test -z "\"\${$1##*:$2:*}\"" -o -z "\"\${$1%%*:$2}\"" -o -z "\"\${$1##$2:*}\"" -o -z "\"\${$1##$2}\"" ; then
+    eval "$1=\$$1:$2"
+  fi
+}
+
+# add to front of path
+prepend_path()
+{
+  if ! eval test -z "\"\${$1##*:$2:*}\"" -o -z "\"\${$1%%*:$2}\"" -o -z "\"\${$1##$2:*}\"" -o -z "\"\${$1##$2}\"" ; then
+    eval "$1=$2:\$$1"
+  fi
+}
+
+# setup fink related paths. we assume that the fink directories exist.
+if [ -z "$PATH" ]; then
+  PATH=BASEPATH/bin:BASEPATH/sbin:/bin:/sbin:/usr/bin:/usr/sbin
+else
+  prepend_path PATH BASEPATH/bin:BASEPATH/sbin
+fi
+export PATH
+
+osMajorVer=`uname -r | cut -d. -f1`
+osMinorVer=`uname -r | cut -d. -f2`
+if [ -z "$MANPATH" ]; then
+    MANPATH=`/usr/bin/manpath`
+fi
+prepend_path MANPATH BASEPATH/share/man
+perlversion=`/usr/bin/perl -e 'printf("%vd\n", $^V)'`
+append_path MANPATH BASEPATH/lib/perl5/$perlversion/man
+export MANPATH
+
+if [ -z "$INFOPATH" ]; then
+  INFOPATH=BASEPATH/share/info:BASEPATH/info:/usr/share/info
+else
+  prepend_path INFOPATH BASEPATH/share/info:BASEPATH/info
+fi
+export INFOPATH
+
+if [ -r BASEPATH/share/java/classpath ]; then
+  if [ -z "$CLASSPATH" ]; then
+    CLASSPATH=`cat BASEPATH/share/java/classpath`:.
+  else
+    add2classpath=`cat BASEPATH/share/java/classpath`
+    prepend_path CLASSPATH $add2classpath
+  fi
+  export CLASSPATH
+fi
+
+if [ -z "$PERL5LIB" ]; then
+  PERL5LIB=BASEPATH/lib/perl5:BASEPATH/lib/perl5/darwin
+else
+  prepend_path PERL5LIB BASEPATH/lib/perl5:BASEPATH/lib/perl5/darwin
+fi
+export PERL5LIB
+
+# Add X11 paths (first one found between /opt and /usr/X11).
+if [ "`echo $PATH | grep 'X11.*/bin'`x" = "x" ]; then
+    # For PATH, check for presence of *any* X11 entry present in var
+    # first. We support platforms with several possible prefixes (or
+    # symlinks to it), and don't want to add a different prefix or
+    # redundant link to it.
+    if [ -r /opt/X11/bin ]; then
+	append_path PATH /opt/X11/bin
+	export PATH
+    elif [ -r /usr/X11/bin ]; then
+	append_path PATH /usr/X11/bin
+	export PATH
+    fi
+fi
+if [ -r /opt/X11/man ]; then
+    append_path MANPATH /opt/X11/man
+    export MANPATH
+elif [ -r /usr/X11/man ]; then
+    append_path MANPATH /usr/X11/man
+    export MANPATH
+fi
+
+PROXYHTTP=`grep ProxyHTTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+
+if [ "$PROXYHTTP" != "" ]; then
+  HTTP_PROXY=$PROXYHTTP
+  http_proxy=$PROXYHTTP
+
+  export HTTP_PROXY http_proxy
+fi
+
+PROXYFTP=`grep ProxyFTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+
+if [ "$PROXYFTP" != "" ]; then
+  FTP_PROXY=$PROXYFTP
+  ftp_proxy=$PROXYFTP
+
+  export FTP_PROXY ftp_proxy
+fi
+
+# read per-package scripts from BASEPATH/etc/profile.d
+if [ -d BASEPATH/etc/profile.d ]; then
+  for i in BASEPATH/etc/profile.d/*.sh ; do
+    if [ -r $i -a -x $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+
+# eof

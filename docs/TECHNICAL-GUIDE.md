@@ -383,7 +383,7 @@ finx-install/
 | --- | --- | --- |
 | `fink` | 仓库根 | 可 |
 | `fink-mirrors` | `mirror/` | 可 |
-| `base-files` | 外部 tarball | 不可 |
+| `base-files` | [`base-files/`](../base-files/) | 可（已内置，见 8.9） |
 | `dpkg-base-files` | 外部 tarball | 不可 |
 
 只改前两个会在 `.info` 层制造两套约定。而且改名要同步 `MANIFEST` 与
@@ -486,7 +486,65 @@ finx-install/seed/manifest-x86_64.txt      ← 按架构分开，arch 字段与�
    定期验一遍是 [`Todo.md`](../Todo.md) 里那条待办（mirror check utility）该做的事 ——
    验法不能只看 HTTP 200，要比对字节数与 `sha256`。
 
-### 8.9 仍待定
+### 8.9 内置源码包：base-files
+
+`base-files` 是 `Essential: yes` 的目录基础设施包，提供 `bin/init.sh`、`bin/init.csh`、
+`bin/{pager,editor}`、`share/base-files/dir-base`，以及 `bin`、`etc`、`var/lib/dpkg`
+那套目录骨架。它以前只在 SourceForge 上的 `fink/base-files-1.9.19.tar.gz` 里。
+
+这造成一个纯粹的可理解性问题：**仓库里有 11 处引用 `$prefix/bin/init.sh`，零处生成它的
+代码。** 用户被要求 `source` 一个仓库里根本不存在的文件；`Fink::Bootstrap::locate_Fink`
+判定「这是不是一个 Fink 安装」时也拿它当条件之一（[Bootstrap.pm:733](../perlmod/Fink/Bootstrap.pm:733)）。
+读完整个仓库仍然说不清系统是怎么跑起来的。
+
+现在源码在 [`base-files/`](../base-files/)，来自上游 `fink/base-files` 的
+`release_1_9_19` 标签，与 `.info` 里 pin 的版本对应。相对上游只改了两处：示例路径
+`/sw` → `/opt/finx`，shell 缩进 2 空格 → 4 空格。行为未动。
+
+**这几个文件是前缀无关的。** `init.sh.in` 里写的是 `BASEPATH` 占位符，由 `setup.sh`
+在编译阶段用 `%p` 替换 —— 与仓库根目录那套 `@PREFIX@` 是同一个思路，只是占位符名字不同。
+
+#### 为什么需要打包器，而不是直接引用目录
+
+Fink 的 `find_tarball()` 只认归档文件，且先搜 `$basepath/src`，找到就不下载。所以离线
+安装的机制是「把 tar 预先放进 `<prefix>/src`」，由 `Bootstrap::pack_included_sources`
+在 `bootstrap2` 里调用 [`base-files/pack.sh`](../base-files/pack.sh) 生成。
+
+难点全在 `.info` 里写死的 `Source-MD5`：tar 是在**用户机器上现场生成**的，字节只要有一点
+差异，Fink 就认定下载被篡改并停下来问人。所以 `pack.sh` 抹掉一切随机器变化的量：
+
+| 变量 | 处理 |
+| --- | --- |
+| `mtime` | `touch` 到固定时刻；`touch -t` 按本地时区解释，所以 `TZ=UTC` 必须钉死 |
+| `uid`/`gid` | `--uid 0 --gid 0`，不依赖构建者是谁 |
+| `uname`/`gname` | `--uname root --gname wheel` |
+| 归档格式 | `--format=ustar`，pax 会写额外扩展头 |
+| 成员顺序 | 显式列文件名，不靠目录遍历顺序 |
+| gzip 头 | `-n`，不写原始文件名与时间戳 |
+| AppleDouble | `COPYFILE_DISABLE=1`，否则 macOS 给带 xattr 的文件塞 `._` 成员 |
+
+实测同一棵树在 `UTC` / `America/New_York` / `Asia/Shanghai` 下产出的 MD5 相同。
+跨 `bsdtar` 版本仍可能有差异 —— 那种情况由 `make sources_check` **当场**抓住，
+而不是留到 bootstrap 跑到一半才让用户面对一个与他的改动无关的下载错误。
+改了 `base-files/` 里的载荷就要 `./base-files/pack.sh --update`。
+
+归档必须是**扁平**的（成员在顶层，无 `base-files-1.9.19/` 前缀）：`phase_unpack` 先
+`mkdir $buildpath/<fullname>` 再 `chdir` 进去解包，与 `create_tarball` 的产物同形。
+
+#### 验证到哪一步
+
+已验证：打包可复现（跨时区）、归档布局与 `phase_unpack` 预期一致、解出来的树能跑通
+`setup.sh` + `install.sh`、生成的 `init.sh` 里前缀展开为 `/opt/finx` 且 `source` 后
+`PATH` 正确、`pack_included_sources()` 确实把 tar 放进 `$basepath/src` 且 MD5 与
+`.info` 一致。
+
+**未验证：完整 bootstrap。** 那需要编译 dpkg/tar 并访问镜像源，本机不具备条件。
+两侧接口都已按代码对齐，但端到端的第一次真实自举仍是未验证的。
+
+`dpkg-base-files` 仍是外部 tarball。它提供的是 `.la` 清理 triggers，不阻塞「系统怎么
+跑起来」这个问题，但用的是同一套机制，可以照此办理。
+
+### 8.10 仍待定
 
 | 待定 | 选项 | 影响 |
 | --- | --- | --- |

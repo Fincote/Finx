@@ -16,6 +16,17 @@ VERSION
 REVISION
 STYLE
 TODO
+base-files/COPYING
+base-files/NEWS
+base-files/README
+base-files/dir-base
+base-files/editor.in
+base-files/init.csh.in
+base-files/init.sh.in
+base-files/install.sh
+base-files/pack.sh
+base-files/pager.in
+base-files/setup.sh
 bootstrap
 bootstrap-phase2.pl
 dpkg-checkall.sh

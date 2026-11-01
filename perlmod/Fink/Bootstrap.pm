@@ -596,6 +596,10 @@ sub bootstrap2 {
 	# disable UseBinaryDist during bootstrap
 	Fink::Config::set_options( { 'use_binary' => -1 });
 
+	# 把仓库内置的源码就地打成 tar；放在 require_packages 之前，让后面
+	# cmd_install 里的 find_tarball 直接命中，不再联网。
+	&pack_included_sources();
+
 	# make sure we have the package descriptions
 	Fink::Package->require_packages();
 
@@ -619,6 +623,51 @@ sub bootstrap2 {
 	$ENV{PATH} = $save_path;
 }
 
+
+=item pack_included_sources
+
+	pack_included_sources();
+
+Generates the source tarballs of packages whose sources are maintained in
+this repository instead of on a mirror.  Fink's find_tarball() searches
+$basepath/src before it downloads anything, so a tarball placed there means
+the install never reaches the network.
+
+The list of such packages is @INCLUDED_SOURCES.  A package listed there but
+missing from the tree is only a warning: the tarball is then fetched the old
+way, which is what happens when bootstrap runs from an older tree.
+
+Called by bootstrap2 before the essential packages are installed.  Relies on
+the current directory being the source tree, the same assumption
+fink_packagefiles() makes.
+
+=cut
+
+our @INCLUDED_SOURCES = ( "base-files" );
+
+sub pack_included_sources {
+	my ($pkg, $packer, $destdir);
+
+	$destdir = "$basepath/src";
+
+	foreach $pkg (@INCLUDED_SOURCES) {
+		$packer = "$pkg/pack.sh";
+		if (not -f $packer) {
+			&print_breaking("No included source for $pkg; ".
+				"it will be downloaded as usual.");
+			next;
+		}
+
+		mkdir_p $destdir unless -d $destdir;
+		&print_breaking("Generating the included $pkg source tarball.");
+
+		# 失败要当场停：否则后面 fink 会去联网取，而那个地址常年不可用，
+		# 用户看到的会是一个和他的改动毫无关系的下载错误。
+		if (&execute("/bin/sh '$packer' '$destdir'", quiet=>1)) {
+			die "ERROR: Can't generate the $pkg source tarball.\n";
+		}
+	}
+}
 
 =item bootstrap3
 
