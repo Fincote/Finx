@@ -437,10 +437,23 @@ probe_url() {
     while [ "$tries" -gt 0 ]; do
         code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
             --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
+
+        # HEAD 会被某些 CDN / 反爬层拒掉（403/405/501），而同一个地址用 GET
+        # 取两个字节就正常。所以 HEAD 拿不到结论时再问一次 GET。
+        case $code in
+            403|405|429|501|000)
+                code=$(curl -sS -o /dev/null -w '%{http_code}' -r 0-1 -L \
+                    --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) \
+                    || code=000 ;;
+        esac
+
         case $code in
             2??|3??) return 0 ;;
-            4??|5??) return 1 ;;
+            # 只有这两个码能断定「确实没有」。403/429/451 是「被拦下了」，
+            # 不是「不存在」—— 把它们当成不存在，用户就会被送去源码自举。
+            404|410) return 1 ;;
         esac
+
         tries=$((tries - 1))
         [ "$tries" -gt 0 ] && sleep 2
     done
@@ -679,8 +692,45 @@ resign_macho() {
 }
 
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
+# 本机的 Distribution。bootstrap 就是这么推的：主版本号 + ".0"。
+# macOS 15.5 得到 15.0 —— 与 bootstrap 打印的 "Distribution: 15.0" 一致。
+host_distribution() {
+    printf '%s.0\n' "$HOST_MACOS_MAJOR"
+}
+
+# 把种子里的树对齐到**本机**的 Distribution。
+#
+# 种子是在构建机上打的，那里 finx/<dist> 与 finx/dists 指向构建机的版本
+# （例如 26.0）。装到另一台机器上，Fink 会去找 finx/<本机版本>，找不到就
+# 无法定位包池。bootstrap 自己也是这么做的（bootstrap:685/690）：
+#
+#   finx/<distribution> -> <selfupdatetrees>     这里 selfupdatetrees 恒为 10.9-libcxx
+#   finx/dists          -> <distribution>
+#
+# 所有 10.9 及以上的版本共用 10.9-libcxx 这一套布局，所以别名指向它就够了，
+# 不需要为每个 macOS 版本重打一份种子。
+align_trees() {
+    target=$1
+    dist=$2
+    base=$target/finx
+    [ -d "$base/10.9-libcxx" ] || return 0    # 不是标准布局，什么都不动
+
+    if [ ! -e "$base/$dist" ]; then
+        ln -s 10.9-libcxx "$base/$dist" 2>/dev/null \
+            && info "tree finx/$dist -> 10.9-libcxx" \
+            || warn "could not create finx/$dist"
+    fi
+    if [ "$(readlink "$base/dists" 2>/dev/null)" != "$dist" ]; then
+        rm -f "$base/dists"
+        ln -s "$dist" "$base/dists" 2>/dev/null \
+            && info "tree finx/dists -> $dist" \
+            || warn "could not point finx/dists at $dist"
+    fi
+}
+
 write_config() {
     target=$1
+    dist=$2
     conf=$target/etc/finx.conf
 
     if [ -e "$conf" ]; then
@@ -688,11 +738,22 @@ write_config() {
         return 0
     fi
 
+    # 字段与 bootstrap 写的那份一致（bootstrap:748-753）。少任何一个 finx 都
+    # 起不来 —— 之前只写 Basepath，结果 Distribution not set，scanpackages
+    # 直接失败，装完等于没用。
+    rootmethod=sudo
+    if [ "$(id -u)" -eq 0 ] && [ -z "${SUDO_USER:-}" ]; then
+        rootmethod=none
+    fi
+
     mkdir -p "$target/etc" || die "cannot create $target/etc"
     cat > "$conf" <<EOF
 # Finx configuration, created by finx-install
-# 其余字段（Trees / Distribution / SelfUpdateTrees）由 finx configure 补全。
 Basepath: $target
+RootMethod: $rootmethod
+Trees: local/main stable/main
+Distribution: $dist
+SelfUpdateTrees: 10.9-libcxx
 EOF
 }
 
@@ -1004,6 +1065,22 @@ target_home() {
 }
 
 login_shell_name() {
+    # 先问 Directory Services 要「这个人的登录 shell」，而不是看 $SHELL。
+    #
+    # sudo 会把 SHELL 换成 root 的（通常是 /bin/sh），于是 zsh 用户被写进了
+    # ~/.profile —— 他们的 shell 根本不读那个文件，装完等于没配 PATH。
+    # 实测踩过。
+    _user=${SUDO_USER:-}
+    if [ -z "$_user" ] || [ "$_user" = root ]; then
+        _user=$(id -un 2>/dev/null)
+    fi
+    if [ -n "$_user" ]; then
+        _shell=$(dscl . -read "/Users/$_user" UserShell 2>/dev/null | awk '{print $2}')
+        if [ -n "$_shell" ]; then
+            basename "$_shell"
+            return 0
+        fi
+    fi
     basename "${SHELL:-/bin/zsh}"
 }
 
@@ -1183,7 +1260,8 @@ install_from_seed() {
     step "Finalizing"
     fix_permissions "$PREFIX"
     resign_macho "$PREFIX"
-    write_config "$PREFIX"
+    align_trees "$PREFIX" "$(host_distribution)"
+    write_config "$PREFIX" "$(host_distribution)"
     run_scanpackages "$PREFIX"
 
     INSTALLED_RELEASE=${SEED_RELEASE:-unknown}

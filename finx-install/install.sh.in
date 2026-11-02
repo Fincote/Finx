@@ -224,6 +224,22 @@ target_home() {
 }
 
 login_shell_name() {
+    # 先问 Directory Services 要「这个人的登录 shell」，而不是看 $SHELL。
+    #
+    # sudo 会把 SHELL 换成 root 的（通常是 /bin/sh），于是 zsh 用户被写进了
+    # ~/.profile —— 他们的 shell 根本不读那个文件，装完等于没配 PATH。
+    # 实测踩过。
+    _user=${SUDO_USER:-}
+    if [ -z "$_user" ] || [ "$_user" = root ]; then
+        _user=$(id -un 2>/dev/null)
+    fi
+    if [ -n "$_user" ]; then
+        _shell=$(dscl . -read "/Users/$_user" UserShell 2>/dev/null | awk '{print $2}')
+        if [ -n "$_shell" ]; then
+            basename "$_shell"
+            return 0
+        fi
+    fi
     basename "${SHELL:-/bin/zsh}"
 }
 
@@ -403,7 +419,8 @@ install_from_seed() {
     step "Finalizing"
     fix_permissions "$PREFIX"
     resign_macho "$PREFIX"
-    write_config "$PREFIX"
+    align_trees "$PREFIX" "$(host_distribution)"
+    write_config "$PREFIX" "$(host_distribution)"
     run_scanpackages "$PREFIX"
 
     INSTALLED_RELEASE=${SEED_RELEASE:-unknown}

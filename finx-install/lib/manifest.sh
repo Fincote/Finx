@@ -67,10 +67,23 @@ probe_url() {
     while [ "$tries" -gt 0 ]; do
         code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
             --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
+
+        # HEAD 会被某些 CDN / 反爬层拒掉（403/405/501），而同一个地址用 GET
+        # 取两个字节就正常。所以 HEAD 拿不到结论时再问一次 GET。
+        case $code in
+            403|405|429|501|000)
+                code=$(curl -sS -o /dev/null -w '%{http_code}' -r 0-1 -L \
+                    --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) \
+                    || code=000 ;;
+        esac
+
         case $code in
             2??|3??) return 0 ;;
-            4??|5??) return 1 ;;
+            # 只有这两个码能断定「确实没有」。403/429/451 是「被拦下了」，
+            # 不是「不存在」—— 把它们当成不存在，用户就会被送去源码自举。
+            404|410) return 1 ;;
         esac
+
         tries=$((tries - 1))
         [ "$tries" -gt 0 ] && sleep 2
     done
