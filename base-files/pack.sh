@@ -65,6 +65,22 @@ die() {
     exit 1
 }
 
+# tar 与 gzip 走绝对路径，不信 PATH。
+#
+# 真实事故：finx 包的 CompileScript 里跑 `make test`，其中 sources_check 会调用
+# 本脚本重建载荷 tar。而那个环境的 PATH 最前面是 /opt/finx/bin —— 放着 Fink
+# 自己编的 GNU tar。GNU tar 不认 bsdtar 的 --uid/--uname，直接
+#
+#     tar: unrecognized option '--uid'
+#     phase compiling: finx-0.45.99.git failed
+#
+# 而 bootstrap 只是打印一段「请附上错误信息」的说明就继续往下走，退出码仍是 0，
+# 于是 CI 一直显示绿色，装出来的前缀里却从来没有 bin/finx。
+BSDTAR=/usr/bin/tar
+GZIP=/usr/bin/gzip
+[ -x "$BSDTAR" ] || die "no $BSDTAR"
+[ -x "$GZIP" ] || die "no $GZIP"
+
 # 版本与期望校验和都从 pack.conf 读。它随载荷一起发布，所以在一棵只有
 # MANIFEST 里那些文件的树里也读得到 —— 这一点是硬要求，见 pack.conf 的注释。
 [ -f "$PACKCONF" ] || die "can't find $PACKCONF"
@@ -101,13 +117,13 @@ build() {
     TZ=UTC touch -t "$STAMP" "$stage/$topdir" || die "can't set mtime on $topdir"
 
     ( cd "$stage" \
-        && COPYFILE_DISABLE=1 TZ=UTC tar \
+        && COPYFILE_DISABLE=1 TZ=UTC "$BSDTAR" \
             --format=ustar \
             --uid 0 --gid 0 --uname root --gname wheel \
             -cf "$outdir/$TARBALL.tmp" "$topdir" ) \
         || die "tar failed"
 
-    gzip -9n -c "$outdir/$TARBALL.tmp" > "$outdir/$TARBALL" || die "gzip failed"
+    "$GZIP" -9n -c "$outdir/$TARBALL.tmp" > "$outdir/$TARBALL" || die "gzip failed"
     rm -f "$outdir/$TARBALL.tmp"
 
     rm -rf "$stage"
@@ -168,7 +184,7 @@ case "${1:-}" in
         # 打成扁平的 tar 本身是合法的 gzip+tar，MD5 也会自洽，只有 bootstrap
         # 跑到 phase three 才会炸，而那时报错说的是"package description"，
         # 完全指不到打包脚本。
-        first=$(gzip -dc "$path" | tar -tf - 2>/dev/null | head -1)
+        first=$("$GZIP" -dc "$path" | "$BSDTAR" -tf - 2>/dev/null | head -1)
         want_dir="base-files-$PUBSPEC_VERSION/"
         if [ "$first" != "$want_dir" ]; then
             printf 'FAILED: wrong archive layout\n' >&2

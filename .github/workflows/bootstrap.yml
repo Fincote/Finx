@@ -89,6 +89,23 @@ jobs:
           set -euo pipefail
           scripts/ci_bootstrap.sh "${{ inputs.prefix }}" 5
 
+      - name: Assert the installation is usable
+        # bootstrap 在 finx 包编译失败时只打印一段「请附上错误信息」的说明，然后
+        # 继续收尾，退出码依然是 0。所以「Run bootstrap 成功」并不代表装出了东西。
+        #
+        # 真实事故：payload 里跑 make test → sources_check → base-files/pack.sh，
+        # 而那时 PATH 最前面是 /opt/finx/bin 里的 GNU tar，不认 bsdtar 的 --uid，
+        # 于是 finx 包编译失败、bin/finx 从来没有出现，CI 却一直是绿的。
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.prefix }}"
+          if [ ! -x "$PREFIX/bin/finx" ]; then
+              echo "FAILED: $PREFIX/bin/finx is missing -- bootstrap did not install finx itself." >&2
+              echo "Search bootstrap.log for 'phase compiling: finx-... failed'." >&2
+              exit 1
+          fi
+          "$PREFIX/bin/finx" --version
+
       - name: Collect the built packages
         if: always()
         run: |

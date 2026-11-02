@@ -205,13 +205,15 @@ printf 'packing %s members (%s excluded) from %s\n' "$kept" "$dropped" "$PREFIX"
 # --no-recursion 必须给：列表里已经有每一个成员了，而 bsdtar 默认会对列进来的
 # 目录再递归一遍 —— 结果既是重复成员，又会把 etc/finx.conf 这类被排除的文件
 # 从父目录底下重新拉回来。
-if ! COPYFILE_DISABLE=1 tar --format=ustar --no-recursion \
+# 绝对路径：不信任 PATH 里的 tar。同 base-files/pack.sh 里那段事故说明 ——
+# Fink 编的 GNU tar 在 /opt/finx/bin 里，不认 bsdtar 的 --uid。
+if ! COPYFILE_DISABLE=1 /usr/bin/tar --format=ustar --no-recursion \
         --uid 0 --gid 0 --uname root --gname wheel \
         -cf "$SEED.part" -C "$PREFIX" -T "$LIST"; then
     rm -f "$SEED.part"
     die "tar failed"
 fi
-if ! gzip -n -9 -f "$SEED.part"; then
+if ! /usr/bin/gzip -n -9 -f "$SEED.part"; then
     rm -f "$SEED.part" "$SEED.part.gz"
     die "gzip failed"
 fi
