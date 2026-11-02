@@ -29,9 +29,22 @@
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
 
-# 默认种子位置，由 FINX_INDEX_DOMAIN 决定。probe_url 探不到时，
-# install.sh 会退回源码自举。--manifest-url 优先于它。
-DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
+# 默认种子位置。优先级：
+#
+#   --manifest-url / FINX_MANIFEST_URL   显式指定，最高
+#   FINX_INDEX_DOMAIN                    用户给了域名，就拼 <域名>/manifest
+#   GitHub Releases 上的 seed 标签        都不给时的默认，见下
+#
+# 为什么默认指向 Releases 而不是 finx.sh：`curl | bash` 的意义就是「不需要先
+# 读文档、不需要设环境变量」。在自己的域名托管起来之前，Releases 是唯一一个
+# 立刻可用的稳定地址；而 FINX_INDEX_DOMAIN 随时可以把它换掉。
+if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ]; then
+    DEFAULT_MANIFEST_URL=$FINX_DEFAULT_MANIFEST_URL
+elif [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
+    DEFAULT_MANIFEST_URL=$FINX_INDEX_DOMAIN/manifest
+else
+    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/seed/manifest
+fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {

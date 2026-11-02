@@ -104,11 +104,34 @@ run_bootstrap() {
         info "passing ${#proxy_vars[@]} proxy variable(s) through sudo"
     fi
 
-    info "running bootstrap (this compiles tar and dpkg; it can take a while)"
+    ensure_tmp
+    bootstrap_log=$FINX_TMP/bootstrap.log
+
+    info "compiling tar and dpkg; this is the slow path"
+    info "  log: $bootstrap_log"
 
     # ${arr[@]+"${arr[@]}"} 而不是 "${arr[@]}"：bash 3.2 在 set -u 下展开空数组
     # 会报 unbound variable（4.4 才修好）。而以 root 运行、或测试根里，
     # sudo_cmd 正好是空的。
-    ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
-        || die "bootstrap failed; see its output above for the failing step"
+    #
+    # 默认把 bootstrap 的全部输出收进日志：它会逐条打印 mkdir、编译每一行、还有
+    # 出错时的那套「该找哪个邮件列表」模板，几百行下去把真正要看的三行冲掉。
+    # 失败时只回放末尾，够定位；要看全程就 --verbose。
+    if [ "${VERBOSE:-0}" -eq 1 ]; then
+        ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
+            2>&1 | tee "$bootstrap_log"
+        rc=${PIPESTATUS[0]}
+    else
+        ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
+            > "$bootstrap_log" 2>&1
+        rc=$?
+    fi
+
+    if [ "$rc" -ne 0 ]; then
+        printf '\n' >&2
+        printf 'The last lines of %s:\n' "$bootstrap_log" >&2
+        tail -n 40 "$bootstrap_log" >&2 2>/dev/null || true
+        printf '\n' >&2
+        die "bootstrap failed (full log: $bootstrap_log)"
+    fi
 }

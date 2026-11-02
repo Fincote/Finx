@@ -22,6 +22,10 @@
 `install.sh` 就是**可以直接下载的那一个文件** —— 没有 npm 式的安装步骤，也不
 依赖同级的 `lib/`。管道里同时是它自己的 stdin，所以它不会反过来读 stdin 提问。
 
+未设任何环境变量时，它去 GitHub Releases 的 `seed` 标签取预编译种子；只有取不到
+才会退回源码自举，而那条路会把 bootstrap 的全部输出（几百行）收进日志，屏幕上
+只留进度与失败时的末尾 40 行。要看全程加 `--verbose`。
+
 从仓库直接跑（开发、离线自测）：
 
 ```
@@ -165,7 +169,7 @@ Finx 里变成没人读的死配置，所以没有搬。
 
 | 变量 | 默认值 | 覆盖什么 |
 | --- | --- | --- |
-| `FINX_INDEX_DOMAIN` | `https://finx.sh/finx/seed` | 种子清单 `<域名>/manifest` |
+| `FINX_INDEX_DOMAIN` | 不设则用 GitHub Releases 的 `seed` 标签 | 种子清单 `<域名>/manifest` |
 | `FINX_SEED_DOMAIN` | `https://finx.sh/finx/seed` | 清单里没写 `url` 时的种子归档 `<域名>/<文件名>` |
 | `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | 源码归档 `<域名>/tar.gz/<ref>` |
 | `FINX_SOURCE_REF` | `main` | 分支/标签/提交，等同 `--ref` |

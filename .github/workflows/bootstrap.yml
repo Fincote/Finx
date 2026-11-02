@@ -34,9 +34,17 @@ on:
         description: "Install prefix. Must be /opt/finx for a usable seed."
         required: false
         default: "/opt/finx"
+      publish:
+        # 默认发布：安装器的内置清单地址指向这个标签，一次构建就该让
+        # curl | bash 立刻有用，而不是等谁记得勾一个框。
+        description: "Publish the seed as a release asset (tag: seed)"
+        type: boolean
+        required: false
+        default: true
 
+# 发布种子要往 Releases 写。这个工作流只能手动触发，所以给写权限的风险面很小。
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   bootstrap:
@@ -178,13 +186,42 @@ jobs:
           PREFIX="${{ inputs.prefix }}"
           # 前缀里的文件归 root，打包含义上也要读全（有的目录是 700），所以用 sudo。
           # 打完把产物交还给 runner，否则 upload-artifact 读不到。
-          sudo ./scripts/make_seed.sh --prefix "$PREFIX" --out seed
+          # 清单里的 url 要指向发布后的真实地址；不发布就不写，安装器会改用
+          # FINX_SEED_DOMAIN 自己拼，本地 --seed-dir 也不受影响。
+          url_args=()
+          if [ "${{ inputs.publish }}" = "true" ]; then
+              url_args=(--url "${{ github.server_url }}/${{ github.repository }}/releases/download/seed/seed.tar.gz")
+          fi
+          sudo ./scripts/make_seed.sh --prefix "$PREFIX" --out seed \
+              ${url_args[@]+"${url_args[@]}"}
           sudo chown -R "$(id -u):$(id -g)" seed
           echo "### seed" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat seed/manifest >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           du -h seed/seed.tar.gz
+
+      - name: Publish the seed
+        # 固定标签 seed：一条滚动更新的「当前可用种子」。安装器的默认清单地址
+        # 就指向这里，所以用户不需要任何环境变量。
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=seed
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+              gh release create "$TAG" \
+                  --title "Seed" \
+                  --notes "Prebuilt Finx seed, published by the Bootstrap workflow.
+          Download and use with:
+          /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)\""
+          fi
+          gh release upload "$TAG" seed/seed.tar.gz seed/manifest --clobber
+          echo "### published" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ github.server_url }}/${{ github.repository }}/releases/download/seed/manifest" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the seed
         uses: actions/upload-artifact@v4

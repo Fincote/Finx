@@ -429,6 +429,7 @@ if [ "${PROBE_ROOT:-0}" -eq 1 ]; then
     id() { if [ "$1" = "-u" ]; then echo 0; else command id "$@"; fi; }
 fi
 run_bootstrap "$target"
+echo "PROBE-OK"
 PROBE
 
 mkdir -p "$ROOT/stub-src"
@@ -438,17 +439,17 @@ chmod +x "$ROOT/stub-src/bootstrap"
 # bash 3.2 在 set -u 下展开空数组会报 unbound variable；以 root 运行和测试根里
 # sudo_cmd 正好为空，这条路径不测就发现不了。
 if out=$(PROBE_ROOT=1 /bin/bash "$ROOT/run_bootstrap_probe.sh" "$HERE/.." "$ROOT/stub-src" 2>&1) \
-        && printf '%s' "$out" | grep -q 'BOOTSTRAP RAN'; then
+        && printf '%s' "$out" | grep -q 'PROBE-OK'; then
     pass "run_bootstrap works when there is no sudo to prefix"
 else
     failed "run_bootstrap broke with an empty sudo_cmd: $out"
 fi
 
 # sudo 默认重置环境；不显式转发，配了代理的用户会卡在源码自举的下载阶段。
-if out=$(http_proxy=http://p.example:1 https_proxy=http://p.example:1 \
+if out=$(VERBOSE=1 http_proxy=http://p.example:1 https_proxy=http://p.example:1 \
         /bin/bash "$ROOT/run_bootstrap_probe.sh" "$HERE/.." "$ROOT/stub-src" 2>&1) \
         && printf '%s' "$out" | grep -q 'env http_proxy=http://p.example:1 https_proxy=http://p.example:1' \
-        && printf '%s' "$out" | grep -q 'BOOTSTRAP RAN'; then
+        && printf '%s' "$out" | grep -q 'PROBE-OK'; then
     pass "proxy variables are passed through sudo"
 else
     failed "proxy variables did not reach the bootstrap command: $out"

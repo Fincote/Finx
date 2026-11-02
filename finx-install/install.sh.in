@@ -37,6 +37,7 @@
 #   --source-url=URL    源码归档地址（默认 codeload 上的 tar.gz）
 #   --ref=REF           源码归档的分支或提交（默认 main）
 #   --no-fallback       种子取不到就失败，不退回源码
+#   --verbose           把自举的完整输出打到屏幕（默认只写日志）
 #   --force             允许覆盖已存在的安装
 #   -h, --help          显示帮助
 
@@ -74,6 +75,7 @@ SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
 FORCE=0
+VERBOSE=0
 
 # 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
 MODE=""
@@ -97,11 +99,14 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --no-path           leave your shell startup file alone
+  --verbose           stream the bootstrap output instead of logging it
   --force             replace an existing installation
   -h, --help          show this help
 
 Environment:
-  FINX_INDEX_DOMAIN   base URL for the seed manifest (default https://finx.sh/finx/seed)
+  FINX_INDEX_DOMAIN   base URL for the seed manifest: when set, <this>/manifest is
+                      fetched instead of the built-in default, which is a GitHub
+                      Releases asset (no environment needed for a plain install)
   FINX_SEED_DOMAIN    base URL for the seed tarball when the manifest lists no url
   FINX_SOURCE_DOMAIN  base URL for the source archive when building from source
                       (default https://codeload.github.com/Fincote/Finx)
@@ -148,6 +153,7 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
+            --verbose)        VERBOSE=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
             --)               shift; break ;;

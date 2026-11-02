@@ -93,6 +93,11 @@ finx_domain() {
 # 每个赋值后面必须跟 `|| exit 1`。finx_domain 里的 exit 1 跑在 $( ) 子 shell
 # 里，只结束那个子 shell —— 父进程会继续，而变量已经被设成空串。不显式判错
 # 的话，填错一个域名得到的不是报错，而是一个悄悄失效的安装器。
+# 记住「用户有没有显式给过」：manifest.sh 要据此决定默认清单地址。
+# 不能只看 FINX_INDEX_DOMAIN 是否非空 —— 下面这行会把它填上默认值。
+FINX_INDEX_DOMAIN_GIVEN=${FINX_INDEX_DOMAIN:+1}
+export FINX_INDEX_DOMAIN_GIVEN
+
 FINX_INDEX_DOMAIN=$(finx_domain FINX_INDEX_DOMAIN "${FINX_INDEX_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
 export FINX_INDEX_DOMAIN
 
@@ -378,9 +383,22 @@ do_mkdir() {
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
 
-# 默认种子位置，由 FINX_INDEX_DOMAIN 决定。probe_url 探不到时，
-# install.sh 会退回源码自举。--manifest-url 优先于它。
-DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
+# 默认种子位置。优先级：
+#
+#   --manifest-url / FINX_MANIFEST_URL   显式指定，最高
+#   FINX_INDEX_DOMAIN                    用户给了域名，就拼 <域名>/manifest
+#   GitHub Releases 上的 seed 标签        都不给时的默认，见下
+#
+# 为什么默认指向 Releases 而不是 finx.sh：`curl | bash` 的意义就是「不需要先
+# 读文档、不需要设环境变量」。在自己的域名托管起来之前，Releases 是唯一一个
+# 立刻可用的稳定地址；而 FINX_INDEX_DOMAIN 随时可以把它换掉。
+if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ]; then
+    DEFAULT_MANIFEST_URL=$FINX_DEFAULT_MANIFEST_URL
+elif [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
+    DEFAULT_MANIFEST_URL=$FINX_INDEX_DOMAIN/manifest
+else
+    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/seed/manifest
+fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {
@@ -733,13 +751,36 @@ run_bootstrap() {
         info "passing ${#proxy_vars[@]} proxy variable(s) through sudo"
     fi
 
-    info "running bootstrap (this compiles tar and dpkg; it can take a while)"
+    ensure_tmp
+    bootstrap_log=$FINX_TMP/bootstrap.log
+
+    info "compiling tar and dpkg; this is the slow path"
+    info "  log: $bootstrap_log"
 
     # ${arr[@]+"${arr[@]}"} 而不是 "${arr[@]}"：bash 3.2 在 set -u 下展开空数组
     # 会报 unbound variable（4.4 才修好）。而以 root 运行、或测试根里，
     # sudo_cmd 正好是空的。
-    ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
-        || die "bootstrap failed; see its output above for the failing step"
+    #
+    # 默认把 bootstrap 的全部输出收进日志：它会逐条打印 mkdir、编译每一行、还有
+    # 出错时的那套「该找哪个邮件列表」模板，几百行下去把真正要看的三行冲掉。
+    # 失败时只回放末尾，够定位；要看全程就 --verbose。
+    if [ "${VERBOSE:-0}" -eq 1 ]; then
+        ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
+            2>&1 | tee "$bootstrap_log"
+        rc=${PIPESTATUS[0]}
+    else
+        ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
+            > "$bootstrap_log" 2>&1
+        rc=$?
+    fi
+
+    if [ "$rc" -ne 0 ]; then
+        printf '\n' >&2
+        printf 'The last lines of %s:\n' "$bootstrap_log" >&2
+        tail -n 40 "$bootstrap_log" >&2 2>/dev/null || true
+        printf '\n' >&2
+        die "bootstrap failed (full log: $bootstrap_log)"
+    fi
 }
 
 # ======== install.sh.in ========
@@ -750,6 +791,7 @@ SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
 FORCE=0
+VERBOSE=0
 
 # 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
 MODE=""
@@ -773,11 +815,14 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --no-path           leave your shell startup file alone
+  --verbose           stream the bootstrap output instead of logging it
   --force             replace an existing installation
   -h, --help          show this help
 
 Environment:
-  FINX_INDEX_DOMAIN   base URL for the seed manifest (default https://finx.sh/finx/seed)
+  FINX_INDEX_DOMAIN   base URL for the seed manifest: when set, <this>/manifest is
+                      fetched instead of the built-in default, which is a GitHub
+                      Releases asset (no environment needed for a plain install)
   FINX_SEED_DOMAIN    base URL for the seed tarball when the manifest lists no url
   FINX_SOURCE_DOMAIN  base URL for the source archive when building from source
                       (default https://codeload.github.com/Fincote/Finx)
@@ -824,6 +869,7 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
+            --verbose)        VERBOSE=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
             --)               shift; break ;;

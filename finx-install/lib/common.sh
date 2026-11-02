@@ -78,6 +78,11 @@ finx_domain() {
 # 每个赋值后面必须跟 `|| exit 1`。finx_domain 里的 exit 1 跑在 $( ) 子 shell
 # 里，只结束那个子 shell —— 父进程会继续，而变量已经被设成空串。不显式判错
 # 的话，填错一个域名得到的不是报错，而是一个悄悄失效的安装器。
+# 记住「用户有没有显式给过」：manifest.sh 要据此决定默认清单地址。
+# 不能只看 FINX_INDEX_DOMAIN 是否非空 —— 下面这行会把它填上默认值。
+FINX_INDEX_DOMAIN_GIVEN=${FINX_INDEX_DOMAIN:+1}
+export FINX_INDEX_DOMAIN_GIVEN
+
 FINX_INDEX_DOMAIN=$(finx_domain FINX_INDEX_DOMAIN "${FINX_INDEX_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
 export FINX_INDEX_DOMAIN
 
