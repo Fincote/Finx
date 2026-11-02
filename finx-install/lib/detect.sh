@@ -73,7 +73,23 @@ require_write_access() {
         probe=$(nearest_existing_parent "$target")
     fi
     if [ ! -w "$probe" ] && [ "$(id -u)" -ne 0 ]; then
-        die "no write access to $probe; re-run with sudo"
+        # 说清楚「怎么带 sudo」。其中管道那种最容易踩：`curl ... | sudo bash`
+        # 而不是 `sudo curl ... | bash`（后者只有 curl 是 root，bash 不是）。
+        printf 'ERROR: %s is not writable by %s, so this needs root.\n' \
+            "$probe" "$(id -un 2>/dev/null || echo 'this user')" >&2
+        printf '\n' >&2
+        printf '  piped:\n' >&2
+        printf '    curl -fsSL <the same URL> | sudo bash\n' >&2
+        printf '\n' >&2
+        printf '  local file:\n' >&2
+        if [ -f "${0:-}" ] && [ -r "${0:-}" ]; then
+            printf '    sudo /bin/bash %s\n' "$0" >&2
+        else
+            printf '    sudo /bin/bash <path to install.sh>\n' >&2
+        fi
+        printf '\n' >&2
+        printf '  Do not use `sudo curl ... | bash`: only curl would be root.\n' >&2
+        exit 1
     fi
 }
 

@@ -352,14 +352,31 @@ resolve_method() {
     fi
 
     MANIFEST_URL=$DEFAULT_MANIFEST_URL
-    if probe_url "$MANIFEST_URL"; then
-        MODE=seed
-        info "seed, from $MANIFEST_URL"
-    else
-        MODE=source
-        warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
-        warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg"
-    fi
+    probe_url "$MANIFEST_URL"
+    case $? in
+        0)
+            MODE=seed
+            info "seed, from $MANIFEST_URL" ;;
+        1)
+            MODE=source
+            warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
+            warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg" ;;
+        *)
+            # 探不出来 ≠ 没有种子。源码那条路要去 SourceForge 下载，连不上
+            # GitHub 的地方通常也连不上它，所以这里直接停下并说清怎么绕。
+            printf '\n' >&2
+            printf 'ERROR: cannot reach the seed manifest:\n' >&2
+            printf '         %s\n' "$MANIFEST_URL" >&2
+            printf '\n' >&2
+            printf 'This is a network problem, not a missing seed.  A source build would\n' >&2
+            printf 'download from SourceForge, which is even less likely to be reachable.\n' >&2
+            printf '\n' >&2
+            printf 'Try one of these:\n' >&2
+            printf '  * set a proxy:      export https_proxy=http://host:port\n' >&2
+            printf '  * use a mirror:     export FINX_INDEX_DOMAIN=<url>   (see docs/MIRRORS.md)\n' >&2
+            printf '  * force the slow path anyway:  --from-source\n' >&2
+            exit 1 ;;
+    esac
 }
 
 install_from_seed() {

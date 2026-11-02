@@ -343,7 +343,23 @@ require_write_access() {
         probe=$(nearest_existing_parent "$target")
     fi
     if [ ! -w "$probe" ] && [ "$(id -u)" -ne 0 ]; then
-        die "no write access to $probe; re-run with sudo"
+        # 说清楚「怎么带 sudo」。其中管道那种最容易踩：`curl ... | sudo bash`
+        # 而不是 `sudo curl ... | bash`（后者只有 curl 是 root，bash 不是）。
+        printf 'ERROR: %s is not writable by %s, so this needs root.\n' \
+            "$probe" "$(id -un 2>/dev/null || echo 'this user')" >&2
+        printf '\n' >&2
+        printf '  piped:\n' >&2
+        printf '    curl -fsSL <the same URL> | sudo bash\n' >&2
+        printf '\n' >&2
+        printf '  local file:\n' >&2
+        if [ -f "${0:-}" ] && [ -r "${0:-}" ]; then
+            printf '    sudo /bin/bash %s\n' "$0" >&2
+        else
+            printf '    sudo /bin/bash <path to install.sh>\n' >&2
+        fi
+        printf '\n' >&2
+        printf '  Do not use `sudo curl ... | bash`: only curl would be root.\n' >&2
+        exit 1
     fi
 }
 
@@ -401,9 +417,34 @@ else
 fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
+#
+# 返回值必须分三种，不能只有「行 / 不行」：
+#
+#   0  存在
+#   1  确定不存在（服务端明确回了 4xx/5xx）
+#   2  探不出来（连不上、超时、DNS 挂了）
+#
+# 为什么这点很重要：1 意味着「还没发布种子」，退回源码自举是合理的；2 意味着
+# 「网络有问题」，而源码自举要去 SourceForge 下载 —— 网络有问题的地方，那条
+# 路必然也走不通。把 2 当成 1，用户会看到它先说要编译十来分钟，再挂在下载上，
+# 而真正该做的是检查代理或换镜像。
+#
+# 重试是必要的：实测同一条命令前一分钟能取到清单，下一分钟就 connect timeout。
 probe_url() {
     url=$1
-    curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
+    tries=${FINX_PROBE_TRIES:-3}
+
+    while [ "$tries" -gt 0 ]; do
+        code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
+            --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
+        case $code in
+            2??|3??) return 0 ;;
+            4??|5??) return 1 ;;
+        esac
+        tries=$((tries - 1))
+        [ "$tries" -gt 0 ] && sleep 2
+    done
+    return 2
 }
 
 # 解析清单，设置 MANIFEST_FILE / ARTIFACT_BASE / ARTIFACT_FILE /
@@ -1091,14 +1132,31 @@ resolve_method() {
     fi
 
     MANIFEST_URL=$DEFAULT_MANIFEST_URL
-    if probe_url "$MANIFEST_URL"; then
-        MODE=seed
-        info "seed, from $MANIFEST_URL"
-    else
-        MODE=source
-        warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
-        warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg"
-    fi
+    probe_url "$MANIFEST_URL"
+    case $? in
+        0)
+            MODE=seed
+            info "seed, from $MANIFEST_URL" ;;
+        1)
+            MODE=source
+            warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
+            warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg" ;;
+        *)
+            # 探不出来 ≠ 没有种子。源码那条路要去 SourceForge 下载，连不上
+            # GitHub 的地方通常也连不上它，所以这里直接停下并说清怎么绕。
+            printf '\n' >&2
+            printf 'ERROR: cannot reach the seed manifest:\n' >&2
+            printf '         %s\n' "$MANIFEST_URL" >&2
+            printf '\n' >&2
+            printf 'This is a network problem, not a missing seed.  A source build would\n' >&2
+            printf 'download from SourceForge, which is even less likely to be reachable.\n' >&2
+            printf '\n' >&2
+            printf 'Try one of these:\n' >&2
+            printf '  * set a proxy:      export https_proxy=http://host:port\n' >&2
+            printf '  * use a mirror:     export FINX_INDEX_DOMAIN=<url>   (see docs/MIRRORS.md)\n' >&2
+            printf '  * force the slow path anyway:  --from-source\n' >&2
+            exit 1 ;;
+    esac
 }
 
 install_from_seed() {

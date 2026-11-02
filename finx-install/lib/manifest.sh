@@ -47,9 +47,34 @@ else
 fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
+#
+# 返回值必须分三种，不能只有「行 / 不行」：
+#
+#   0  存在
+#   1  确定不存在（服务端明确回了 4xx/5xx）
+#   2  探不出来（连不上、超时、DNS 挂了）
+#
+# 为什么这点很重要：1 意味着「还没发布种子」，退回源码自举是合理的；2 意味着
+# 「网络有问题」，而源码自举要去 SourceForge 下载 —— 网络有问题的地方，那条
+# 路必然也走不通。把 2 当成 1，用户会看到它先说要编译十来分钟，再挂在下载上，
+# 而真正该做的是检查代理或换镜像。
+#
+# 重试是必要的：实测同一条命令前一分钟能取到清单，下一分钟就 connect timeout。
 probe_url() {
     url=$1
-    curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
+    tries=${FINX_PROBE_TRIES:-3}
+
+    while [ "$tries" -gt 0 ]; do
+        code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
+            --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
+        case $code in
+            2??|3??) return 0 ;;
+            4??|5??) return 1 ;;
+        esac
+        tries=$((tries - 1))
+        [ "$tries" -gt 0 ] && sleep 2
+    done
+    return 2
 }
 
 # 解析清单，设置 MANIFEST_FILE / ARTIFACT_BASE / ARTIFACT_FILE /
