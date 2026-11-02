@@ -21,7 +21,11 @@ CompileScript: <<
  sed -i '' -e 's|lib/fink|lib/finx|g' \
      -e 's|share/doc/fink/|share/doc/finx/|g' \
      -e 's|share/doc/fink ;|share/doc/finx ;|g' install.sh
- sed -e "s|@PREFIX@|%p|g" -e 's|/etc/fink\.conf|/etc/finx.conf|g' \
+ # postinstall.pl 里还有 @PREFIX@/lib/fink/URL/{anonymous-cvs,developer-cvs}，
+ # 数据却装在 lib/finx/URL —— 这个改漏了不会报错，只会让 CVS 那两项静默失效。
+ sed -e "s|@PREFIX@|%p|g" \
+     -e 's|/etc/fink\.conf|/etc/finx.conf|g' \
+     -e 's|lib/fink/|lib/finx/|g' \
      < postinstall.pl.in > postinstall.pl
 <<
 InstallScript: ./install.sh %i
