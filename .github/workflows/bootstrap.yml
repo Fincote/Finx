@@ -35,6 +35,10 @@ on:
         description: "Install prefix. Must be /opt/finx for a usable seed."
         required: false
         default: "/opt/finx"
+      darwin:
+        description: "Darwin major this runner builds for. Must match the runner."
+        required: false
+        default: "24"
       publish:
         # 默认发布：安装器的内置清单地址指向这个标签，一次构建就该让
         # curl | bash 立刻有用，而不是等谁记得勾一个框。
@@ -197,6 +201,19 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Assert the runner matches the requested Darwin
+        # darwin 依赖是构建时写死的，标签贴错就等于把一份装不上的种子发出去。
+        run: |
+          set -euo pipefail
+          have=$(uname -r | cut -d. -f1)
+          want="${{ inputs.darwin }}"
+          if [ "$have" != "$want" ]; then
+              echo "FAILED: this runner is Darwin $have but darwin=$want was requested." >&2
+              echo "Either change the runner or set darwin=$have." >&2
+              exit 1
+          fi
+          echo "runner Darwin $have matches"
+
       - name: Pack the seed
         run: |
           set -euo pipefail
@@ -207,7 +224,7 @@ jobs:
           # FINX_SEED_DOMAIN 自己拼，本地 --seed-dir 也不受影响。
           url_args=()
           if [ "${{ inputs.publish }}" = "true" ]; then
-              url_args=(--url "${{ github.server_url }}/${{ github.repository }}/releases/download/seed/seed.tar.gz")
+              url_args=(--url "${{ github.server_url }}/${{ github.repository }}/releases/download/seed-${{ inputs.darwin }}/seed.tar.gz")
           fi
           sudo ./scripts/make_seed.sh --prefix "$PREFIX" --out seed \
               ${url_args[@]+"${url_args[@]}"}
@@ -226,7 +243,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=seed
+          TAG="seed-${{ inputs.darwin }}"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
               gh release create "$TAG" \
                   --title "Seed" \

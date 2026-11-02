@@ -30,6 +30,13 @@ detect_host() {
         ''|*[!0-9]*) die "cannot parse the macOS version: $HOST_MACOS_VERSION" ;;
     esac
 
+    # 构建与依赖解析都以 Darwin 主版本为准（`uname -r` 的第一段），
+    # 它与 macOS 的商用版本号不是同一个序列：12.7.6 是 Darwin 21。
+    HOST_DARWIN_MAJOR=$(uname -r | cut -d. -f1)
+    case $HOST_DARWIN_MAJOR in
+        ''|*[!0-9]*) die "cannot parse the Darwin version: $(uname -r)" ;;
+    esac
+
     HOST_ARCH=$(uname -m)
     case $HOST_ARCH in
         arm64|x86_64) ;;

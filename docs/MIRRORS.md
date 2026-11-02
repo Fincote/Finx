@@ -143,7 +143,26 @@ lzma depends on darwin (>= 25-1); however:
 
 安装器现在会读清单里的 `darwin` 字段，在**解包之前**就拒绝不匹配的种子。
 
-要在 macOS 14 上用，就得在 14 上构建一份。这是 `darwin` 依赖的语义，不是实现取舍。
+所以种子按 Darwin 主版本**各出一份**，标签形如 `seed-21`、`seed-24`：
+
+| 种子 | 构建于 | 可用于 |
+| --- | --- | --- |
+| `seed-21` | macOS 12 Monterey | 12 及更新 |
+| `seed-23` | macOS 14 Sonoma | 14 及更新 |
+| `seed-24` | macOS 15 Sequoia | 15 及更新 |
+| `seed-25` | macOS 26 Tahoe | 26 及更新 |
+
+安装器按 `uname -r` 的第一段自动挑，用户不用配任何东西：
+
+```
+https://github.com/Fincote/Finx/releases/download/seed-<本机 Darwin>/manifest
+```
+
+清单里的 `darwin` 字段仍是最终判据：装到更老的系统上会在**解包之前**被拒绝，
+哪怕标签贴错了。CI 也会比对 runner 的 `uname -r` 与请求的 `darwin`，贴错标签直接失败。
+
+**要支持更老的系统，就得在更老的机器上构建。** GitHub 已移除 `macos-12` 及更早的
+runner，所以 12 及以下只能自备机器跑 `scripts/ci_bootstrap.sh` 再手动上传。
 
 ## 四、只有地址能被替换，校验不能
 

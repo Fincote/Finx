@@ -106,6 +106,9 @@ esac
 FINX_CONNECT_TIMEOUT=${FINX_CONNECT_TIMEOUT:-30}
 export FINX_CONNECT_TIMEOUT
 
+# detect_host 会填它；这里先给个空值，避免 set -u 在 detect 之前报错。
+HOST_DARWIN_MAJOR=""
+
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM

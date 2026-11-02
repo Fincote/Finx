@@ -38,12 +38,27 @@
 # 为什么默认指向 Releases 而不是 finx.sh：`curl | bash` 的意义就是「不需要先
 # 读文档、不需要设环境变量」。在自己的域名托管起来之前，Releases 是唯一一个
 # 立刻可用的稳定地址；而 FINX_INDEX_DOMAIN 随时可以把它换掉。
+# 注意：这一段在**被 source 时**求值，而 detect_host 要到 main 里才跑。
+# 所以 Darwin 版本不能读 $HOST_DARWIN_MAJOR（那时还是空），就地取 uname。
+_finx_darwin=$(uname -r 2>/dev/null | cut -d. -f1)
+case $_finx_darwin in
+    ''|*[!0-9]*) _finx_darwin=0 ;;
+esac
+
 if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ]; then
     DEFAULT_MANIFEST_URL=$FINX_DEFAULT_MANIFEST_URL
 elif [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
     DEFAULT_MANIFEST_URL=$FINX_INDEX_DOMAIN/manifest
 else
-    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/seed/manifest
+    # 每个 macOS 大版本一份种子（darwin 依赖是按构建记录的，见 docs/MIRRORS.md
+    # 三点六），所以默认地址要带上本机的 Darwin 主版本。
+    #
+    #   releases/download/seed-24/manifest     macOS 15
+    #   releases/download/seed-21/manifest     macOS 12
+    #
+    # URL 里带 arch 与 darwin，是为了让缓存与 CDN 自然分开，也便于人工核对。
+    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/\
+seed-$_finx_darwin/manifest
 fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。

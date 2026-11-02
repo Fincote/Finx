@@ -121,6 +121,9 @@ esac
 FINX_CONNECT_TIMEOUT=${FINX_CONNECT_TIMEOUT:-30}
 export FINX_CONNECT_TIMEOUT
 
+# detect_host 会填它；这里先给个空值，避免 set -u 在 detect 之前报错。
+HOST_DARWIN_MAJOR=""
+
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -313,6 +316,13 @@ detect_host() {
         ''|*[!0-9]*) die "cannot parse the macOS version: $HOST_MACOS_VERSION" ;;
     esac
 
+    # 构建与依赖解析都以 Darwin 主版本为准（`uname -r` 的第一段），
+    # 它与 macOS 的商用版本号不是同一个序列：12.7.6 是 Darwin 21。
+    HOST_DARWIN_MAJOR=$(uname -r | cut -d. -f1)
+    case $HOST_DARWIN_MAJOR in
+        ''|*[!0-9]*) die "cannot parse the Darwin version: $(uname -r)" ;;
+    esac
+
     HOST_ARCH=$(uname -m)
     case $HOST_ARCH in
         arm64|x86_64) ;;
@@ -438,12 +448,27 @@ do_mkdir() {
 # 为什么默认指向 Releases 而不是 finx.sh：`curl | bash` 的意义就是「不需要先
 # 读文档、不需要设环境变量」。在自己的域名托管起来之前，Releases 是唯一一个
 # 立刻可用的稳定地址；而 FINX_INDEX_DOMAIN 随时可以把它换掉。
+# 注意：这一段在**被 source 时**求值，而 detect_host 要到 main 里才跑。
+# 所以 Darwin 版本不能读 $HOST_DARWIN_MAJOR（那时还是空），就地取 uname。
+_finx_darwin=$(uname -r 2>/dev/null | cut -d. -f1)
+case $_finx_darwin in
+    ''|*[!0-9]*) _finx_darwin=0 ;;
+esac
+
 if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ]; then
     DEFAULT_MANIFEST_URL=$FINX_DEFAULT_MANIFEST_URL
 elif [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
     DEFAULT_MANIFEST_URL=$FINX_INDEX_DOMAIN/manifest
 else
-    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/seed/manifest
+    # 每个 macOS 大版本一份种子（darwin 依赖是按构建记录的，见 docs/MIRRORS.md
+    # 三点六），所以默认地址要带上本机的 Darwin 主版本。
+    #
+    #   releases/download/seed-24/manifest     macOS 15
+    #   releases/download/seed-21/manifest     macOS 12
+    #
+    # URL 里带 arch 与 darwin，是为了让缓存与 CDN 自然分开，也便于人工核对。
+    DEFAULT_MANIFEST_URL=https://github.com/Fincote/Finx/releases/download/\
+seed-$_finx_darwin/manifest
 fi
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
