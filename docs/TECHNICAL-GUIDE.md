@@ -1,6 +1,6 @@
 # Finx 技术手册
 
-> 目标：讲清「为什么这样设计」。文件在哪、归谁管，见 [CODE-MAP.md](./CODE-MAP.md)。
+> 目标：讲清「为什么这样设计」。文件在哪、归谁管，见 [Structure.md](./Structure.md)。
 >
 > 适用版本：`0.45.99.git`
 
