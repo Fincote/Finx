@@ -316,29 +316,46 @@ path_probe() {
     awk '/^setup_path\(\) \{/,/^\}/' "$INSTALL"
 }
 
-HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=0 \
-    sh -c "$(path_probe); info(){ :; }; warn(){ echo WARN: \"$*\" >&2; }; setup_path" \
-    >/dev/null 2>&1
-if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$FAKEHOME/.zprofile" 2>/dev/null; then
-    pass "installer puts finx on PATH in .zprofile"
+# 写哪个文件由「这个人的登录 shell」决定，而那要问 Directory Services ——
+# 所以不能在测试里假设 .zprofile。这里用安装器自己的 shell_rc_path 算出
+# 它会选哪个文件，再断言那一行在里面。CI 的 runner 与本地用户 shell 不同，
+# 写死文件名会在其中一边必然失败。
+target_rc() {
+    HOME="$FAKEHOME" SHELL=/bin/zsh sh -c "$(path_probe); shell_rc_path $FAKEHOME"
+}
+RC=$(target_rc)
+
+run_setup_path() {
+    _no_path=$1
+    HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH="$_no_path" \
+        sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
+}
+
+# macOS 的 `wc -l < file` 会补前导空格，直接比较字符串会永远不相等。
+count_lines() {
+    [ -f "$1" ] || { echo 0; return; }
+    wc -l < "$1" | tr -d ' \n'
+}
+
+run_setup_path 0
+if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$RC" 2>/dev/null; then
+    pass "installer puts finx on PATH in $(basename "$RC")"
 else
-    failed "installer did not write the PATH line"
+    failed "installer did not write the PATH line to $RC"
 fi
 
-before=$(wc -l < "$FAKEHOME/.zprofile" 2>/dev/null || echo 0)
-HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=0 \
-    sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
-after=$(wc -l < "$FAKEHOME/.zprofile" 2>/dev/null || echo 0)
+before=$(count_lines "$RC")
+run_setup_path 0
+after=$(count_lines "$RC")
 if [ "$before" = "$after" ]; then
     pass "rerunning does not append the PATH line twice"
 else
     failed "PATH line was appended again ($before -> $after)"
 fi
 
-rm -f "$FAKEHOME/.zprofile"
-HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=1 \
-    sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
-if [ ! -f "$FAKEHOME/.zprofile" ]; then
+rm -f "$RC"
+run_setup_path 1
+if [ ! -f "$RC" ]; then
     pass "--no-path leaves the shell configuration untouched"
 else
     failed "--no-path still wrote to the shell configuration"
