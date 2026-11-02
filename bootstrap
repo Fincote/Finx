@@ -751,6 +751,16 @@ RootMethod: $rootmethod
 Trees: $fink_trees
 Distribution: $distribution
 SelfUpdateTrees: $selfupdatetrees
+# 包描述里 CustomMirror 定义的那一组排在最前，master 那一组垫底。
+#
+# 不写这一行会出问题：下面调用的 Fink::Configure::configure() 在 stdin 是
+# /dev/null 时取默认值，而它的默认是 MasterFirst（Configure.pm:637），于是
+# 每个包都先去试 distfiles.*.finkmirrors.net —— 那批主机常年解析不了。实测
+# 22 个包每一个都先失败一次再跳到下一个镜像组。
+#
+# NetAccess.pm 自己的默认是 MasterLast（:188），两处不一致才是根因。
+# 显式写进配置后，configure 会沿用它，不再问出 MasterFirst。
+MirrorOrder: MasterLast
 EOF
 
 close(CONFIG) or die "can't write configuration $configpath: $!\n";

@@ -190,6 +190,19 @@ https://github.com/Fincote/Finx-source/releases/download/src-1/<文件名>
 它会逐个核对 `Source-MD5` / `Source-Checksum`。镜像返回「200 + HTML 错误页」是
 发生过的事，光看 curl 退出码不够。
 
+### 镜像组的顺序
+
+Fink 有两套镜像来源：`master`（`distfiles.*.finkmirrors.net` 那一批）和包描述里
+`CustomMirror` 定义的组。哪个先试由 `finx.conf` 的 `MirrorOrder` 决定。
+
+我们一律写 `MasterLast`：包自己声明的来源优先，master 垫底。
+
+不写会有问题，而且很隐蔽：`Fink::Configure::configure()` 的提问默认值是
+`MasterFirst`（`Configure.pm:637`），而 `NetAccess.pm:188` 自己的默认是
+`MasterLast`。bootstrap 以 `< /dev/null` 跑 configure 时会取前者的默认，于是
+**每个包都先去试那批常年解析不了的 master 主机**，失败一次才跳到我们的镜像。
+实测 22 个包，每个都白试一次。
+
 **这一层解决什么、不解决什么**：CI 跑在 GitHub 的机器上，从这里取源码不再碰
 SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来。但**对网络受限的
 本机不解决问题** —— GitHub 本身不可达时，任何 GitHub 托管的地址都不可达。

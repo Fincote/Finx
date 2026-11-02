@@ -873,6 +873,9 @@ RootMethod: $rootmethod
 Trees: local/main stable/main
 Distribution: $dist
 SelfUpdateTrees: 10.9-libcxx
+# 与 bootstrap 写的一致：包描述自带的镜像组优先，master 垫底。
+# 见 bootstrap 里同一行的注释。
+MirrorOrder: MasterLast
 EOF
 }
 
