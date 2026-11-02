@@ -45,7 +45,11 @@ fix_permissions() {
         chown -R root:wheel "$target" 2>/dev/null \
             || warn "could not chown $target to root:wheel"
     else
-        warn "not running as root; $target stays owned by $(id -un)"
+        if [ "${ZH:-0}" -eq 1 ]; then
+            warn "非 root 运行；$target 仍归 $(id -un) 所有"
+        else
+            warn "not running as root; $target stays owned by $(id -un)"
+        fi
     fi
 
     for dir in "$target" "$target/bin" "$target/sbin" "$target/lib" "$target/etc"; do
@@ -79,7 +83,7 @@ resign_macho() {
             signed=$((signed + 1))
         fi
     done
-    info "re-signed $signed Mach-O file(s)"
+    info "$(t 're-signed' '已重签') $signed $(t 'Mach-O file(s)' '个 Mach-O 文件')"
 }
 
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
@@ -132,13 +136,13 @@ align_trees() {
 
     if [ ! -e "$base/$dist" ]; then
         ln -s 10.9-libcxx "$base/$dist" 2>/dev/null \
-            && info "tree finx/$dist -> 10.9-libcxx" \
+            && info "$(t 'tree' '目录') finx/$dist -> 10.9-libcxx" \
             || warn "could not create finx/$dist"
     fi
     if [ "$(readlink "$base/dists" 2>/dev/null)" != "$dist" ]; then
         rm -f "$base/dists"
         ln -s "$dist" "$base/dists" 2>/dev/null \
-            && info "tree finx/dists -> $dist" \
+            && info "$(t 'tree' '目录') finx/dists -> $dist" \
             || warn "could not point finx/dists at $dist"
     fi
 }
@@ -149,7 +153,7 @@ write_config() {
     conf=$target/etc/finx.conf
 
     if [ -e "$conf" ]; then
-        info "keeping existing $conf"
+        info "$(t 'keeping existing' '保留已有的') $conf"
         return 0
     fi
 

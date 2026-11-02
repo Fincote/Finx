@@ -150,11 +150,19 @@ info() {
 }
 
 warn() {
-    printf 'WARNING: %s\n' "$*" >&2
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '警告: %s\n' "$*" >&2
+    else
+        printf 'WARNING: %s\n' "$*" >&2
+    fi
 }
 
 die() {
-    printf 'ERROR: %s\n' "$*" >&2
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '错误: %s\n' "$*" >&2
+    else
+        printf 'ERROR: %s\n' "$*" >&2
+    fi
     exit 1
 }
 
@@ -280,7 +288,7 @@ apply_test_root() {
         PREFIX=$TEST_ROOT/opt/finx
     fi
 
-    info "test root: $TEST_ROOT (nothing outside it will be touched)"
+    info "$(t 'test root' '测试根'): $TEST_ROOT $(t '(nothing outside it will be touched)' '（其外不会被改动）')"
 }
 
 # ======== lib/detect.sh ========
@@ -698,7 +706,7 @@ verify_file() {
     if [ "$(lower "$got_sha")" != "$(lower "$want_sha")" ]; then
         die "sha256 mismatch for $SEED_NAME: expected $want_sha, got $got_sha"
     fi
-    info "sha256 ok"
+    info "$(t 'sha256 ok' 'sha256 校验通过')"
 }
 
 # ======== lib/extract.sh ========
@@ -749,7 +757,11 @@ fix_permissions() {
         chown -R root:wheel "$target" 2>/dev/null \
             || warn "could not chown $target to root:wheel"
     else
-        warn "not running as root; $target stays owned by $(id -un)"
+        if [ "${ZH:-0}" -eq 1 ]; then
+            warn "非 root 运行；$target 仍归 $(id -un) 所有"
+        else
+            warn "not running as root; $target stays owned by $(id -un)"
+        fi
     fi
 
     for dir in "$target" "$target/bin" "$target/sbin" "$target/lib" "$target/etc"; do
@@ -783,7 +795,7 @@ resign_macho() {
             signed=$((signed + 1))
         fi
     done
-    info "re-signed $signed Mach-O file(s)"
+    info "$(t 're-signed' '已重签') $signed $(t 'Mach-O file(s)' '个 Mach-O 文件')"
 }
 
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
@@ -836,13 +848,13 @@ align_trees() {
 
     if [ ! -e "$base/$dist" ]; then
         ln -s 10.9-libcxx "$base/$dist" 2>/dev/null \
-            && info "tree finx/$dist -> 10.9-libcxx" \
+            && info "$(t 'tree' '目录') finx/$dist -> 10.9-libcxx" \
             || warn "could not create finx/$dist"
     fi
     if [ "$(readlink "$base/dists" 2>/dev/null)" != "$dist" ]; then
         rm -f "$base/dists"
         ln -s "$dist" "$base/dists" 2>/dev/null \
-            && info "tree finx/dists -> $dist" \
+            && info "$(t 'tree' '目录') finx/dists -> $dist" \
             || warn "could not point finx/dists at $dist"
     fi
 }
@@ -853,7 +865,7 @@ write_config() {
     conf=$target/etc/finx.conf
 
     if [ -e "$conf" ]; then
-        info "keeping existing $conf"
+        info "$(t 'keeping existing' '保留已有的') $conf"
         return 0
     fi
 
@@ -1146,7 +1158,7 @@ check_target() {
             warn "$PREFIX exists and is empty; continuing" ;;
         existing)
             [ "$FORCE" -eq 1 ] || die "$PREFIX already holds an installation; re-run with --force to replace it"
-            warn "replacing the existing installation in $PREFIX" ;;
+            warn "$(t 'replacing the existing installation in' '覆盖已安装的内容：') $PREFIX" ;;
         *)
             [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation.
        This is usually what a source build leaves behind when it stops halfway.
@@ -1239,22 +1251,34 @@ shell_source_line() {
 # 只打印，不写。写失败、或用户明确不要时用。
 print_path_help() {
     printf '\n'
-    printf 'To use finx in this shell now:\n'
-    printf '    . %s/bin/init.sh\n' "$PREFIX"
-    printf '\n'
-    printf 'To make it permanent, add this line to your shell startup file:\n'
-    printf '    %s\n' "$(shell_source_line)"
-    printf '\n'
-    printf 'Or re-run this installer without --no-path to have it done for you.\n'
-    printf '\n'
-    printf 'Note: finx uses its own prefix, so it never shadows a Fink\n'
-    printf 'installation that may already be present under /sw.\n'
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '在当前这个 shell 里立即生效：\n'
+        printf '    . %s/bin/init.sh\n' "$PREFIX"
+        printf '\n'
+        printf '要长期生效，把下面这行加进 shell 启动文件：\n'
+        printf '    %s\n' "$(shell_source_line)"
+        printf '\n'
+        printf '或者不加 --no-path 重跑一次安装器，它会替你写。\n'
+        printf '\n'
+        printf '注意：finx 用自己的前缀，不会遮蔽 /sw 下可能已存在的 Fink 安装。\n'
+    else
+        printf 'To use finx in this shell now:\n'
+        printf '    . %s/bin/init.sh\n' "$PREFIX"
+        printf '\n'
+        printf 'To make it permanent, add this line to your shell startup file:\n'
+        printf '    %s\n' "$(shell_source_line)"
+        printf '\n'
+        printf 'Or re-run this installer without --no-path to have it done for you.\n'
+        printf '\n'
+        printf 'Note: finx uses its own prefix, so it never shadows a Fink\n'
+        printf 'installation that may already be present under /sw.\n'
+    fi
 }
 
 # 默认就写。--no-path 关掉。
 setup_path() {
     if [ "$NO_PATH" -eq 1 ]; then
-        info "leaving your shell configuration alone (--no-path)"
+        info "$(t 'leaving your shell configuration alone (--no-path)' '不动你的 shell 配置（--no-path）')"
         print_path_help
         return 0
     fi
@@ -1317,7 +1341,8 @@ main() {
     printf '\n'
     info "$(t 'Finx' 'Finx') ${INSTALLED_RELEASE:-unknown} $(t 'installed in' '已安装到') $PREFIX"
     setup_path
-    info "Package operations run as root, like MacPorts; finx asks for sudo itself."
+    info "$(t 'Package operations run as root, like MacPorts; finx asks for sudo itself.' \
+             '装包操作以 root 运行（与 MacPorts 相同），finx 会自己调用 sudo。')"
 }
 
 # 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，
@@ -1325,19 +1350,19 @@ main() {
 resolve_method() {
     if [ -n "$SEED_DIR" ] || [ -n "$MANIFEST_URL" ]; then
         MODE=seed
-        info "seed, from an explicit location"
+        info "$(t 'seed, from an explicit location' '种子，来自显式指定的位置')"
         return 0
     fi
 
     if [ "$FROM_SOURCE" -eq 1 ]; then
         MODE=source
-        info "source, because --from-source was given"
+        info "$(t 'source, because --from-source was given' '源码，因为给了 --from-source')"
         return 0
     fi
 
     if [ "$ALLOW_FALLBACK" -eq 0 ]; then
         MODE=seed
-        info "seed, from the default manifest"
+        info "$(t 'seed, from the default manifest' '种子，来自默认清单')"
         return 0
     fi
 
@@ -1349,7 +1374,7 @@ resolve_method() {
     case $? in
         0)
             MODE=seed
-            info "seed, from $MANIFEST_URL" ;;
+            info "$(t 'seed, from' '种子，来自') $MANIFEST_URL" ;;
         1)
             MODE=source
             warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"

@@ -135,11 +135,19 @@ info() {
 }
 
 warn() {
-    printf 'WARNING: %s\n' "$*" >&2
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '警告: %s\n' "$*" >&2
+    else
+        printf 'WARNING: %s\n' "$*" >&2
+    fi
 }
 
 die() {
-    printf 'ERROR: %s\n' "$*" >&2
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '错误: %s\n' "$*" >&2
+    else
+        printf 'ERROR: %s\n' "$*" >&2
+    fi
     exit 1
 }
 
@@ -265,5 +273,5 @@ apply_test_root() {
         PREFIX=$TEST_ROOT/opt/finx
     fi
 
-    info "test root: $TEST_ROOT (nothing outside it will be touched)"
+    info "$(t 'test root' '测试根'): $TEST_ROOT $(t '(nothing outside it will be touched)' '（其外不会被改动）')"
 }

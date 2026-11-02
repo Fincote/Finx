@@ -288,5 +288,5 @@ verify_file() {
     if [ "$(lower "$got_sha")" != "$(lower "$want_sha")" ]; then
         die "sha256 mismatch for $SEED_NAME: expected $want_sha, got $got_sha"
     fi
-    info "sha256 ok"
+    info "$(t 'sha256 ok' 'sha256 校验通过')"
 }
