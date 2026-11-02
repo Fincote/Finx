@@ -31,6 +31,10 @@ curl -fsSL .../finx-install/install.sh | sudo bash -s -- --prefix=/opt/finx
 `install.sh` 就是**可以直接下载的那一个文件** —— 没有 npm 式的安装步骤，也不
 依赖同级的 `lib/`。管道里同时是它自己的 stdin，所以它不会反过来读 stdin 提问。
 
+调试时想让步骤与错误说中文，加 `--zh`（或 `FINX_LANG=zh`）。只覆盖安装器自己
+的话：`curl` 的进度条、编译器输出、bootstrap 日志一律保持原样 —— 那些不是我们的
+话，翻译了反而更难搜。
+
 未设任何环境变量时，它去 GitHub Releases 的 `seed` 标签取预编译种子；只有取不到
 才会退回源码自举，而那条路会把 bootstrap 的全部输出（几百行）收进日志，屏幕上
 只留进度与失败时的末尾 40 行。要看全程加 `--verbose`。

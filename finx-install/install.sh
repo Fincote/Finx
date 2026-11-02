@@ -129,6 +129,19 @@ step() {
     printf '\n==> %s\n' "$*"
 }
 
+# 中英对照。--zh（或 FINX_LANG=zh）时取中文，否则取英文。
+#
+# 只覆盖安装器自己的话：step 标题、错误、以及收尾提示。curl 的进度条、
+# 编译器的输出、bootstrap 的日志一律保持原样 —— 那些不是我们的话，
+# 翻译它们只会让搜索报错变得更难。
+t() {
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '%s' "$2"
+    else
+        printf '%s' "$1"
+    fi
+}
+
 info() {
     printf '    %s\n' "$*"
 }
@@ -335,6 +348,20 @@ nearest_existing_parent() {
     printf '%s\n' "$p"
 }
 
+# 本脚本自己的路径，认不出来就打印空。
+#
+# 在 `bash -c "..."` 与 `curl | bash` 下，$0 都是 shell 本身（bash/sh/...），
+# 拿它拼命令会得出「sudo /bin/bash /bin/bash」这种废话。
+self_path() {
+    _self=${0:-}
+    case $(basename -- "$_self" 2>/dev/null) in
+        bash|sh|zsh|dash|ksh|'') return 0 ;;
+    esac
+    if [ -f "$_self" ] && [ -r "$_self" ]; then
+        printf '%s\n' "$_self"
+    fi
+}
+
 require_write_access() {
     target=$1
     if [ -e "$target" ]; then
@@ -345,20 +372,17 @@ require_write_access() {
     if [ ! -w "$probe" ] && [ "$(id -u)" -ne 0 ]; then
         # 说清楚「怎么带 sudo」。其中管道那种最容易踩：`curl ... | sudo bash`
         # 而不是 `sudo curl ... | bash`（后者只有 curl 是 root，bash 不是）。
-        printf 'ERROR: %s is not writable by %s, so this needs root.\n' \
-            "$probe" "$(id -un 2>/dev/null || echo 'this user')" >&2
+        printf 'ERROR: %s %s %s, %s\n' \
+            "$probe" "$(t 'is not writable by' '对于下列用户不可写：')" \
+            "$(id -un 2>/dev/null || echo 'this user')" \
+            "$(t 'so this needs root' '所以需要 root')" >&2
         printf '\n' >&2
         printf '  piped:\n' >&2
         printf '    curl -fsSL <the same URL> | sudo bash\n' >&2
         printf '\n' >&2
         printf '  local file:\n' >&2
-        # $0 在 `bash -c "..."` 下就是 "bash" 本身，在 `curl | bash` 下也是。
-        # 直接拿它拼命令会得出「sudo /bin/bash /bin/bash」这种废话。
-        self=${0:-}
-        case $(basename -- "$self" 2>/dev/null) in
-            bash|sh|zsh|dash|ksh) self="" ;;
-        esac
-        if [ -n "$self" ] && [ -f "$self" ] && [ -r "$self" ]; then
+        self=$(self_path)
+        if [ -n "$self" ]; then
             printf '    sudo /bin/bash %s\n' "$self" >&2
         else
             printf '    sudo /bin/bash <path to install.sh>\n' >&2
@@ -440,14 +464,23 @@ probe_url() {
     url=$1
     tries=${FINX_PROBE_TRIES:-3}
 
+    PROBE_ATTEMPTS=0
+    total=$tries
     while [ "$tries" -gt 0 ]; do
+        PROBE_ATTEMPTS=$((PROBE_ATTEMPTS + 1))
+        attempt=$PROBE_ATTEMPTS
+        [ "$attempt" -gt 1 ] && info "  no answer yet (attempt $attempt of $total)"
+
         code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
             --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
 
         # HEAD 会被某些 CDN / 反爬层拒掉（403/405/501），而同一个地址用 GET
-        # 取两个字节就正常。所以 HEAD 拿不到结论时再问一次 GET。
+        # 取两个字节就正常。所以 HEAD 被拒时再问一次 GET。
+        #
+        # 000 不在此列：那表示连不上或超时，换 GET 只会把等待时间翻倍，
+        # 而用户此时最需要的是尽快看到结论，不是再等一轮。
         case $code in
-            403|405|429|501|000)
+            403|405|429|501)
                 code=$(curl -sS -o /dev/null -w '%{http_code}' -r 0-1 -L \
                     --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) \
                     || code=000 ;;
@@ -480,7 +513,7 @@ resolve_manifest() {
         MANIFEST_FILE=$FINX_TMP/manifest
         ARTIFACT_BASE=""
         fetch_one "$MANIFEST_URL" "$MANIFEST_FILE" quiet \
-            || die "cannot download the seed manifest from $MANIFEST_URL"
+            || die "$(t 'cannot download the seed manifest from' '下载种子清单失败：') $MANIFEST_URL"
     fi
 
     [ -f "$MANIFEST_FILE" ] || die "manifest not found: $MANIFEST_FILE"
@@ -497,7 +530,7 @@ resolve_manifest() {
     SEED_SIZE=$(manifest_field "$MANIFEST_FILE" size)
     SEED_SHA256=$(manifest_field "$MANIFEST_FILE" sha256)
 
-    [ -n "$SEED_NAME" ] || die "manifest has no seed entry"
+    [ -n "$SEED_NAME" ] || die "$(t 'manifest has no seed entry' '清单里没有 seed 项')"
     case $SEED_NAME in
         */*) die "manifest seed name must not contain a path separator" ;;
     esac
@@ -507,7 +540,7 @@ resolve_manifest() {
     esac
 
     ARTIFACT_FILE=$FINX_TMP/$SEED_NAME
-    info "seed $SEED_NAME (release ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
+    info "$(t 'seed' '种子') $SEED_NAME ($(t 'release' '版本') ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
 }
 
 manifest_field() {
@@ -566,7 +599,7 @@ fetch_artifact() {
     if [ -n "$ARTIFACT_BASE" ]; then
         src=$ARTIFACT_BASE/$SEED_NAME
         [ -f "$src" ] || die "seed artifact not found: $src"
-        info "using local artifact $src"
+        info "$(t 'using local artifact' '使用本地文件') $src"
         run cp -f "$src" "$ARTIFACT_FILE"
         return 0
     fi
@@ -590,7 +623,7 @@ fetch_artifact() {
         warn "mirror failed: $url"
     done < "$FINX_TMP/urls"
 
-    die "all $tried mirror(s) failed for $SEED_NAME"
+    die "$(t 'all mirror(s) failed for' '所有镜像都下载失败：') $SEED_NAME"
 }
 
 # 体积与 SHA256 都核对；任何一项不符都中止，不做「警告后继续」。
@@ -599,11 +632,11 @@ verify_file() {
     want_sha=$2
     want_size=$3
 
-    [ -f "$file" ] || die "artifact missing: $file"
+    [ -f "$file" ] || die "$(t 'file is missing:' '缺少文件：') $file"
 
     got_size=$(file_size "$file")
     [ "$got_size" = "$want_size" ] \
-        || die "size mismatch for $SEED_NAME: expected $want_size bytes, got $got_size"
+        || die "$(t 'size mismatch for' '大小不符：') $SEED_NAME $(t '(expected, got)' '（期望，实际）') $want_size / $got_size"
 
     got_sha=$(sha256_of "$file")
     if [ "$(lower "$got_sha")" != "$(lower "$want_sha")" ]; then
@@ -947,6 +980,7 @@ MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
 FORCE=0
 VERBOSE=0
+ZH=0
 
 # 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
 MODE=""
@@ -970,6 +1004,8 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --no-path           leave your shell startup file alone
+  --zh                print steps and errors in Chinese (for self-diagnosis;
+                      tool output such as curl and compilers stays English)
   --verbose           stream the bootstrap output instead of logging it
   --force             replace an existing installation
   -h, --help          show this help
@@ -1024,6 +1060,7 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
+            --zh)             ZH=1 ;;
             --verbose)        VERBOSE=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
@@ -1174,9 +1211,9 @@ setup_path() {
 
     # 幂等：已经有了就别重复追加。
     if grep -qxF "$line" "$rc" 2>/dev/null; then
-        info "PATH setup already present in $rc"
+        info "$(t 'PATH setup already present in' 'PATH 已配置在') $rc"
     elif printf '\n# Finx: put finx on PATH\n%s\n' "$line" >> "$rc" 2>/dev/null; then
-        info "added finx to PATH in $rc"
+        info "$(t 'added finx to PATH in' '已把 finx 加入 PATH：') $rc"
         # 以 root 写进别人的文件后要把属主还回去，否则那个用户今后改不了它。
         if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
             chown "$SUDO_USER" "$rc" 2>/dev/null \
@@ -1189,21 +1226,28 @@ setup_path() {
     fi
 
     printf '\n'
-    printf 'finx is now on PATH for new shells. For this one, run:\n'
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf 'finx 已在新的终端里可用。当前这个终端需要手动加载：\n'
+    else
+        printf 'finx is now on PATH for new shells. For this one, run:\n'
+    fi
     printf '    . %s/bin/init.sh\n' "$PREFIX"
 }
 
 main() {
+    case ${FINX_LANG:-} in
+        zh|zh_CN|zh-CN) ZH=1 ;;
+    esac
     parse_args "$@"
     apply_test_root
 
-    step "Checking host"
+    step "$(t 'Checking host' '检查主机')"
     detect_host
     [ -n "$ARCH_OVERRIDE" ] && HOST_ARCH=$ARCH_OVERRIDE
     info "macOS $HOST_MACOS_MAJOR, arch $HOST_ARCH, prefix $PREFIX"
     require curl
 
-    step "Choosing install method"
+    step "$(t 'Choosing install method' '选择安装方式')"
     resolve_method
 
     case $MODE in
@@ -1212,7 +1256,7 @@ main() {
     esac
 
     printf '\n'
-    info "Finx ${INSTALLED_RELEASE:-unknown} installed in $PREFIX"
+    info "$(t 'Finx' 'Finx') ${INSTALLED_RELEASE:-unknown} $(t 'installed in' '已安装到') $PREFIX"
     setup_path
     info "Package operations run as root, like MacPorts; finx asks for sudo itself."
 }
@@ -1239,6 +1283,9 @@ resolve_method() {
     fi
 
     MANIFEST_URL=$DEFAULT_MANIFEST_URL
+    # 探测最多要一两分钟（重试 + 超时），期间不能一声不响 —— 用户会以为卡死。
+    info "$(t 'looking for a seed manifest' '正在查找种子清单')"
+    info "  $MANIFEST_URL"
     probe_url "$MANIFEST_URL"
     case $? in
         0)
@@ -1251,46 +1298,71 @@ resolve_method() {
         *)
             # 探不出来 ≠ 没有种子。源码那条路要去 SourceForge 下载，连不上
             # GitHub 的地方通常也连不上它，所以这里直接停下并说清怎么绕。
+            #
+            # 提示必须能照着做。这里有三个坑，写错过：
+            #   1. 代理那条不能写成 `export https_proxy=...`：用户是在
+            #      `curl | sudo bash` 里跑的，sudo 默认清空环境，export 白做。
+            #      要写成 `sudo https_proxy=... bash`（命令行赋值 sudo 会保留）。
+            #   2. 不能建议 --from-source。上面刚说了它更不可达，还让人去试，
+            #      等于把人往死路上引。
+            #   3. 要给出「用现成的种子」这条路 —— 那是网络不通时唯一真有
+            #      可能成功的方式。
             printf '\n' >&2
-            printf 'ERROR: cannot reach the seed manifest:\n' >&2
+            printf 'ERROR: cannot reach the seed manifest after %s attempt(s).\n' \
+                "${PROBE_ATTEMPTS:-?}" >&2
             printf '         %s\n' "$MANIFEST_URL" >&2
             printf '\n' >&2
-            printf 'This is a network problem, not a missing seed.  A source build would\n' >&2
-            printf 'download from SourceForge, which is even less likely to be reachable.\n' >&2
+            printf 'Nothing was installed.  This is a network problem, not a missing seed:\n' >&2
+            printf 'that manifest is a small text file, and the seed behind it is larger.\n' >&2
             printf '\n' >&2
-            printf 'Try one of these:\n' >&2
-            printf '  * set a proxy:      export https_proxy=http://host:port\n' >&2
-            printf '  * use a mirror:     export FINX_INDEX_DOMAIN=<url>   (see docs/MIRRORS.md)\n' >&2
-            printf '  * force the slow path anyway:  --from-source\n' >&2
+            printf 'What is worth trying, in order:\n' >&2
+            printf '\n' >&2
+            printf '  1. Through a proxy.  Note the variables go on the sudo line: sudo\n' >&2
+            printf '     clears the environment, so an exported variable would not arrive.\n' >&2
+            printf '       curl -fsSL <this URL> | sudo https_proxy=http://127.0.0.1:7890 bash\n' >&2
+            printf '\n' >&2
+            printf '  2. From a copy of the seed you already have.  No network at all:\n' >&2
+            if [ -n "$(self_path)" ]; then
+                printf '       sudo bash %s --seed-dir=<dir with manifest and seed.tar.gz>\n' "$(self_path)" >&2
+            else
+                printf '       sudo bash <install.sh> --seed-dir=<dir with manifest and seed.tar.gz>\n' >&2
+            fi
+            printf '\n' >&2
+            printf '  3. Through a mirror you trust:\n' >&2
+            printf '       curl -fsSL <this URL> | sudo FINX_INDEX_DOMAIN=https://your-mirror/finx/seed bash\n' >&2
+            printf '     %s\n' "Layout: docs/MIRRORS.md" >&2
+            printf '\n' >&2
+            printf 'A source build is not suggested: --from-source downloads from\n' >&2
+            printf 'SourceForge, which this network is unlikely to reach either.\n' >&2
             exit 1 ;;
     esac
 }
 
 install_from_seed() {
-    step "Resolving seed manifest"
+    step "$(t 'Resolving seed manifest' '解析种子清单')"
     resolve_manifest
 
-    step "Checking target"
+    step "$(t 'Checking target' '检查目标目录')"
     check_target
     require_write_access "$PREFIX"
 
-    step "Obtaining $SEED_NAME"
+    step "$(t 'Obtaining' '获取') $SEED_NAME"
     fetch_artifact
 
     # 先校验再动目标目录：失败时不该留下一个空壳
-    step "Verifying"
+    step "$(t 'Verifying' '校验')"
     verify_file "$ARTIFACT_FILE" "$SEED_SHA256" "$SEED_SIZE"
 
     require_seed_payload "$ARTIFACT_FILE"
 
-    step "Preparing $PREFIX"
+    step "$(t 'Preparing' '准备') $PREFIX"
     do_mkdir "$PREFIX"
 
-    step "Extracting"
+    step "$(t 'Extracting' '解包')"
     extract_seed "$ARTIFACT_FILE" "$PREFIX"
 
 
-    step "Finalizing"
+    step "$(t 'Finalizing' '收尾')"
     fix_permissions "$PREFIX"
     resign_macho "$PREFIX"
     align_trees "$PREFIX" "$(host_distribution)"
@@ -1301,15 +1373,15 @@ install_from_seed() {
 }
 
 install_from_source() {
-    step "Checking target"
+    step "$(t 'Checking target' '检查目标目录')"
     check_target
     require_write_access "$PREFIX"
 
-    step "Obtaining the source tree"
+    step "$(t 'Obtaining the source tree' '获取源码树')"
     fetch_source
 
     # bootstrap 自己会创建前缀并写配置、建索引，这里不再重复一遍
-    step "Bootstrapping"
+    step "$(t 'Bootstrapping' '自举')"
     run_bootstrap "$PREFIX"
 
     INSTALLED_RELEASE=$(cat "$SOURCE_ROOT/VERSION" 2>/dev/null || echo unknown)

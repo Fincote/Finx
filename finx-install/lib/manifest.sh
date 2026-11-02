@@ -64,14 +64,23 @@ probe_url() {
     url=$1
     tries=${FINX_PROBE_TRIES:-3}
 
+    PROBE_ATTEMPTS=0
+    total=$tries
     while [ "$tries" -gt 0 ]; do
+        PROBE_ATTEMPTS=$((PROBE_ATTEMPTS + 1))
+        attempt=$PROBE_ATTEMPTS
+        [ "$attempt" -gt 1 ] && info "  no answer yet (attempt $attempt of $total)"
+
         code=$(curl -sS -o /dev/null -w '%{http_code}' -I \
             --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) || code=000
 
         # HEAD 会被某些 CDN / 反爬层拒掉（403/405/501），而同一个地址用 GET
-        # 取两个字节就正常。所以 HEAD 拿不到结论时再问一次 GET。
+        # 取两个字节就正常。所以 HEAD 被拒时再问一次 GET。
+        #
+        # 000 不在此列：那表示连不上或超时，换 GET 只会把等待时间翻倍，
+        # 而用户此时最需要的是尽快看到结论，不是再等一轮。
         case $code in
-            403|405|429|501|000)
+            403|405|429|501)
                 code=$(curl -sS -o /dev/null -w '%{http_code}' -r 0-1 -L \
                     --connect-timeout 10 --max-time 20 --retry 1 "$url" 2>/dev/null) \
                     || code=000 ;;
@@ -104,7 +113,7 @@ resolve_manifest() {
         MANIFEST_FILE=$FINX_TMP/manifest
         ARTIFACT_BASE=""
         fetch_one "$MANIFEST_URL" "$MANIFEST_FILE" quiet \
-            || die "cannot download the seed manifest from $MANIFEST_URL"
+            || die "$(t 'cannot download the seed manifest from' '下载种子清单失败：') $MANIFEST_URL"
     fi
 
     [ -f "$MANIFEST_FILE" ] || die "manifest not found: $MANIFEST_FILE"
@@ -121,7 +130,7 @@ resolve_manifest() {
     SEED_SIZE=$(manifest_field "$MANIFEST_FILE" size)
     SEED_SHA256=$(manifest_field "$MANIFEST_FILE" sha256)
 
-    [ -n "$SEED_NAME" ] || die "manifest has no seed entry"
+    [ -n "$SEED_NAME" ] || die "$(t 'manifest has no seed entry' '清单里没有 seed 项')"
     case $SEED_NAME in
         */*) die "manifest seed name must not contain a path separator" ;;
     esac
@@ -131,7 +140,7 @@ resolve_manifest() {
     esac
 
     ARTIFACT_FILE=$FINX_TMP/$SEED_NAME
-    info "seed $SEED_NAME (release ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
+    info "$(t 'seed' '种子') $SEED_NAME ($(t 'release' '版本') ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
 }
 
 manifest_field() {
@@ -190,7 +199,7 @@ fetch_artifact() {
     if [ -n "$ARTIFACT_BASE" ]; then
         src=$ARTIFACT_BASE/$SEED_NAME
         [ -f "$src" ] || die "seed artifact not found: $src"
-        info "using local artifact $src"
+        info "$(t 'using local artifact' '使用本地文件') $src"
         run cp -f "$src" "$ARTIFACT_FILE"
         return 0
     fi
@@ -214,7 +223,7 @@ fetch_artifact() {
         warn "mirror failed: $url"
     done < "$FINX_TMP/urls"
 
-    die "all $tried mirror(s) failed for $SEED_NAME"
+    die "$(t 'all mirror(s) failed for' '所有镜像都下载失败：') $SEED_NAME"
 }
 
 # 体积与 SHA256 都核对；任何一项不符都中止，不做「警告后继续」。
@@ -223,11 +232,11 @@ verify_file() {
     want_sha=$2
     want_size=$3
 
-    [ -f "$file" ] || die "artifact missing: $file"
+    [ -f "$file" ] || die "$(t 'file is missing:' '缺少文件：') $file"
 
     got_size=$(file_size "$file")
     [ "$got_size" = "$want_size" ] \
-        || die "size mismatch for $SEED_NAME: expected $want_size bytes, got $got_size"
+        || die "$(t 'size mismatch for' '大小不符：') $SEED_NAME $(t '(expected, got)' '（期望，实际）') $want_size / $got_size"
 
     got_sha=$(sha256_of "$file")
     if [ "$(lower "$got_sha")" != "$(lower "$want_sha")" ]; then

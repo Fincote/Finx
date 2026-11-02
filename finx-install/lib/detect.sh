@@ -65,6 +65,20 @@ nearest_existing_parent() {
     printf '%s\n' "$p"
 }
 
+# 本脚本自己的路径，认不出来就打印空。
+#
+# 在 `bash -c "..."` 与 `curl | bash` 下，$0 都是 shell 本身（bash/sh/...），
+# 拿它拼命令会得出「sudo /bin/bash /bin/bash」这种废话。
+self_path() {
+    _self=${0:-}
+    case $(basename -- "$_self" 2>/dev/null) in
+        bash|sh|zsh|dash|ksh|'') return 0 ;;
+    esac
+    if [ -f "$_self" ] && [ -r "$_self" ]; then
+        printf '%s\n' "$_self"
+    fi
+}
+
 require_write_access() {
     target=$1
     if [ -e "$target" ]; then
@@ -75,20 +89,17 @@ require_write_access() {
     if [ ! -w "$probe" ] && [ "$(id -u)" -ne 0 ]; then
         # 说清楚「怎么带 sudo」。其中管道那种最容易踩：`curl ... | sudo bash`
         # 而不是 `sudo curl ... | bash`（后者只有 curl 是 root，bash 不是）。
-        printf 'ERROR: %s is not writable by %s, so this needs root.\n' \
-            "$probe" "$(id -un 2>/dev/null || echo 'this user')" >&2
+        printf 'ERROR: %s %s %s, %s\n' \
+            "$probe" "$(t 'is not writable by' '对于下列用户不可写：')" \
+            "$(id -un 2>/dev/null || echo 'this user')" \
+            "$(t 'so this needs root' '所以需要 root')" >&2
         printf '\n' >&2
         printf '  piped:\n' >&2
         printf '    curl -fsSL <the same URL> | sudo bash\n' >&2
         printf '\n' >&2
         printf '  local file:\n' >&2
-        # $0 在 `bash -c "..."` 下就是 "bash" 本身，在 `curl | bash` 下也是。
-        # 直接拿它拼命令会得出「sudo /bin/bash /bin/bash」这种废话。
-        self=${0:-}
-        case $(basename -- "$self" 2>/dev/null) in
-            bash|sh|zsh|dash|ksh) self="" ;;
-        esac
-        if [ -n "$self" ] && [ -f "$self" ] && [ -r "$self" ]; then
+        self=$(self_path)
+        if [ -n "$self" ]; then
             printf '    sudo /bin/bash %s\n' "$self" >&2
         else
             printf '    sudo /bin/bash <path to install.sh>\n' >&2

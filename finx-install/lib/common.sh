@@ -114,6 +114,19 @@ step() {
     printf '\n==> %s\n' "$*"
 }
 
+# 中英对照。--zh（或 FINX_LANG=zh）时取中文，否则取英文。
+#
+# 只覆盖安装器自己的话：step 标题、错误、以及收尾提示。curl 的进度条、
+# 编译器的输出、bootstrap 的日志一律保持原样 —— 那些不是我们的话，
+# 翻译它们只会让搜索报错变得更难。
+t() {
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '%s' "$2"
+    else
+        printf '%s' "$1"
+    fi
+}
+
 info() {
     printf '    %s\n' "$*"
 }
