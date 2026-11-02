@@ -22,11 +22,6 @@ extract_seed() {
     archive=$1
     target=$2
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would extract $archive into $target"
-        return 0
-    fi
-
     [ -f "$archive" ] || die "seed archive missing: $archive"
     [ -d "$target" ] || die "target directory missing: $target"
 
@@ -45,11 +40,6 @@ extract_seed() {
 # 沙箱或用户自己拥有的前缀里，此时不动归属。
 fix_permissions() {
     target=$1
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would normalize ownership and modes under $target"
-        return 0
-    fi
 
     if [ "$(id -u)" -eq 0 ]; then
         chown -R root:wheel "$target" 2>/dev/null \
@@ -76,11 +66,6 @@ is_macho() {
 resign_macho() {
     target=$1
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would ad-hoc re-sign Mach-O files under $target"
-        return 0
-    fi
-
     if ! have codesign; then
         warn "codesign not found; skipping ad-hoc re-signing"
         return 0
@@ -104,11 +89,6 @@ write_config() {
 
     if [ -e "$conf" ]; then
         info "keeping existing $conf"
-        return 0
-    fi
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would write $conf"
         return 0
     fi
 

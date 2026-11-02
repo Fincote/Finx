@@ -130,18 +130,19 @@ require() {
     have "$1" || die "required command not found: $1"
 }
 
-# 所有会改动文件系统的动作都经过 run()，这样 --dry-run 只需要一处判断。
+# 统一的执行入口。目前只是原样执行；留着是为了以后加日志或计时
+# 时不必改几十处调用点。
 run() {
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would run: $*"
-        return 0
-    fi
     "$@"
 }
 
 ensure_tmp() {
     if [ -z "$FINX_TMP" ]; then
-        FINX_TMP=$(mktemp -d "${TMPDIR:-/tmp}/finx-install.XXXXXX") \
+        # macOS 的 TMPDIR 自带末尾斜杠，直接拼会得到 "T//finx-install"
+        tmpbase=${TMPDIR:-/tmp}
+        while [ "${tmpbase%/}" != "$tmpbase" ]; do tmpbase=${tmpbase%/}; done
+        [ -n "$tmpbase" ] || tmpbase=/tmp
+        FINX_TMP=$(mktemp -d "$tmpbase/finx-install.XXXXXX") \
             || die "cannot create a temporary directory"
     fi
 }

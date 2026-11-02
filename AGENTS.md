@@ -107,7 +107,7 @@ make test          # manifest_check → structure → sources_check → test_set
 
 ```
 ./finx-install/selftest.sh                            # 自建临时根，全程离线
-FINX_TEST=/tmp/finx-check ./finx-install/install.sh --dry-run
+FINX_TEST=/tmp/finx-check ./finx-install/install.sh   # 手工装进 /tmp/finx-check
 ```
 
 `FINX_TEST` 会把默认前缀变成 `<根>/opt/finx`、把 `TMPDIR` 挪进 `<根>/tmp`，

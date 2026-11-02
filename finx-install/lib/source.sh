@@ -42,12 +42,6 @@ fetch_source() {
     fetch_one "$src_url" "$SOURCE_ARCHIVE" \
         || die "cannot download the source archive from $src_url"
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would extract $SOURCE_ARCHIVE"
-        SOURCE_ROOT=$FINX_TMP/src
-        return 0
-    fi
-
     SOURCE_ROOT=$FINX_TMP/src
     mkdir -p "$SOURCE_ROOT" || die "cannot create $SOURCE_ROOT"
     tar -xzf "$SOURCE_ARCHIVE" -C "$SOURCE_ROOT" \
@@ -95,11 +89,6 @@ run_bootstrap() {
     fi
 
     info "running bootstrap (this compiles tar and dpkg; it can take a while)"
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would run: ${sudo_prefix}./bootstrap $target < /dev/null"
-        return 0
-    fi
 
     ( cd "$SOURCE_ROOT" && ${sudo_prefix}./bootstrap "$target" < /dev/null ) \
         || die "bootstrap failed; see its output above for the failing step"

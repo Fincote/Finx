@@ -36,9 +36,6 @@ DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {
     url=$1
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        return 1
-    fi
     curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
 }
 
@@ -100,10 +97,6 @@ fetch_one() {
     dest=$2
 
     info "GET $url"
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would download to $dest"
-        return 0
-    fi
 
     part=$dest.part
     if ! curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" --retry 2 -C - -o "$part" "$url"; then
@@ -125,11 +118,6 @@ fetch_artifact() {
         [ -f "$src" ] || die "seed artifact not found: $src"
         info "using local artifact $src"
         run cp -f "$src" "$ARTIFACT_FILE"
-        return 0
-    fi
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would download $SEED_NAME from the manifest urls"
         return 0
     fi
 
@@ -160,11 +148,6 @@ verify_file() {
     file=$1
     want_sha=$2
     want_size=$3
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would verify size and sha256 of $file"
-        return 0
-    fi
 
     [ -f "$file" ] || die "artifact missing: $file"
 

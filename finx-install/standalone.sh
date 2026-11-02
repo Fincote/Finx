@@ -145,18 +145,19 @@ require() {
     have "$1" || die "required command not found: $1"
 }
 
-# 所有会改动文件系统的动作都经过 run()，这样 --dry-run 只需要一处判断。
+# 统一的执行入口。目前只是原样执行；留着是为了以后加日志或计时
+# 时不必改几十处调用点。
 run() {
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would run: $*"
-        return 0
-    fi
     "$@"
 }
 
 ensure_tmp() {
     if [ -z "$FINX_TMP" ]; then
-        FINX_TMP=$(mktemp -d "${TMPDIR:-/tmp}/finx-install.XXXXXX") \
+        # macOS 的 TMPDIR 自带末尾斜杠，直接拼会得到 "T//finx-install"
+        tmpbase=${TMPDIR:-/tmp}
+        while [ "${tmpbase%/}" != "$tmpbase" ]; do tmpbase=${tmpbase%/}; done
+        [ -n "$tmpbase" ] || tmpbase=/tmp
+        FINX_TMP=$(mktemp -d "$tmpbase/finx-install.XXXXXX") \
             || die "cannot create a temporary directory"
     fi
 }
@@ -384,9 +385,6 @@ DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {
     url=$1
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        return 1
-    fi
     curl -fsI --connect-timeout 10 --max-time 20 "$url" >/dev/null 2>&1
 }
 
@@ -448,10 +446,6 @@ fetch_one() {
     dest=$2
 
     info "GET $url"
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would download to $dest"
-        return 0
-    fi
 
     part=$dest.part
     if ! curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" --retry 2 -C - -o "$part" "$url"; then
@@ -473,11 +467,6 @@ fetch_artifact() {
         [ -f "$src" ] || die "seed artifact not found: $src"
         info "using local artifact $src"
         run cp -f "$src" "$ARTIFACT_FILE"
-        return 0
-    fi
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would download $SEED_NAME from the manifest urls"
         return 0
     fi
 
@@ -508,11 +497,6 @@ verify_file() {
     file=$1
     want_sha=$2
     want_size=$3
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would verify size and sha256 of $file"
-        return 0
-    fi
 
     [ -f "$file" ] || die "artifact missing: $file"
 
@@ -552,11 +536,6 @@ extract_seed() {
     archive=$1
     target=$2
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would extract $archive into $target"
-        return 0
-    fi
-
     [ -f "$archive" ] || die "seed archive missing: $archive"
     [ -d "$target" ] || die "target directory missing: $target"
 
@@ -575,11 +554,6 @@ extract_seed() {
 # 沙箱或用户自己拥有的前缀里，此时不动归属。
 fix_permissions() {
     target=$1
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would normalize ownership and modes under $target"
-        return 0
-    fi
 
     if [ "$(id -u)" -eq 0 ]; then
         chown -R root:wheel "$target" 2>/dev/null \
@@ -606,11 +580,6 @@ is_macho() {
 resign_macho() {
     target=$1
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would ad-hoc re-sign Mach-O files under $target"
-        return 0
-    fi
-
     if ! have codesign; then
         warn "codesign not found; skipping ad-hoc re-signing"
         return 0
@@ -634,11 +603,6 @@ write_config() {
 
     if [ -e "$conf" ]; then
         info "keeping existing $conf"
-        return 0
-    fi
-
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would write $conf"
         return 0
     fi
 
@@ -707,12 +671,6 @@ fetch_source() {
     fetch_one "$src_url" "$SOURCE_ARCHIVE" \
         || die "cannot download the source archive from $src_url"
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would extract $SOURCE_ARCHIVE"
-        SOURCE_ROOT=$FINX_TMP/src
-        return 0
-    fi
-
     SOURCE_ROOT=$FINX_TMP/src
     mkdir -p "$SOURCE_ROOT" || die "cannot create $SOURCE_ROOT"
     tar -xzf "$SOURCE_ARCHIVE" -C "$SOURCE_ROOT" \
@@ -761,11 +719,6 @@ run_bootstrap() {
 
     info "running bootstrap (this compiles tar and dpkg; it can take a while)"
 
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        info "would run: ${sudo_prefix}./bootstrap $target < /dev/null"
-        return 0
-    fi
-
     ( cd "$SOURCE_ROOT" && ${sudo_prefix}./bootstrap "$target" < /dev/null ) \
         || die "bootstrap failed; see its output above for the failing step"
 }
@@ -777,7 +730,6 @@ NO_PATH=0
 SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
-DRY_RUN=0
 FORCE=0
 
 # 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
@@ -801,7 +753,6 @@ Usage: install.sh [options]
   --source-url=URL    source archive to build (default: codeload tar.gz)
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
-  --dry-run           print what would happen, change nothing
   --no-path           leave your shell startup file alone
   --force             replace an existing installation
   -h, --help          show this help
@@ -827,7 +778,6 @@ Environment:
   against the sha256 and size in the manifest.
 
 Examples:
-  ./finx-install/install.sh --dry-run
   FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
   /bin/bash -c "$(curl -fsSL <standalone.sh>)" -- --prefix=/opt/finx
 USAGE
@@ -851,7 +801,6 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
-            --dry-run)        DRY_RUN=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
             --)               shift; break ;;

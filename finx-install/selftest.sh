@@ -129,11 +129,12 @@ else
     printf '   (no cc available; re-signing assertions will be skipped)\n\n'
 fi
 
-# ---- 1. dry-run 不得创建前缀 --------------------------------------------
+# ---- 1. --help 退出 0 且不创建前缀 ---------------------------------------
 
-"$INSTALL" --seed-dir="$ROOT" --dry-run >/dev/null 2>&1 \
-    || failed "dry-run exits non-zero"
-[ ! -e "$ROOT/opt/finx" ] && pass "dry-run created nothing" || failed "dry-run created $ROOT/opt/finx"
+"$INSTALL" --help >"$LOG" 2>&1 \
+    || failed "--help exits non-zero"
+[ ! -e "$ROOT/opt/finx" ] && pass "--help created nothing" || failed "--help created $ROOT/opt/finx"
+grep -q -- '--seed-dir' "$LOG" && pass "--help lists --seed-dir" || failed "--help is missing --seed-dir"
 
 # ---- 2. 默认前缀落在测试根内 --------------------------------------------
 

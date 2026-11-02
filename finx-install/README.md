@@ -22,7 +22,8 @@
 从仓库直接跑（开发、离线自测）：
 
 ```
-./finx-install/install.sh --dry-run
+./finx-install/install.sh        # 真装到 /opt/finx
+./finx-install/selftest.sh       # 离线自测，不碰 /opt/finx
 ```
 
 ### 它怎么决定装法
@@ -229,7 +230,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
 FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 ```
 
-覆盖的场景：dry-run 不留痕、默认前缀落在测试根内、种子解包正确、`finx.conf` 记录沙箱前缀、
+覆盖的场景：`--help` 不留痕、默认前缀落在测试根内、种子解包正确、`finx.conf` 记录沙箱前缀、
 重复安装被拒、越界前缀被拒（含 `..` 与符号链接两种逃逸）、sha256 不符被拒且不留目录、
 管道模式可装、`standalone.sh` 与源同步、多镜像回退、清单不可达被拒。
 
@@ -272,7 +273,6 @@ SHA=$(shasum -a 256 "$BASE/seed.tar.gz" | awk '{print $1}')
 printf 'schema 1\nrelease 0.46.0\narch %s\nseed seed.tar.gz\nsize %s\nsha256 %s\n' \
     "$(uname -m)" "$SIZE" "$SHA" > "$BASE/manifest"
 
-FINX_TEST="$BASE" ./finx-install/install.sh --seed-dir="$BASE" --dry-run
 FINX_TEST="$BASE" ./finx-install/install.sh --seed-dir="$BASE"
 cat "$BASE/opt/finx/etc/finx.conf"
 

@@ -37,7 +37,6 @@
 #   --source-url=URL    源码归档地址（默认 codeload 上的 tar.gz）
 #   --ref=REF           源码归档的分支或提交（默认 main）
 #   --no-fallback       种子取不到就失败，不退回源码
-#   --dry-run           只打印将要做什么，不改动任何文件
 #   --force             允许覆盖已存在的安装
 #   -h, --help          显示帮助
 
@@ -73,7 +72,6 @@ NO_PATH=0
 SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
-DRY_RUN=0
 FORCE=0
 
 # 安装方式：seed 走预编译快照，source 走源码自举。resolve_method 决定用哪个。
@@ -97,7 +95,6 @@ Usage: install.sh [options]
   --source-url=URL    source archive to build (default: codeload tar.gz)
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
-  --dry-run           print what would happen, change nothing
   --no-path           leave your shell startup file alone
   --force             replace an existing installation
   -h, --help          show this help
@@ -123,7 +120,6 @@ Environment:
   against the sha256 and size in the manifest.
 
 Examples:
-  ./finx-install/install.sh --dry-run
   FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
   /bin/bash -c "$(curl -fsSL <standalone.sh>)" -- --prefix=/opt/finx
 USAGE
@@ -147,7 +143,6 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
-            --dry-run)        DRY_RUN=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
             --)               shift; break ;;
