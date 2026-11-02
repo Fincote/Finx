@@ -50,6 +50,72 @@ on_exit() {
     exit $rc
 }
 
+# ---------------------------------------------------------------------------
+# 下载源：全部由环境变量控制
+# ---------------------------------------------------------------------------
+#
+# 与 MacWave 的 MACWAVE_*_DOMAIN 同一套做法：每个域名一个环境变量，不设就用
+# 官方默认值。这样镜像、自建 CDN、本机目录都能切，而校验逻辑一条不跳。
+#
+# 三条约束（照搬 MacWave 的理由）：
+#
+#   1. 只接受 https:// 或 file://。明文 http 只放行 127.0.0.1 与 localhost
+#      的带端口地址 —— 那是离线测试与本机代理用的，不是给人随便填的。
+#   2. 末尾斜杠统一去掉，否则 "$DOMAIN/manifest" 会拼出双斜杠，
+#      而某些服务端会因此回 404。
+#   3. 报错里带上变量名。用户改了三个变量中的一个却填错时，光说
+#      "invalid URL" 帮不上忙。
+#
+# 刻意不做的事：**换地址不等于跳过校验**。种子仍然按清单里的 sha256 与
+# size 校验，源归档仍然走同一套流程。镜像只是"从哪儿拿"，不是"信不信"。
+finx_domain() {
+    # finx_domain <变量名> <值>：规范化并校验，成功则打印
+    _finx_name=$1
+    _finx_value=$2
+
+    while [ "${_finx_value%/}" != "$_finx_value" ]; do
+        _finx_value=${_finx_value%/}
+    done
+
+    case $_finx_value in
+        https://?*|file://?*)  printf '%s\n' "$_finx_value"; return 0 ;;
+        http://127.0.0.1:?*|http://localhost:?*) printf '%s\n' "$_finx_value"; return 0 ;;
+    esac
+
+    printf 'ERROR: %s must be an https:// (or file://) address, got: %s\n' \
+        "$_finx_name" "$_finx_value" >&2
+    exit 1
+}
+
+# 种子清单与种子 tar 默认同源；分开是因为可以让清单走一个域名、
+# 大文件走另一个（CDN 与对象存储的常见分法）。
+#
+# 每个赋值后面必须跟 `|| exit 1`。finx_domain 里的 exit 1 跑在 $( ) 子 shell
+# 里，只结束那个子 shell —— 父进程会继续，而变量已经被设成空串。不显式判错
+# 的话，填错一个域名得到的不是报错，而是一个悄悄失效的安装器。
+FINX_INDEX_DOMAIN=$(finx_domain FINX_INDEX_DOMAIN "${FINX_INDEX_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
+export FINX_INDEX_DOMAIN
+
+FINX_SEED_DOMAIN=$(finx_domain FINX_SEED_DOMAIN "${FINX_SEED_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
+export FINX_SEED_DOMAIN
+
+# 源码自举时取源码归档的地方，默认 GitHub 的 codeload。
+FINX_SOURCE_DOMAIN=$(finx_domain FINX_SOURCE_DOMAIN "${FINX_SOURCE_DOMAIN:-https://codeload.github.com/Fincote/Finx}") || exit 1
+export FINX_SOURCE_DOMAIN
+
+# 连不上的等待时间。默认 30 秒；网络差的用户调小能更快地换下一个候选。
+# 只管"连上"，不管"下完"——种子可能几十兆，给总时长设上限只会把慢速网络
+# 的人挡在门外。
+# 这里用裸 printf 而不是 die()：die 定义在后面，且本文件按顺序被 source。
+case ${FINX_CONNECT_TIMEOUT:-30} in
+    ''|*[!0-9]*)
+        printf 'ERROR: FINX_CONNECT_TIMEOUT must be a whole number of seconds, got: %s\n' \
+            "$FINX_CONNECT_TIMEOUT" >&2
+        exit 1 ;;
+esac
+FINX_CONNECT_TIMEOUT=${FINX_CONNECT_TIMEOUT:-30}
+export FINX_CONNECT_TIMEOUT
+
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -311,8 +377,9 @@ do_mkdir() {
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
 
-# 尚未发布的默认种子位置。probe_url 探不到时，install.sh 会退回源码自举。
-DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-https://finx.sh/finx/seed/manifest}
+# 默认种子位置，由 FINX_INDEX_DOMAIN 决定。probe_url 探不到时，
+# install.sh 会退回源码自举。--manifest-url 优先于它。
+DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {
@@ -387,10 +454,10 @@ fetch_one() {
     fi
 
     part=$dest.part
-    if ! curl -fL --connect-timeout 30 --retry 2 -C - -o "$part" "$url"; then
+    if ! curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" --retry 2 -C - -o "$part" "$url"; then
         # 退出码 33 是「服务器不支持续传」，此时从头再来一次
         rm -f "$part"
-        curl -fL --connect-timeout 30 -o "$part" "$url" || {
+        curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" -o "$part" "$url" || {
             rm -f "$part"
             return 1
         }
@@ -415,7 +482,13 @@ fetch_artifact() {
     fi
 
     manifest_urls "$MANIFEST_FILE" > "$FINX_TMP/urls"
-    [ -s "$FINX_TMP/urls" ] || die "manifest has no url entries"
+
+    # 清单里没写 url 时，用 FINX_SEED_DOMAIN 拼一个。这样自建镜像只要设
+    # 环境变量就能用，不必为每种布局各维护一份清单。
+    if [ ! -s "$FINX_TMP/urls" ]; then
+        printf '%s/%s\n' "$FINX_SEED_DOMAIN" "$SEED_NAME" > "$FINX_TMP/urls"
+        info "manifest has no url entries; falling back to $FINX_SEED_DOMAIN"
+    fi
 
     tried=0
     while IFS= read -r url; do
@@ -620,7 +693,7 @@ run_scanpackages() {
 # 源码归档位置。codeload 与 GitHub 网页的「Download ZIP」是同一个后端，
 # 但返回 tar.gz，省掉解压 zip 的工具依赖。
 default_source_url() {
-    printf 'https://codeload.github.com/Fincote/Finx/tar.gz/%s\n' "${SOURCE_REF:-main}"
+    printf '%s/tar.gz/%s\n' "$FINX_SOURCE_DOMAIN" "${SOURCE_REF:-main}"
 }
 
 # 取并解源码树，设置 SOURCE_ROOT 为解出来的顶层目录。
@@ -712,7 +785,7 @@ MODE=""
 FROM_SOURCE=0
 ALLOW_FALLBACK=1
 SOURCE_URL=""
-SOURCE_REF=main
+SOURCE_REF=${FINX_SOURCE_REF:-main}
 IN_TEST_ROOT=0
 INSTALLED_RELEASE=""
 
@@ -734,9 +807,24 @@ Usage: install.sh [options]
   -h, --help          show this help
 
 Environment:
+  FINX_INDEX_DOMAIN   base URL for the seed manifest (default https://finx.sh/finx/seed)
+  FINX_SEED_DOMAIN    base URL for the seed tarball when the manifest lists no url
+  FINX_SOURCE_DOMAIN  base URL for the source archive when building from source
+                      (default https://codeload.github.com/Fincote/Finx)
+  FINX_SOURCE_REF     branch, tag or commit to pull when building from source
+                      (default main); same as --ref
+  FINX_CONNECT_TIMEOUT
+                      seconds to wait for a connection before trying the next
+                      candidate (default 30). Applies to connecting only, not to
+                      how long a download may take.
   FINX_TEST=DIR       confine the whole run to DIR: the default prefix becomes
                       DIR/opt/finx, temporary files go to DIR/tmp, and --prefix
                       outside DIR is refused. Meant for tests and CI.
+
+  Addresses must be https:// or file://; plain http is accepted only for
+  http://127.0.0.1:PORT and http://localhost:PORT (offline testing).
+  Changing a domain never skips verification: seeds are still checked
+  against the sha256 and size in the manifest.
 
 Examples:
   ./finx-install/install.sh --dry-run

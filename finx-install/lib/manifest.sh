@@ -29,8 +29,9 @@
 #   url     https://host/a/seed.tar.gz
 #   url     https://host/b/seed.tar.gz
 
-# 尚未发布的默认种子位置。probe_url 探不到时，install.sh 会退回源码自举。
-DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-https://finx.sh/finx/seed/manifest}
+# 默认种子位置，由 FINX_INDEX_DOMAIN 决定。probe_url 探不到时，
+# install.sh 会退回源码自举。--manifest-url 优先于它。
+DEFAULT_MANIFEST_URL=${FINX_DEFAULT_MANIFEST_URL:-$FINX_INDEX_DOMAIN/manifest}
 
 # 只探存在性，不下载全文。用于决定走种子还是走源码。
 probe_url() {
@@ -105,10 +106,10 @@ fetch_one() {
     fi
 
     part=$dest.part
-    if ! curl -fL --connect-timeout 30 --retry 2 -C - -o "$part" "$url"; then
+    if ! curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" --retry 2 -C - -o "$part" "$url"; then
         # 退出码 33 是「服务器不支持续传」，此时从头再来一次
         rm -f "$part"
-        curl -fL --connect-timeout 30 -o "$part" "$url" || {
+        curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" -o "$part" "$url" || {
             rm -f "$part"
             return 1
         }
@@ -133,7 +134,13 @@ fetch_artifact() {
     fi
 
     manifest_urls "$MANIFEST_FILE" > "$FINX_TMP/urls"
-    [ -s "$FINX_TMP/urls" ] || die "manifest has no url entries"
+
+    # 清单里没写 url 时，用 FINX_SEED_DOMAIN 拼一个。这样自建镜像只要设
+    # 环境变量就能用，不必为每种布局各维护一份清单。
+    if [ ! -s "$FINX_TMP/urls" ]; then
+        printf '%s/%s\n' "$FINX_SEED_DOMAIN" "$SEED_NAME" > "$FINX_TMP/urls"
+        info "manifest has no url entries; falling back to $FINX_SEED_DOMAIN"
+    fi
 
     tried=0
     while IFS= read -r url; do

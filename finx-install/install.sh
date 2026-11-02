@@ -81,7 +81,7 @@ MODE=""
 FROM_SOURCE=0
 ALLOW_FALLBACK=1
 SOURCE_URL=""
-SOURCE_REF=main
+SOURCE_REF=${FINX_SOURCE_REF:-main}
 IN_TEST_ROOT=0
 INSTALLED_RELEASE=""
 
@@ -103,9 +103,24 @@ Usage: install.sh [options]
   -h, --help          show this help
 
 Environment:
+  FINX_INDEX_DOMAIN   base URL for the seed manifest (default https://finx.sh/finx/seed)
+  FINX_SEED_DOMAIN    base URL for the seed tarball when the manifest lists no url
+  FINX_SOURCE_DOMAIN  base URL for the source archive when building from source
+                      (default https://codeload.github.com/Fincote/Finx)
+  FINX_SOURCE_REF     branch, tag or commit to pull when building from source
+                      (default main); same as --ref
+  FINX_CONNECT_TIMEOUT
+                      seconds to wait for a connection before trying the next
+                      candidate (default 30). Applies to connecting only, not to
+                      how long a download may take.
   FINX_TEST=DIR       confine the whole run to DIR: the default prefix becomes
                       DIR/opt/finx, temporary files go to DIR/tmp, and --prefix
                       outside DIR is refused. Meant for tests and CI.
+
+  Addresses must be https:// or file://; plain http is accepted only for
+  http://127.0.0.1:PORT and http://localhost:PORT (offline testing).
+  Changing a domain never skips verification: seeds are still checked
+  against the sha256 and size in the manifest.
 
 Examples:
   ./finx-install/install.sh --dry-run

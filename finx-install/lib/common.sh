@@ -35,6 +35,72 @@ on_exit() {
     exit $rc
 }
 
+# ---------------------------------------------------------------------------
+# 下载源：全部由环境变量控制
+# ---------------------------------------------------------------------------
+#
+# 与 MacWave 的 MACWAVE_*_DOMAIN 同一套做法：每个域名一个环境变量，不设就用
+# 官方默认值。这样镜像、自建 CDN、本机目录都能切，而校验逻辑一条不跳。
+#
+# 三条约束（照搬 MacWave 的理由）：
+#
+#   1. 只接受 https:// 或 file://。明文 http 只放行 127.0.0.1 与 localhost
+#      的带端口地址 —— 那是离线测试与本机代理用的，不是给人随便填的。
+#   2. 末尾斜杠统一去掉，否则 "$DOMAIN/manifest" 会拼出双斜杠，
+#      而某些服务端会因此回 404。
+#   3. 报错里带上变量名。用户改了三个变量中的一个却填错时，光说
+#      "invalid URL" 帮不上忙。
+#
+# 刻意不做的事：**换地址不等于跳过校验**。种子仍然按清单里的 sha256 与
+# size 校验，源归档仍然走同一套流程。镜像只是"从哪儿拿"，不是"信不信"。
+finx_domain() {
+    # finx_domain <变量名> <值>：规范化并校验，成功则打印
+    _finx_name=$1
+    _finx_value=$2
+
+    while [ "${_finx_value%/}" != "$_finx_value" ]; do
+        _finx_value=${_finx_value%/}
+    done
+
+    case $_finx_value in
+        https://?*|file://?*)  printf '%s\n' "$_finx_value"; return 0 ;;
+        http://127.0.0.1:?*|http://localhost:?*) printf '%s\n' "$_finx_value"; return 0 ;;
+    esac
+
+    printf 'ERROR: %s must be an https:// (or file://) address, got: %s\n' \
+        "$_finx_name" "$_finx_value" >&2
+    exit 1
+}
+
+# 种子清单与种子 tar 默认同源；分开是因为可以让清单走一个域名、
+# 大文件走另一个（CDN 与对象存储的常见分法）。
+#
+# 每个赋值后面必须跟 `|| exit 1`。finx_domain 里的 exit 1 跑在 $( ) 子 shell
+# 里，只结束那个子 shell —— 父进程会继续，而变量已经被设成空串。不显式判错
+# 的话，填错一个域名得到的不是报错，而是一个悄悄失效的安装器。
+FINX_INDEX_DOMAIN=$(finx_domain FINX_INDEX_DOMAIN "${FINX_INDEX_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
+export FINX_INDEX_DOMAIN
+
+FINX_SEED_DOMAIN=$(finx_domain FINX_SEED_DOMAIN "${FINX_SEED_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
+export FINX_SEED_DOMAIN
+
+# 源码自举时取源码归档的地方，默认 GitHub 的 codeload。
+FINX_SOURCE_DOMAIN=$(finx_domain FINX_SOURCE_DOMAIN "${FINX_SOURCE_DOMAIN:-https://codeload.github.com/Fincote/Finx}") || exit 1
+export FINX_SOURCE_DOMAIN
+
+# 连不上的等待时间。默认 30 秒；网络差的用户调小能更快地换下一个候选。
+# 只管"连上"，不管"下完"——种子可能几十兆，给总时长设上限只会把慢速网络
+# 的人挡在门外。
+# 这里用裸 printf 而不是 die()：die 定义在后面，且本文件按顺序被 source。
+case ${FINX_CONNECT_TIMEOUT:-30} in
+    ''|*[!0-9]*)
+        printf 'ERROR: FINX_CONNECT_TIMEOUT must be a whole number of seconds, got: %s\n' \
+            "$FINX_CONNECT_TIMEOUT" >&2
+        exit 1 ;;
+esac
+FINX_CONNECT_TIMEOUT=${FINX_CONNECT_TIMEOUT:-30}
+export FINX_CONNECT_TIMEOUT
+
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM

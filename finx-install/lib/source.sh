@@ -28,7 +28,7 @@
 # 源码归档位置。codeload 与 GitHub 网页的「Download ZIP」是同一个后端，
 # 但返回 tar.gz，省掉解压 zip 的工具依赖。
 default_source_url() {
-    printf 'https://codeload.github.com/Fincote/Finx/tar.gz/%s\n' "${SOURCE_REF:-main}"
+    printf '%s/tar.gz/%s\n' "$FINX_SOURCE_DOMAIN" "${SOURCE_REF:-main}"
 }
 
 # 取并解源码树，设置 SOURCE_ROOT 为解出来的顶层目录。

@@ -343,6 +343,56 @@ else
     failed "--no-path still wrote to the shell configuration"
 fi
 
+# ---- 下载源的环境变量 ----------------------------------------------------
+#
+# 三个 *_DOMAIN 变量必须：只认 https/file、去掉末尾斜杠、报错带变量名。
+# 这三条都是照搬 MacWave 的做法，任何一条失效都会让自建镜像的人踩坑。
+
+domain_ok() {
+    FINX_INDEX_DOMAIN="$1" FINX_SEED_DOMAIN=https://ok.example \
+        FINX_SOURCE_DOMAIN=https://ok.example \
+        sh -c '. "$1/finx-install/lib/common.sh"; printf "%s\n" "$FINX_INDEX_DOMAIN"' _ "$HERE/.."
+}
+
+if [ "$(domain_ok 'https://mirror.example/finx/')" = "https://mirror.example/finx" ]; then
+    pass "domain value is normalized (trailing slash dropped)"
+else
+    failed "domain normalization did not strip the trailing slash"
+fi
+
+if [ "$(domain_ok 'file:///srv/finx')" = "file:///srv/finx" ]; then
+    pass "file:// domains are accepted"
+else
+    failed "file:// domain was rejected or altered"
+fi
+
+out=$(domain_ok 'http://evil.example/finx' 2>&1) && rc=0 || rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'FINX_INDEX_DOMAIN'; then
+    pass "plain http is refused and the error names the variable"
+else
+    failed "plain http was accepted, or the error did not name the variable"
+fi
+
+if [ "$(domain_ok 'http://127.0.0.1:8080/finx')" = "http://127.0.0.1:8080/finx" ]; then
+    pass "loopback http is allowed for offline testing"
+else
+    failed "loopback http was refused"
+fi
+
+out=$(FINX_CONNECT_TIMEOUT=abc sh -c '. "$1/finx-install/lib/common.sh"' _ "$HERE/.." 2>&1) && rc=0 || rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'FINX_CONNECT_TIMEOUT'; then
+    pass "a non-numeric FINX_CONNECT_TIMEOUT is refused"
+else
+    failed "a non-numeric FINX_CONNECT_TIMEOUT was accepted"
+fi
+
+out=$(FINX_CONNECT_TIMEOUT=7 sh -c '. "$1/finx-install/lib/common.sh"; printf "%s" "$FINX_CONNECT_TIMEOUT"' _ "$HERE/.." 2>&1)
+if [ "$out" = "7" ]; then
+    pass "FINX_CONNECT_TIMEOUT is honoured"
+else
+    failed "FINX_CONNECT_TIMEOUT was ignored (got: $out)"
+fi
+
 # ---- 汇总 ---------------------------------------------------------------
 
 printf '\n'
