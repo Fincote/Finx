@@ -5,6 +5,7 @@ CVS/
 
 ^10\.[^/]*/
 ^mirror/
+^seed/
 ^finx-install/
 
 ^apt-get-lockwait$

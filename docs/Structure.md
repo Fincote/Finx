@@ -296,13 +296,15 @@ resolve_method()   决定走种子还是源码
 | `seed/manifest.example` | 种子清单样例 |
 | `README.md` | 设计与未做项 |
 
-### `scripts/`：仓库自身的守卫（3 个，都不是运行时）
+### `scripts/`：仓库自身的守卫与发布工具（5 个，都不是运行时）
 
 | 脚本 | 守住什么 |
 | --- | --- |
 | `format_check.pl` | Perl 用 tab、shell 用 4 空格 |
 | `structure_test.sh` | 建两棵树（git 清单 / MANIFEST 清单）各装一遍，结果必须逐字节一致；外加 `.gitignore` 与 `MANIFEST.SKIP` 必须配对 |
 | `payload_test.sh` | 在**只有 MANIFEST 文件**的树里跑 `make test` —— 那就是 finx 包 `CompileScript` 的真实环境 |
+| `make_seed.sh` | 不是守卫，是发布工具：把装好的前缀打成种子并写出清单（详见 `TECHNICAL-GUIDE.md` 8.3） |
+| `seed_test.sh` | 打包器 → 安装器的往返：剔掉的确实不在、该留的确实在、装出来的 `finx.conf` 指向实际前缀 |
 
 ### 其他
 

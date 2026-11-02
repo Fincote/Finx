@@ -20,9 +20,12 @@ name: Bootstrap
 # 产物：
 #   bootstrap.log          完整日志，失败时先看这里
 #   essential-debs.tar     编出来的 .deb，也就是种子的原料
+#   finx-seed/             自举成功时打出的种子与清单，可直接喂给
+#                          install.sh --seed-dir=<解开的目录>
 #
-# 种子打包本身还没做（见 docs/TECHNICAL-GUIDE.md 8.3 / 8.8）。在那之前，
-# 这个工作流的作用是回答一个问题：这份树到底能不能从源码装起来。
+# 种子不是 .deb 池的重新打包，而是**装好的前缀的快照** —— 安装器拿到后只做
+# 解包、归一权限、重签 Mach-O、写配置、重建索引。理由与取舍见
+# scripts/make_seed.sh 的注释。
 
 on:
   workflow_dispatch:
@@ -133,3 +136,44 @@ jobs:
           name: essential-debs
           path: essential-debs/
           if-no-files-found: warn
+
+      - name: Summarise the installed prefix
+        if: always()
+        run: |
+          set -uo pipefail
+          PREFIX="${{ inputs.prefix }}"
+          echo "### prefix layout" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+              echo "-- top level --"
+              sudo du -sh "$PREFIX"/* 2>/dev/null | sort -k2
+              echo "-- fink/debs --"
+              sudo ls -ld "$PREFIX/fink/debs" 2>/dev/null
+              echo "-- dpkg --"
+              sudo ls "$PREFIX/var/lib/dpkg/" 2>/dev/null
+              sudo sh -c "wc -l < $PREFIX/var/lib/dpkg/status" 2>/dev/null
+          } >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pack the seed
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.prefix }}"
+          # 前缀里的文件归 root，打包含义上也要读全（有的目录是 700），所以用 sudo。
+          # 打完把产物交还给 runner，否则 upload-artifact 读不到。
+          sudo ./scripts/make_seed.sh --prefix "$PREFIX" --out seed
+          sudo chown -R "$(id -u):$(id -g)" seed
+          echo "### seed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat seed/manifest >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -h seed/seed.tar.gz
+
+      - name: Upload the seed
+        uses: actions/upload-artifact@v4
+        with:
+          name: finx-seed
+          path: |
+            seed/seed.tar.gz
+            seed/manifest
+          if-no-files-found: error

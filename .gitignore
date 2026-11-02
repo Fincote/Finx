@@ -24,3 +24,4 @@
 /perlmod/Fink/FinkVersion.pm
 /t/basepath/etc/apt/sources.list
 /t/basepath/etc/apt/sources.list.finkbak
+/seed/

@@ -242,8 +242,9 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 /opt/finx/bin/{dpkg,dpkg-deb,dpkg-query,dpkg-lockwait,finx,finx-scanpackages,…}
 /opt/finx/lib/{libgettext*,liblzma*,libbz2*,libiconv*,…}.dylib
 /opt/finx/lib/perl5/Fink/…            ← 纯 Perl，架构无关
-/opt/finx/etc/finx.conf               ← 模板，留 Basepath 占位
+/opt/finx/fink/debs/                  ← 空目录；里面的链接指向 src/，不进种子
 /opt/finx/var/lib/dpkg/{status,status-finx,available}
+                                      ← etc/finx.conf 不进种子：安装器按实际前缀重写
 /opt/finx/finx/dists → <distribution>
 ```
 
@@ -254,6 +255,10 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 推而广之：`dpkg` 是普通 C 程序，除 `init.sh` 路径外没有系统耦合，因此
 **按架构出一份**即可（`x86_64` / `arm64`，或 universal2），不需要每个 macOS 版本一份。
 注意 universal2 的两个 slice 可以有各自的最低版本：`x86_64` 可到 10.9，`arm64` 最低 11.0。
+
+**产出方式**：`scripts/make_seed.sh --prefix /opt/finx --out seed`，生成 `seed.tar.gz` 与
+`manifest`。CI 的 `bootstrap.yml` 在自举成功后自动跑它，把两者一起作为 `finx-seed`
+产物上传 —— 解开就是 `install.sh --seed-dir=<目录>` 能直接吃的东西。
 
 ### 8.4 manifest 与校验
 

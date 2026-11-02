@@ -42,6 +42,11 @@ structure:
 sources_check:
 	./base-files/pack.sh --check
 
+# 种子打包器与安装器的往返验证。make_seed.sh 决定所有人下载到的是什么，
+# 两边任何一边走偏都只会安静地装出一个坏前缀，所以要真跑一遍。
+seed_test:
+	./scripts/seed_test.sh
+
 # 在「只有 MANIFEST 文件的树」里跑一遍 make test —— 那就是 finx 包自己的
 # CompileScript 执行时的环境（见 finx.info.in）。故意不挂进 test：那等于在
 # 载荷树里递归调用自己。
@@ -53,7 +58,7 @@ payload_test:
 format:
 	./scripts/format_check.pl
 
-test: manifest_check structure sources_check test_setup
+test: manifest_check structure sources_check seed_test test_setup
 	@# must test with same perl binary as the one to be used to run finx
 	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
 	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'

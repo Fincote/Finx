@@ -103,7 +103,9 @@ readme.ru.html
 readme.zh.html
 scripts/ci_bootstrap.sh
 scripts/format_check.pl
+scripts/make_seed.sh
 scripts/payload_test.sh
+scripts/seed_test.sh
 scripts/structure_test.sh
 update/config.guess
 update/config.sub
