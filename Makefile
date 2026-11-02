@@ -1,5 +1,9 @@
 PREFIX=/opt/finx
-ARCHITECTURE=x86_64
+# 默认取本机架构。写死 x86_64 是 Intel 时代的遗留：在 arm64 机器上，
+# make test 会用 setup.sh 生成 perlmod/Fink/FinkVersion.pm（架构 x86_64），
+# 而同一目录下随后运行的 sudo ./bootstrap 会读到它，于是编出 x86_64 的包、
+# 被 dpkg 以架构不符拒绝。真实踩过。
+ARCHITECTURE=$(shell uname -m)
 VERSION=`cat VERSION`
 TEST_BASEPATH=$(PWD)/t/basepath
 TESTS=.

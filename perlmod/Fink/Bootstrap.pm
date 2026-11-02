@@ -626,6 +626,23 @@ sub bootstrap2 {
 	Fink::Engine::cmd_install(@elist, @addlist);
 	Fink::Config::set_options( { 'no_buildlock' => 0 } );
 
+	# cmd_install 没有可用的返回值（real_install 只 return 空），所以只能查结果。
+	#
+	# 真实事故：本机以 arm64 运行时，dpkg 以「package architecture
+	# (darwin-x86_64) does not match system (darwin-arm64)」拒绝了每一个包，
+	# 而 bootstrap 照样收尾并打印 "You should now have a working Finx
+	# installation" —— 用户拿到的是一个空的、不能装任何东西的前缀。
+	#
+	# 少任何一个都说明第三阶段没走完，必须当场失败。
+	my @must_have = qw(bin/finx bin/dpkg bin/dpkg-deb bin/tar);
+	my @missing = grep { not -e "$basepath/$_" } @must_have;
+	if (@missing) {
+		die "\nERROR: the essential packages were not installed; missing: ".
+			join(" ", @missing)."\n".
+			"       The prefix at $basepath is not usable.\n".
+			"       Look for the first \"dpkg: error processing package\" above.\n";
+	}
+
 	$ENV{PATH} = $save_path;
 }
 
