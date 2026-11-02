@@ -140,7 +140,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh   # 手工装进 /tmp/finx-c
 - **不要**把 `/opt/finx` 或任何系统前缀 `chown` 给调用安装器的用户。
   `finx install` 的 `rootflag` 是 1，chown 免不了密码；而 dpkg 以真 root 执行 `postinst`，
   用户可写的前缀等于把 root 交出去。理由与替代方案见 TECHNICAL-GUIDE 8.6。
-- `finx-install/standalone.sh`：生成物，不要手改。改 `finx-install/lib/` 或
+- `finx-install/install.sh`：生成物，不要手改。改 `finx-install/lib/` 或
   `finx-install/install.sh` 后必须跑 `./finx-install/build-bundle.sh`，否则线上那条
   `curl | bash` 跑的还是旧逻辑。`build-bundle.sh --check` 负责发现漂移。
 - `10.9-libcxx/*.patch` 与 `10.9-libcxx/dpkg.patch`：上游源码的补丁载荷，动一个字节就装不上。

@@ -290,8 +290,8 @@ resolve_method()   决定走种子还是源码
 | `lib/manifest.sh` | 拉种子清单、校验 sha256、逐个 URL 回退 |
 | `lib/extract.sh` | 解压与 `dpkg -i` |
 | `lib/source.sh` | **源码回落**：取源码包、检查前置、跑 `./bootstrap` |
-| `standalone.sh` | **生成物**：把所有 lib 打平成一个文件，供 `curl \| bash` |
-| `build-bundle.sh` | 生成/校验 `standalone.sh` |
+| `install.sh` | **生成物**：把所有 lib 打平成一个文件，供 `curl \| bash`；用户下载的就是它 |
+| `build-bundle.sh` | 生成/校验 `install.sh` |
 | `selftest.sh` | 23 项沙箱断言 |
 | `seed/manifest.example` | 种子清单样例 |
 | `README.md` | 设计与未做项 |

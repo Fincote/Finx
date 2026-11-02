@@ -363,7 +363,7 @@ sub restart_as_root {
 ```
 finx-install/
 ├── install.sh            模块化入口
-├── standalone.sh         生成物：自包含单文件，供 curl | bash
+├── install.sh            生成物：自包含单文件，供 curl | bash
 ├── build-bundle.sh       打平脚本（带 --check 防漂移）
 ├── selftest.sh           FINX_TEST 沙箱自测
 ├── lib/{common,detect,manifest,extract}.sh
@@ -373,7 +373,7 @@ finx-install/
 用户看到的是那条命令：
 
 ```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/standalone.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)"
 ```
 
 单文件必须提交进仓库，因为 `curl | bash` 只拿得到一个文件，被管道执行时既没有可靠的 `$0`，
@@ -470,7 +470,7 @@ finx-install/seed/manifest-x86_64.txt      ← 按架构分开，arch 字段与�
 这时信任来自"它是同一份文件"，而不是来自 host。默认值指向仓库那一份。
 
 **锚点链的现状（一处已知弱环）：** 用户信任的起点是他执行的那条命令，即
-`raw.githubusercontent.com/.../HEAD/finx-install/standalone.sh`（见 8.7）。`HEAD`
+`raw.githubusercontent.com/.../HEAD/finx-install/install.sh`（见 8.7）。`HEAD`
 是移动的，且这个脚本本身没有 `sha256` 可供核对。种子这一层的校验是扎实的，
 但"下载安装器的那个动作"仍是信任条款而非校验。缓解方式是在发布页同时给出
 版本化的 tag 地址与 `shasum`，让需要可复现性的用户改用 `refs/tags/<ver>`
@@ -660,7 +660,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | 1 | `bash -n` 全部 `git ls-files '*.sh'` | 引号或 `if/fi` 不配对 |
 | 2 | `make format` | 缩进不合 `STYLE` |
 | 3 | `make test_setup` + `perl -c` 全部模块 | 模块有语法错（必须先 test_setup，否则报的是「找不到模块」） |
-| 4 | `build-bundle.sh --check` | 改了 `finx-install/lib/` 却没重建 `standalone.sh` |
+| 4 | `build-bundle.sh --check` | 改了 `finx-install/lib/` 却没重建 `install.sh` |
 | 5 | `make test` | 1059 项断言里有失败 |
 | 6 | `./finx-install/selftest.sh` | 安装器沙箱的 19 项里有一条不成立 |
 | 7 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |

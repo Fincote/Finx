@@ -109,7 +109,7 @@ jobs:
             echo "perl syntax OK"
 
       - run:
-          name: "Check: standalone.sh in sync"
+          name: "Check: install.sh in sync"
           command: ./finx-install/build-bundle.sh --check
 
       - run:

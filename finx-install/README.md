@@ -9,19 +9,23 @@
 ## 一、一条命令
 
 ```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/standalone.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)"
 ```
 
 带参数时，`--` 之后的都传给安装器：
 
 ```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/standalone.sh)" -- --dry-run
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/standalone.sh)" -- --prefix=/opt/finx
+/bin/bash -c "$(curl -fsSL .../finx-install/install.sh)" -- --prefix=/opt/finx
+/bin/bash -c "$(curl -fsSL .../finx-install/install.sh)" -- --no-path
 ```
+
+`install.sh` 就是**可以直接下载的那一个文件** —— 没有 npm 式的安装步骤，也不
+依赖同级的 `lib/`。管道里同时是它自己的 stdin，所以它不会反过来读 stdin 提问。
 
 从仓库直接跑（开发、离线自测）：
 
 ```
+./finx-install/build-bundle.sh   # 先重建，见第三节
 ./finx-install/install.sh        # 真装到 /opt/finx
 ./finx-install/selftest.sh       # 离线自测，不碰 /opt/finx
 ```
@@ -59,8 +63,8 @@
 ```
 finx-install/
 ├── install.sh            模块化入口：解析参数、编排七个阶段
-├── standalone.sh         生成物：自包含单文件，供 curl | bash 使用
-├── build-bundle.sh       把 install.sh + lib/*.sh 打平成 standalone.sh
+├── install.sh            生成物：自包含单文件，用户下载的就是它
+├── build-bundle.sh       把 install.sh.in + lib/*.sh 打平成 install.sh
 ├── selftest.sh           沙箱自测：19 项断言，全程离线
 ├── lib/
 │   ├── common.sh         输出、错误、trap、临时目录、sha256、测试根
@@ -72,9 +76,9 @@ finx-install/
     └── manifest.example  清单格式参考
 ```
 
-## 三、`standalone.sh` 是生成物
+## 三、`install.sh` 是生成物
 
-`install.sh` + `lib/*.sh` 是**唯一事实来源**，`standalone.sh` 由
+`install.sh.in` + `lib/*.sh` 是**唯一事实来源**，`install.sh` 由
 [`build-bundle.sh`](./build-bundle.sh) 打平生成：
 
 ```
@@ -125,7 +129,7 @@ bootstrap 自己会建前缀、写配置、建索引，所以源码模式没有�
 | 清单用行取向纯文本，不用 JSON | 安装阶段不该依赖 `jq`；`awk` 一行取字段，diff 与签名都更友好 |
 | 先校验再 `mkdir` / 解包 | 失败不留残骸，重跑不需要先手工清理 |
 | 只有**一条**网络路径（清单里的 url） | 拒绝在安装期间引入第二个不可校验的下载源 |
-| `standalone.sh` 提交进仓库 | 见第三节；用 `--check` 防漂移 |
+| `install.sh` 提交进仓库 | 见第三节；用 `--check` 防漂移 |
 | `--seed-dir` 一等公民 | 让整个安装器可以完全离线自测，CI 不需要网络 |
 | 不做「警告后继续」 | 校验失败即中止，与 `docs/TECHNICAL-GUIDE.md` 8.1 的强校验要求一致 |
 | 前缀归 root，不 chown 给调用者 | 见 TECHNICAL-GUIDE 8.6：chown 既免不了 `finx install` 的密码，又会让 `$prefix/bin/dpkg` 变成 root 的可控输入。这里采纳 MacPorts 模型 —— 每次装包都要 sudo，但只需要一份系统级二进制分发 |
@@ -232,7 +236,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 
 覆盖的场景：`--help` 不留痕、默认前缀落在测试根内、种子解包正确、`finx.conf` 记录沙箱前缀、
 重复安装被拒、越界前缀被拒（含 `..` 与符号链接两种逃逸）、sha256 不符被拒且不留目录、
-管道模式可装、`standalone.sh` 与源同步、多镜像回退、清单不可达被拒。
+管道模式可装、`install.sh` 与源同步、多镜像回退、清单不可达被拒。
 
 假种子里刻意放了两样容易被忽略的东西：
 
@@ -277,5 +281,5 @@ FINX_TEST="$BASE" ./finx-install/install.sh --seed-dir="$BASE"
 cat "$BASE/opt/finx/etc/finx.conf"
 
 # 管道模式
-cat finx-install/standalone.sh | FINX_TEST="$BASE" /bin/bash -s -- --seed-dir="$BASE" --prefix="$BASE/piped"
+cat finx-install/install.sh | FINX_TEST="$BASE" /bin/bash -s -- --seed-dir="$BASE" --prefix="$BASE/piped"
 ```

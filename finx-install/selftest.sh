@@ -209,7 +209,7 @@ check_fails "sha256 mismatch is refused" \
 
 # ---- 6. 管道模式 ---------------------------------------------------------
 
-if cat "$HERE/standalone.sh" | /bin/bash -s -- --seed-dir="$ROOT" --prefix="$ROOT/piped" >/dev/null 2>&1; then
+if cat "$HERE/install.sh" | /bin/bash -s -- --seed-dir="$ROOT" --prefix="$ROOT/piped" >/dev/null 2>&1; then
     pass "piped standalone install"
 else
     failed "piped standalone install"
@@ -219,7 +219,7 @@ fi
 
 # ---- 7. 单文件必须与源同步 ----------------------------------------------
 
-check_ok "standalone.sh is not stale" "$HERE/build-bundle.sh" --check
+check_ok "install.sh is not stale" "$HERE/build-bundle.sh" --check
 
 # ---- 8. 源码回落 ---------------------------------------------------------
 
