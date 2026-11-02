@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/bash
 #
 # Shell script for preparing the user's shell startup scripts for Fink.
 # Copyright (c) 2003-2005 Martin Costabel

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # dpkg-checkall.sh -- A script to check if everything which dpkg thinks
 #                     is installed, is actually installed.  Outputs a

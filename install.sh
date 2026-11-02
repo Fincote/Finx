@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 # -*- mode: Shell; tab-width: 4; -*-
 #
 # install.sh - install finx package

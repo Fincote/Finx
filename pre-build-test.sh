@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 #
 # pre-build-test.sh - check for missing system-provided items 
 # 					  necessary to build finx.
