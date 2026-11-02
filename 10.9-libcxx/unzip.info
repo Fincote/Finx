@@ -4,13 +4,12 @@ Revision: 2
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 License: BSD
 Essential: yes
-CustomMirror: <<
-	Primary: ftp://ftp.info-zip.org/pub/infozip/src/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:%n60.tgz
 Source-MD5: 62b490407489521db863b523a7f86375
 SourceDirectory: %n60
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 BuildDepends: finx (>= 0.30.0)
 InfoTest: TestScript: make -k check || exit 2
 DocFiles: BUGS INSTALL LICENSE README ToDo WHERE

@@ -1,12 +1,11 @@
 Package: libgettext8-shlibs
 Version: 0.22.5
 Revision: 1
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/gettext/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:gettext-%v.tar.gz
 Source-MD5: 1245c87cfa0b123f55540681af396880
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 # libgettext8-shlibs.patch must be regenerated for every update since
 # dpkg uses it and needs the correct full file headers for patch -p0 
 PatchFile: %n.patch

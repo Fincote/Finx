@@ -164,6 +164,38 @@ https://github.com/Fincote/Finx/releases/download/seed-<本机 Darwin>/manifest
 **要支持更老的系统，就得在更老的机器上构建。** GitHub 已移除 `macos-12` 及更早的
 runner，所以 12 及以下只能自备机器跑 `scripts/ci_bootstrap.sh` 再手动上传。
 
+## 三点七、源码包镜像
+
+bootstrap 需要的 22 个上游源码 tar 放在
+[`Fincote/Finx-source`](https://github.com/Fincote/Finx-source) 的 `src-1` 发布里，
+平铺存放：
+
+```
+https://github.com/Fincote/Finx-source/releases/download/src-1/<文件名>
+```
+
+包描述通过 `CustomMirror` 指向它。GitHub 的发布资产没有目录结构，所以那 20 个包的
+`Source:` 里原有的 `fink/` 路径前缀被去掉了 —— 否则会解析成
+`.../src-1/fink/<文件名>`，404。
+
+`base-files` 是唯一例外：它的源码由本仓库的 `base-files/pack.sh` 就地生成，
+从不下载，所以保持原样。
+
+重新生成这份镜像：
+
+```sh
+./scripts/fetch_sources.sh <目录>     # 只下 CustomMirror 指向我们的那些包
+```
+
+它会逐个核对 `Source-MD5` / `Source-Checksum`。镜像返回「200 + HTML 错误页」是
+发生过的事，光看 curl 退出码不够。
+
+**这一层解决什么、不解决什么**：CI 跑在 GitHub 的机器上，从这里取源码不再碰
+SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来。但**对网络受限的
+本机不解决问题** —— GitHub 本身不可达时，任何 GitHub 托管的地址都不可达。
+那种情况只能用种子（`--seed-dir`）或 U 盘预置源码，见
+[`OFFLINE.md`](./OFFLINE.md)。
+
 ## 四、只有地址能被替换，校验不能
 
 这一条是底线，写在这里反复强调：

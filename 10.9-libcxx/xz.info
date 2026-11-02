@@ -38,8 +38,11 @@ License: GPL2+
 Homepage: http://tukaani.org/xz/
 Maintainer: Daniel Johnson <daniel@daniel-johnson.org>
 
-Source: mirror:sourceforge:lzmautils/%n-%v.tar.bz2
+Source: mirror:custom:%n-%v.tar.bz2
 Source-Checksum: SHA256(fbedff8eb67e229f2e95eb1ff920b255e405c86c9e1a53d4a6861d9823acff18)
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 
 BuildDepends: libiconv-dev, libgettext8-dev, gettext-tools, finx (>= 0.24.12)
 Depends: liblzma5-shlibs (= %v-%r)

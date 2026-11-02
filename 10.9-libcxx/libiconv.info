@@ -10,15 +10,14 @@ BuildDepends: <<
 	gperf (>= 3.1-1)
 <<
 Essential: yes
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/%n/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:libiconv-%v.tar.gz
 Source-MD5: c04d0fa4cae4e9a4febc457fc00ee519
-Source2: mirror:sourceforge:fink/gettext-0.22.5.tar.gz
+Source2: mirror:custom:gettext-0.22.5.tar.gz
 #Source2: mirror:gnu:gettext/gettext-0.22.5.tar.gz
 Source2-MD5: 1245c87cfa0b123f55540681af396880
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchFile: %n.patch
 PatchFile-MD5: 2cdd80ba89aeaabde8b0b2a3f56afd03
 NoSetCPPFLAGS: true

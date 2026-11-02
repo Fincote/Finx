@@ -1,12 +1,11 @@
 Package: gzip
 Version: 1.10
 Revision: 1
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/%n/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:%n-%v.tar.gz
 Source-MD5: cf9ee51aff167ff69844d5d7d71c8b20
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 #PatchFile: %n.patch
 #PatchFile-MD5: f4c32d5450ed676d05e5efe4c9ed7c30
 Essential: yes

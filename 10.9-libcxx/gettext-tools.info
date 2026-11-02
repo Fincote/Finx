@@ -1,12 +1,11 @@
 Package: gettext-tools
 Version: 0.22.5
 Revision: 1
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/gettext/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:gettext-%v.tar.gz
 Source-MD5: 1245c87cfa0b123f55540681af396880
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchFile: libgettext8-shlibs.patch
 PatchFile-MD5: 40c5bb69aea2d78ca50c7bf011653a01
 PatchFile2: gettext-tools-tests.patch

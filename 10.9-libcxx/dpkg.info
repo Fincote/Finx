@@ -33,9 +33,12 @@ Suggests: <<
 Essential: yes
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 
-Source: mirror:sourceforge:fink/dpkg_%v.tar.gz
+Source: mirror:custom:dpkg_%v.tar.gz
 Source-Checksum: SHA256(b50e58b71223f66196b419f776c7791b5cc3a9aa07e1ccf85848b123517cdd51)
 SourceDirectory: dpkg-%v
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 
 UpdateConfigGuessInDirs: build-aux
 PatchFile: dpkg.patch

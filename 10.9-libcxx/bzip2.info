@@ -5,13 +5,11 @@ Essential: yes
 Depends: %N-shlibs (= %v-%r)
 BuildDepends: finx (>= 0.24.12-1)
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
-CustomMirror: <<
-	Primary: http://downloads.sourceforge.net/bzip2/
-	Secondary: http://downloads.sourceforge.net/fink/
-	Tertiary: ftp://sourceware.org/pub/bzip2/
-<<
 Source: mirror:custom:%n-%v.tar.gz
 Source-MD5: 00b516f4704d4a7cb50a1d97e6e8e15b
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchFile: %n.patch
 PatchFile-MD5: 6fe75509c38cc356dd7ddfea0cdcd413
 PatchScript: sed 's|@VERSION@|%v|g' < %{PatchFile} | patch -p1

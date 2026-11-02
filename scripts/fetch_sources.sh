@@ -48,13 +48,18 @@ fi
 mkdir -p "$OUT" || exit 1
 OUT=$(cd "$OUT" && pwd) || exit 1
 
+OURS=https://github.com/Fincote/Finx-source/releases/download/src-1
 MIRROR=http://distfiles.master.finkmirrors.net/distfiles
 CPAN=https://cpan.metacpan.org
 
 # ---- 1. 要哪些包 ---------------------------------------------------------
 
-PKGS="tar-bootstrap dpkg-bootstrap $(grep -l '^Essential:[[:space:]]*yes' 10.9-libcxx/*.info 2>/dev/null \
-    | sed 's|.*/||;s|\.info$||' | tr '\n' ' ')"
+# 要哪些包：凡是 CustomMirror 指向我们镜像的那些。这是最准确的判据 ——
+# 我们镜像里放的就是它们需要的源码，不多不少。用 Essential 列表会漏掉
+# expat1、texinfo、objtools 这类「不是 Essential 但 bootstrap 要装」的包，
+# 第一版就是这么漏掉 6 个的。
+PKGS=$(grep -l "^Primary: $OURS\$" 10.9-libcxx/*.info 2>/dev/null \
+    | sed 's|.*/||;s|\.info$||' | sort | tr '\n' ' ')
 
 printf 'packages: %s\n\n' "$PKGS" >&2
 
@@ -65,9 +70,26 @@ sources_of() {
         | sed 's/^"//;s/"$//' | grep -v '^$' | grep -v '\.patch$'
 }
 
+# Source: 里的 %n / %v 是占位符，不是文件名。不展开就会去下
+# 「%n-%v.tar.gz」这种不存在的路径 —— 这个 bug 写出来时就有，实测才发现。
+expand_spec() {
+    spec=$1
+    name=$2
+    ver=$3
+    printf '%s\n' "$spec" | sed -e "s|%n|$name|g" -e "s|%v|$ver|g"
+}
+
 urls_of() {
     spec=$1
-    base=${spec##*/}
+    # 先剥掉 mirror:<名字>: 前缀再取 basename。`mirror:custom:bzip2-1.0.6.tar.gz`
+    # 里根本没有斜杠，直接 ${spec##*/} 会把整个规格当成文件名 —— 这个 bug 让
+    # 第一版脚本去下了「mirror:custom:%n-%v.tar.gz」这种不存在的路径。
+    base=$(printf '%s\n' "$spec" | sed 's|^mirror:[a-z0-9]*:||')
+    base=${base##*/}
+    # 我们自己的镜像放第一位：它是唯一一个能保证可达的来源，
+    # 其余都是兜底。见 docs/MIRRORS.md。
+    printf '%s\n' "$OURS/$base"
+
     case $spec in
         mirror:custom:*)
             printf '%s\n' "$MIRROR/$base"
@@ -96,18 +118,40 @@ urls_of() {
             printf '%s\n' "https://github.com/libexpat/libexpat/releases/download/R_$(echo "$v" | tr . _)/$base"
             ;;
         binutils-*.tar.xz)
+            printf '%s\n' "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/$base"
             printf '%s\n' "https://mirrors.kernel.org/gnu/binutils/$base"
+            ;;
+        gettext-*.tar.gz)
+            printf '%s\n' "https://mirrors.tuna.tsinghua.edu.cn/gnu/gettext/$base"
             ;;
     esac
 }
 
 # ---- 3. 期望的校验和 -----------------------------------------------------
 
+# 字段名与算法名并不总是一致：dpkg-bootstrap.info 写的是
+#   Source-MD5: SHA256(b50e58b7...)
+# 而 dpkg.info 写的是
+#   Source-Checksum: SHA256(b50e58b7...)
+# 所以按「值长什么样」判断算法，不按字段名。
 expected_sum() {
     f=10.9-libcxx/$1.info
-    md5=$(sed -n 's/^Source-MD5:[[:space:]]*//p' "$f" 2>/dev/null | head -1)
-    sha=$(sed -n 's/^Source-Checksum:[[:space:]]*SHA256(\([0-9a-f]*\)).*/\1/p' "$f" 2>/dev/null | head -1)
-    printf '%s %s\n' "${md5:-}" "${sha:-}"
+    raw=$(sed -n -e 's/^Source-MD5:[[:space:]]*//p' -e 's/^Source-Checksum:[[:space:]]*//p' \
+        "$f" 2>/dev/null | head -1)
+    md5=""; sha=""
+    case $raw in
+        SHA256\(*\))  sha=${raw#SHA256(}; sha=${sha%)} ;;
+        MD5\(*\))     md5=${raw#MD5(};    md5=${md5%)} ;;
+        *)
+            case $raw in
+                *[!0-9a-fA-F]*) ;;                       # 不是纯十六进制，忽略
+                *) case ${#raw} in
+                    32) md5=$raw ;;
+                    64) sha=$raw ;;
+                esac ;;
+            esac ;;
+    esac
+    printf '%s %s\n' "$md5" "$sha"
 }
 
 check_file() {
@@ -132,8 +176,20 @@ got=0; skipped=0; failed=0
 for pkg in $PKGS; do
     [ -f "10.9-libcxx/$pkg.info" ] || continue
 
-    for spec in $(sources_of "$pkg"); do
-        base=${spec##*/}
+    # 本仓库自己打包的源码（如 base-files）由 pack.sh 就地生成，没有上游 tar 可下。
+    # bootstrap 会在下载之前跑 pack_included_sources 把它们放进 <prefix>/src。
+    if [ -f "$REPO/$pkg/pack.sh" ]; then
+        printf 'skip %-26s (packed locally by %s/pack.sh)\n' "$pkg" "$pkg" >&2
+        continue
+    fi
+
+    ver=$(sed -n 's/^Version:[[:space:]]*//p' "10.9-libcxx/$pkg.info" | head -1)
+    [ -n "$ver" ] || { printf 'skip %-26s (no Version)\n' "$pkg" >&2; continue; }
+
+    for raw in $(sources_of "$pkg"); do
+        spec=$(expand_spec "$raw" "$pkg" "$ver")
+        base=$(printf '%s\n' "$spec" | sed 's|^mirror:[a-z0-9]*:||')
+        base=${base##*/}
         case $base in
             *.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.zip|*.tar) ;;
             *) continue ;;

@@ -1,12 +1,11 @@
 Package: tar-bootstrap
 Version: 1.29
 Revision: 1
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/tar/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:tar-%v.tar.bz2
 Source-MD5: 955cd533955acb1804b83fd70218da51
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchFile: tar.patch
 PatchFile-MD5: 1de48773d822a8716a742ce0b4bba96e
 PatchScript: <<

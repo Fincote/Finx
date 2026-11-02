@@ -6,14 +6,12 @@ Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 ## Remove po4a
 BuildDepends: finx (>= 0.24.12-1)
 Replaces: debianutils (<= 2.32.3)
-CustomMirror: <<
-	Primary: http://ftp.debian.org/debian/pool/main/s/%n/
-	Secondary: http://downloads.sourceforge.net/fink/
-	Tertiary: https://launchpad.net/debian/+archive/primary/+sourcefiles/%n/%v/
-<<
 Source: mirror:custom:%n_%v.tar.gz
 Source-MD5: 9a208cceb0e9c5cc1d2aa4d53d7d2baa
 SourceDirectory: %n-%v
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchScript: <<
 #cd po4a && po4a --no-backups po4a.conf
 perl -pi -e 's,SUBDIRS = po4a,SUBDIRS = ,g' Makefile.in

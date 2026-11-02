@@ -13,12 +13,11 @@ Depends: <<
 	libiconv (>= 1.14-5)
 <<
 BuildAsNobody: false
-CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/%n/
-	Secondary: http://downloads.sourceforge.net/fink/
-<<
 Source: mirror:custom:%n-%v.tar.bz2
 Source-MD5: 955cd533955acb1804b83fd70218da51
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
 PatchFile: %n.patch
 PatchFile-MD5: 1de48773d822a8716a742ce0b4bba96e
 PatchScript: <<
