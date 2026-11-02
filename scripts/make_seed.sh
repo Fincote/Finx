@@ -218,6 +218,10 @@ fi
     printf 'schema 1\n'
     printf 'release %s\n' "$RELEASE"
     printf 'arch %s\n' "$ARCH"
+    # 构建机的 Darwin 主版本。Fink 的 darwin 虚拟包记的就是它，每个 .deb 都会
+    # 带上 darwin (>= 这个值-1)。种子装到更老的系统上时，包能解开、文件也在，
+    # 但任何新装都会被 dpkg 拒绝 —— 所以必须让安装器提前知道。
+    printf 'darwin %s\n' "$(uname -r | cut -d. -f1)"
     printf 'seed seed.tar.gz\n'
     printf 'size %s\n' "$SIZE"
     printf 'sha256 %s\n' "$SHA"

@@ -9,7 +9,8 @@ name: Bootstrap
 #      —— 所以那台 Ubuntu 22.04 的服务器只能当镜像，不能当构建机。
 #   2. 种子里的 .deb 路径是写死的（--with-admindir=%p/...、dylib 的
 #      install_name 是绝对路径），一台机器编的种子只对同 arch + 同 macOS
-#      大类有效。这里用 macos-latest，也就是当前要支持的组合。
+#      大类有效。这里用 macos-15（不是 latest），理由见下面 runs-on 的注释：
+#      在最新系统上构建，产出的包会要求同样新的 darwin，老系统一个都装不上。
 #   3. 本仓库是公开仓库，Actions 的标准 macOS runner 不计费；而且它的网络
 #      比开发机快几个数量级 —— 本地实测下载 dpkg 一个包要 4 分钟。
 #
@@ -48,7 +49,18 @@ permissions:
 
 jobs:
   bootstrap:
-    runs-on: macos-latest
+    # 必须在**支持范围内最老**的 macOS 上构建，不能用 macos-latest。
+    #
+    # 原因不在编译器，在 dpkg 的依赖解析：Fink 的 darwin 虚拟包记录的是构建时的
+    # OS 版本，每个 .deb 都会带上 darwin (>= N-1)。在 macOS 26（Darwin 25）上
+    # 构建，产出的种子在 macOS 15（Darwin 24）上连一个新包都装不上：
+    #
+    #   lzma depends on darwin (>= 25-1); however:
+    #     Version of darwin on system is 24.5.0-1.
+    #
+    # 在 15 上构建则记录 darwin (>= 24-1)，15 与 26 都能满足。想在 14 上用，
+    # 就得在 14 上构建 —— 这是 darwin 依赖的语义，不是实现取舍。
+    runs-on: macos-15
     # 首次自举要编译 dpkg、tar、bzip2、gettext、libiconv、ncurses、binutils…
     # 给足余量；卡住时能靠 timeout 而不是靠人盯着。
     timeout-minutes: 120

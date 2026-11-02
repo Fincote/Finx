@@ -535,12 +535,43 @@ resolve_manifest() {
         */*) die "manifest seed name must not contain a path separator" ;;
     esac
     [ -n "$SEED_SHA256" ] || die "manifest has no sha256 entry"
+
+    # 构建机的 darwin 主版本。老清单没有这一项，缺了就跳过检查（不能因此
+    # 拒绝已经发布的旧种子）。
+    SEED_DARWIN=$(manifest_field "$MANIFEST_FILE" darwin)
     case $SEED_SIZE in
         ''|*[!0-9]*) die "manifest size must be a byte count" ;;
     esac
 
+    check_darwin_floor
+
     ARTIFACT_FILE=$FINX_TMP/$SEED_NAME
     info "$(t 'seed' '种子') $SEED_NAME ($(t 'release' '版本') ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
+}
+
+# 种子是在哪一代 Darwin 上构建的，就得在哪一代或更新的系统上装。
+#
+# 少了这个检查，用户会看到一个完全莫名其妙的失败：安装报告成功，文件都在，
+# 但 sudo finx install <任何包> 都报
+#
+#   lzma depends on darwin (>= 25-1); however:
+#     Version of darwin on system is 24.5.0-1.
+#
+# 真实踩过。早点说清楚，比让用户在装包时才撞墙好。
+check_darwin_floor() {
+    [ -n "${SEED_DARWIN:-}" ] || return 0
+    case $SEED_DARWIN in
+        ''|*[!0-9]*) return 0 ;;
+    esac
+    host=$(uname -r | cut -d. -f1)
+    case $host in
+        ''|*[!0-9]*) return 0 ;;
+    esac
+    [ "$host" -ge "$SEED_DARWIN" ] && return 0
+
+    msg=$(t "this seed was built on a newer macOS (Darwin $SEED_DARWIN); this system is Darwin $host" \
+            "这个种子是在更新的 macOS 上构建的（Darwin $SEED_DARWIN），本机是 Darwin $host")
+    die "$msg"
 }
 
 manifest_field() {
