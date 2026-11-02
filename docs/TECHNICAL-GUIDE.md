@@ -242,7 +242,8 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 /opt/finx/bin/{dpkg,dpkg-deb,dpkg-query,dpkg-lockwait,finx,finx-scanpackages,…}
 /opt/finx/lib/{libgettext*,liblzma*,libbz2*,libiconv*,…}.dylib
 /opt/finx/lib/perl5/Fink/…            ← 纯 Perl，架构无关
-/opt/finx/fink/debs/                  ← 空目录；里面的链接指向 src/，不进种子
+/opt/finx/finx/{10.9-libcxx,26.0,dists,debs}   ← 二进制池与描述树；
+                                      debs 里是形如 <name>.deb -> ../26.0/... 的相对链接
 /opt/finx/var/lib/dpkg/{status,status-finx,available}
                                       ← etc/finx.conf 不进种子：安装器按实际前缀重写
 /opt/finx/finx/dists → <distribution>

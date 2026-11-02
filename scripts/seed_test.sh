@@ -27,8 +27,9 @@
 #
 #   src/、var/log/            构建机的产物，不该进用户机器
 #   etc/finx.conf             安装器要按实际前缀重写；带进种子会把前缀钉死
-#   fink/debs/里面的链接      指向 src/，剔掉 src 后必然全断
-#   fink/debs/ 目录本身       必须留，否则 finx install 无处建链
+#   finx/ 整棵树              要留。里面的 26.0、dists、debs 都是**相对**链接，
+#                             目标（二进制池）也在前缀里，所以剔掉 src/ 之后
+#                             依然自洽。这里按真实布局造一份并验证链路可解析。
 #
 # 全程离线，不需要 root。
 
@@ -54,8 +55,10 @@ OUT=$BASE/out
 
 # ---- 1. 造一棵假前缀，故意带上所有该被剔掉的东西 -------------------------
 
+DEBPOOL=$PREFIX/finx/10.9-libcxx/stable/main/binary-darwin-arm64/base
 mkdir -p "$PREFIX/bin" "$PREFIX/var/lib/dpkg" "$PREFIX/etc" \
-    "$PREFIX/src/x" "$PREFIX/var/log" "$PREFIX/fink/debs" "$PREFIX/share/doc"
+    "$PREFIX/src/x" "$PREFIX/var/log" "$PREFIX/share/doc" \
+    "$DEBPOOL" "$PREFIX/finx/debs"
 printf '#!/bin/sh\nexit 0\n' > "$PREFIX/bin/finx"
 chmod 755 "$PREFIX/bin/finx"
 printf 'Package: finx\nStatus: install ok installed\n' > "$PREFIX/var/lib/dpkg/status"
@@ -63,7 +66,13 @@ printf 'Basepath: /opt/finx\n' > "$PREFIX/etc/finx.conf"
 printf 'junk\n' > "$PREFIX/src/x/junk"
 printf 'log\n' > "$PREFIX/var/log/build.log"
 printf 'keep\n' > "$PREFIX/share/doc/keep.txt"
-ln -s /nonexistent/finx/debs/gone.deb "$PREFIX/fink/debs/gone.deb"
+# 真实的树结构：版本别名指向标准目录，debs 是指向池子的扁平改名。
+# 全是相对链接 —— 这条链能不能在解包后解析，正是要测的东西。
+printf 'deb\n' > "$DEBPOOL/demo_1.0_arm64.deb"
+ln -s 10.9-libcxx "$PREFIX/finx/26.0"
+ln -s 26.0 "$PREFIX/finx/dists"
+ln -s ../26.0/stable/main/binary-darwin-arm64/base/demo_1.0_arm64.deb \
+    "$PREFIX/finx/debs/demo_1.0_arm64.deb"
 
 # ---- 2. 打包 --------------------------------------------------------------
 
@@ -121,13 +130,15 @@ else
 fi
 
 case $members in
-    *"fink/debs/"*) pass "fink/debs survives as an entry" ;;
-    *) fail "fink/debs is missing; finx install would have nowhere to link" ;;
+    *"finx/debs/demo_1.0_arm64.deb"*) pass "the deb symlink dir is kept" ;;
+    *) fail "finx/debs lost its symlinks" ;;
 esac
 
-[ "$(tar -tvzf "$SEED" | awk '$NF == "fink/debs/" { print substr($1, 1, 1) }')" = "d" ] \
-    && pass "fink/debs is a directory, not a symlink" \
-    || fail "fink/debs is not a plain directory"
+case $members in
+    *"finx/10.9-libcxx/stable/main/binary-darwin-arm64/base/demo_1.0_arm64.deb"*)
+        pass "the binary pool itself is kept" ;;
+    *) fail "the binary pool went missing; the debs links would dangle" ;;
+esac
 
 case $members in
     *"share/doc/keep.txt"*) pass "ordinary payload is kept" ;;
@@ -146,8 +157,10 @@ fi
 ROOT=$BASE/root/opt/finx
 [ -x "$ROOT/bin/finx" ] && pass "the installed prefix has bin/finx" \
     || fail "the installed prefix has no bin/finx"
-[ -d "$ROOT/fink/debs" ] && pass "the installed prefix has fink/debs" \
-    || fail "the installed prefix has no fink/debs"
+# -f 会跟随符号链接：debs/<name> -> ../26.0/... -> 10.9-libcxx/... 整条链都要能解析。
+[ -f "$ROOT/finx/debs/demo_1.0_arm64.deb" ] \
+    && pass "the debs symlink chain resolves inside the installed prefix" \
+    || fail "the debs symlink chain is broken after extraction"
 
 if [ -f "$ROOT/etc/finx.conf" ]; then
     if grep -qx "Basepath: $ROOT" "$ROOT/etc/finx.conf"; then

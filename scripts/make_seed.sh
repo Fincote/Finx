@@ -70,16 +70,18 @@ FORCE=0
 #   etc/finx.conf             安装器会按实际前缀重写（write_config），
 #                             带进种子反而会把 /opt/finx 钉死
 #   .DS_Store                 构建机上 Finder 留下的东西
-EXCLUDES="src tmp var/cache/apt/archives var/log etc/finx.conf .DS_Store"
-
-# 目录本身要留，里面的东西要扔。
 #
-#   fink/debs   dpkg 建完包后往里放「名字 -> dists 里的实物」的符号链接
-#               （PkgVersion.pm:4913），而 Engine.pm:1451 会清理指向已消失文件的
-#               断链。种子删掉 src/ 后这些链接必然全断，留着只是把构建机的路径
-#               带进用户机器。但目录本身必须存在 —— 否则 finx install 无处建链。
-#               注意是真实目录：它若是符号链接就无法在种子外复原，直接跳过。
-EMPTY_DIRS="fink/debs"
+# 树本身不进 EXCLUDES。$prefix/finx/ 下是二进制池与描述树：
+#
+#   finx/10.9-libcxx/.../base/*.deb   实物
+#   finx/26.0 -> 10.9-libcxx          按 macOS 版本命名的别名
+#   finx/dists -> 26.0
+#   finx/debs/<name>.deb -> ../26.0/...   给 dpkg / finx 用的扁平整名
+#
+# 这些全是**相对**符号链接，而且目标都在前缀内部，所以剔掉 src/ 不影响它们 ——
+# 解包到任何地方都自洽。上面那条关于 debs 会断链的担心，是我按「链接指向
+# buildpath」猜的；实际指向池子，实测 27 个链接全部可解析。
+EXCLUDES="src tmp var/cache/apt/archives var/log etc/finx.conf .DS_Store"
 
 die() {
     printf 'make_seed.sh: %s\n' "$*" >&2
@@ -146,24 +148,11 @@ fi
 
 is_excluded() {
     _p=$1
-    for _e in $EMPTY_DIRS; do
-        case $_p in
-            "$_e"/*) return 0 ;;
-        esac
-    done
     for _e in $EXCLUDES; do
         case $_p in
             "$_e"|"$_e"/*) return 0 ;;
         esac
     done
-    return 1
-}
-
-# EMPTY_DIRS 里的条目：真实目录才留，符号链接跳过。
-keep_empty_dir() {
-    case " $EMPTY_DIRS " in
-        *" $1 "*) [ -d "$1" ] && [ ! -L "$1" ] && return 0 ;;
-    esac
     return 1
 }
 
@@ -181,9 +170,7 @@ dropped=0
         case $p in
             ._*) continue ;;
         esac
-        if keep_empty_dir "$p"; then
-            printf 'k %s\n' "$p"
-        elif is_excluded "$p"; then
+        if is_excluded "$p"; then
             printf 'x %s\n' "$p"
         else
             printf 'k %s\n' "$p"
