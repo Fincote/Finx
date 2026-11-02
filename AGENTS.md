@@ -45,6 +45,9 @@ Finx 在 `/opt/finx`），命令名相同就必然混淆。没有 `fink` 兼容�
   二进制包不可重定位，只能用「与官方构建时逐字相等的前缀」来判定。
 - 包描述里出现硬编码前缀会被 `Fink::Validation` 判为不合规，详见
   [`docs/PREFIX.md`](./docs/PREFIX.md)。
+- 安装器的下载源全部由环境变量控制（`FINX_INDEX_DOMAIN` 等），默认值、
+  优先级与自建镜像的目录结构见 [`docs/MIRRORS.md`](./docs/MIRRORS.md)。
+  换地址**不跳过**校验。
 
 ## 代码风格
 
