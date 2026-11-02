@@ -53,8 +53,8 @@ chdir $homebase;
 
 if ($> != 0) {
 	# not root now...prompt to determine how to relaunch self
-	my $sel_intro = "Fink must be installed and run with superuser (root) ".
-	    "privileges. Fink can automatically try to become ".
+	my $sel_intro = "Finx must be installed and run with superuser (root) ".
+	    "privileges. Finx can automatically try to become ".
 	    "root when it's run from a user account. Since you're ".
 	    "currently running this script as a normal user, the ".
 	    "method you choose will also be used immediately for ".
@@ -156,7 +156,7 @@ if ($arch eq "i386") {
 			if ($vers == 10) {
 				# prefer 64-bit on 10.6 though:
 				my $arch_intro= "Your hardware is a 64bit-compatible intel " .
-						"processor, so you have the option of running Fink in ".
+						"processor, so you have the option of running Finx in ".
 						"64bit-only mode.  This is recommended for most ".
 						"users, since newer versions of macOS are all 64bit-only, ".
 						"so using the 64bit-only distribution should be closer ".
@@ -170,7 +170,7 @@ if ($arch eq "i386") {
 				$arch = &prompt_selection("Choose a mode:", intro => $arch_intro, default => [ value => "x86_64" ], choices => [ "mostly 32bit" => "i386" , "mostly 64bit" => "x86_64" ]);
 			} elsif ($vers == 9) {
 				my $arch_intro= "Your hardware is a 64bit-compatible intel " .
-						"processor, so you have the option of running Fink in ".
+						"processor, so you have the option of running Finx in ".
 						"64bit-only mode.  This is not recommended for most ".
 						"users, since many more packages are available for the ".
 						"default mode (which is mostly 32bit but includes some ".
@@ -274,8 +274,8 @@ my ($rootmethod);
 		$rootmethod = substr($rootmethod,1);
 	} else {
 		print "\n";
-		&print_breaking("Fink must be installed and run with superuser (root) ".
-						"privileges. Fink can automatically try to become ".
+		&print_breaking("Finx must be installed and run with superuser (root) ".
+						"privileges. Finx can automatically try to become ".
 						"root when it's run from a user account. ".
 						"Available methods:");
 		$rootmethod = &prompt_selection("Choose a method:",
@@ -309,7 +309,7 @@ if (-x "/usr/bin/make") {
 		print " is not GNU make.\n";
 		&print_breaking("ERROR: /usr/bin/make exists, but is not the ".
 						"GNU version. You must correct this situation before ".
-						"installing Fink. /usr/bin/make should be a symlink ".
+						"installing Finx. /usr/bin/make should be a symlink ".
 						"pointing to /usr/bin/gnumake.");
 		exit 1;
 	}
@@ -452,7 +452,7 @@ my $xcode_version;
 		} else{
 			warn "\nNOTE: If you are using only the Command-line Tools for Xcode,\n".
 				 "it's OK to ignore the messages immediately above and below this one.\n\n".
-				 "If you _do_ want the full Xcode to work with Fink, then\n".
+				 "If you _do_ want the full Xcode to work with Finx, then\n".
 				 "you'll want to verify where your Xcode application actually\n".
 				 "is, and use\n".
 				 "\n\tsudo xcode-select -switch /path/to/Xcode.app\n\n".
@@ -518,12 +518,12 @@ if ($retrying || not $installto) {
 	
 	print "\n";
 	if ($install_path ne $default && !$nonstandard_warning) {
-		print "It looks like you already have Fink installed in $default, trying "
+		print "It looks like you already have Finx installed in $default, trying "
 		.	"$install_path instead.\n\n"
 		.	"WARNING: This is a non-standard location.\n\n";
 		$nonstandard_warning = 1;
 	}
-	my $prompt = "Please choose the path where Fink should be installed. Note "
+	my $prompt = "Please choose the path where Finx should be installed. Note "
 		. "that you will normally be able to use a binary distribution only if you "
 		. "choose '/opt/finx'.";
 	$installto =
@@ -601,10 +601,10 @@ if ($status) {
 }
 if ($path_test) {
 	&print_breaking("ERROR: '$path_test' is not both world-readable and world-executable, ".
-					"as required to build most Fink packages. Either ".
+					"as required to build most Finx packages. Either ".
 					"change the permissions via:".
 					"\n\nsudo chmod -R o+rx $path_test\n\n".
-	 				"or install Fink into a different directory.");
+	 				"or install Finx into a different directory.");
 	redo OPT_BASEPATH;
 } 
 
@@ -818,7 +818,7 @@ if (-d "$homebase/pkginfo") {
 		# inject failed
 		$endmsg = <<"EOF";
 Copying the package description tree failed. This is no big harm;
-your Fink installation should work nonetheless.
+your Finx installation should work nonetheless.
 You can add the package descriptions at a later time if you want to
 compile packages yourself.
 You can get them
@@ -830,13 +830,13 @@ or
 	} else {
 		# inject worked
 		$endmsg = <<"EOF";
-You should now have a working Fink installation in '$installto'.
+You should now have a working Finx installation in '$installto'.
 EOF
 	}
 } else {
 	# this was not the 'full' tarball
 	$endmsg = <<"EOF";
-You should now have a working Fink installation in '$installto'.
+You should now have a working Finx installation in '$installto'.
 You still need package descriptions if you want to compile packages yourself.
 You can get them
 EOF
@@ -872,7 +872,7 @@ print "\n";
 print "\n";
 &print_breaking(
 	"Run '. $installto/bin/init.sh' to set up this terminal session ".
-	"environment to use Fink. To make the software installed by Fink ".
+	"environment to use Finx. To make the software installed by Finx ".
 	"available in all of your future terminal shells, add ". 
 	"'. $installto/bin/init.sh' to the init scripts '.zprofile', ".
 	"'.profile', or '.bash_profile' in your home directory. The program ".
