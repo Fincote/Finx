@@ -67,7 +67,8 @@ After it finishes:
 . /opt/finx/bin/init.sh
 ```
 
-To make that permanent, let the bundled helper edit it (it asks first):
+The installer already added it to your shell startup file. To redo that step
+later (or after changing your shell), use:
 
 ```bash
 /opt/finx/bin/pathsetup.sh

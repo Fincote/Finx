@@ -162,6 +162,11 @@ apply_test_root() {
     # 沙箱里装的都是假东西，源码自举那条路不该向用户要 root
     IN_TEST_ROOT=1
 
+    # 沙箱也绝不能碰真的 shell 配置。FINX_TEST 只管前缀与 TMPDIR，而收尾
+    # 会往 $HOME 的启动文件里写 PATH —— 不拦的话，跑一次自测就改了开发者
+    # 本人的 .zprofile。写 PATH 那条逻辑由 selftest 用假 HOME 单独测。
+    NO_PATH=1
+
     if [ "${PREFIX_EXPLICIT:-0}" -eq 1 ]; then
         prefix_real=$(resolve_path "$PREFIX")
         case $prefix_real in

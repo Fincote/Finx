@@ -67,7 +67,7 @@ cd finx
 . /opt/finx/bin/init.sh
 ```
 
-想让它长期生效，让随包安装的 helper 改（它会先问）：
+安装器已经把它写进你的 shell 启动文件了。以后要重做这一步（比如换了 shell），用：
 
 ```bash
 /opt/finx/bin/pathsetup.sh

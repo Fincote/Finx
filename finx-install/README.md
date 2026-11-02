@@ -222,10 +222,19 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 - **`init.sh` 与 `pathsetup.sh`**。收尾提示会让用户 `source` 前者，并指向后者
   做持久化；假种子缺了它们，那条提示就是空话。
 
-收尾**不自动改用户 shell 的启动文件**。这个安装器的典型用法是 `curl ... | bash`，
-在用户没看清的情况下动 `.zprofile` 是坏做法，改错了也很难发现。所以它按 `$SHELL`
-给出精确到目标文件的那一行，用户复制粘贴即可；想让它代劳的，指向随包安装的
-`pathsetup.sh`（那个会先问）。
+收尾**会**把 `init.sh` 那一行写进用户的 shell 启动文件 —— 否则 `curl | bash`
+装完之后 `finx` 根本不在 PATH 上，等于断在最后一步。
+
+三个安全约束：
+
+- **按 `$SHELL` 选文件**：zsh → `.zprofile`、bash → `.bash_profile`（存在才是它，
+  否则 `.profile`）、csh/tcsh → `.cshrc`。
+- **以 root 跑时写调用者的家目录**：`curl | sudo bash` 下 `$HOME` 是 `/var/root`，
+  所以用 `$SUDO_USER` + `dscl` 解析真实家目录，写完把属主改回去。
+- **幂等**：那一行已存在就不重复追加。写失败则退回打印精确指令。
+
+`--no-path` 关掉这一步。`FINX_TEST` 沙箱下**强制**关闭 —— 否则跑一次自测就会改掉
+开发者本人的 `.zprofile`；写 PATH 那条逻辑由 `selftest.sh` 用假 HOME 单独测。
 
 下载路径也真的走了一遍：多镜像那组用 `file://` URL 模拟，第一个地址指向不存在的文件，
 断言安装仍然成功、且日志里报告了那次镜像失败。

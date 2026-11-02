@@ -296,6 +296,53 @@ fi
 check_fails "unreachable manifest is refused" \
     "$INSTALL" --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/nomanifest"
 
+# ---- 收尾的 PATH 写入 ----------------------------------------------------
+#
+# 安装器的收尾会往 shell 启动文件里追加一行。这件事在主流程里被 FINX_TEST
+# 挡掉了（沙箱不许碰真的 $HOME），所以在这里用假 HOME 单独测：
+# 写对文件、重复运行不重复追加、--no-path 不写。
+
+FAKEHOME="$ROOT/fakehome"
+mkdir -p "$FAKEHOME"
+
+path_probe() {
+    # 只取安装器里那几个函数，不执行 main
+    awk '/^target_home\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^login_shell_name\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^shell_rc_path\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^shell_source_line\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^print_path_help\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^setup_path\(\) \{/,/^\}/' "$INSTALL"
+}
+
+HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=0 \
+    sh -c "$(path_probe); info(){ :; }; warn(){ echo WARN: \"$*\" >&2; }; setup_path" \
+    >/dev/null 2>&1
+if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$FAKEHOME/.zprofile" 2>/dev/null; then
+    pass "installer puts finx on PATH in .zprofile"
+else
+    failed "installer did not write the PATH line"
+fi
+
+before=$(wc -l < "$FAKEHOME/.zprofile" 2>/dev/null || echo 0)
+HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=0 \
+    sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
+after=$(wc -l < "$FAKEHOME/.zprofile" 2>/dev/null || echo 0)
+if [ "$before" = "$after" ]; then
+    pass "rerunning does not append the PATH line twice"
+else
+    failed "PATH line was appended again ($before -> $after)"
+fi
+
+rm -f "$FAKEHOME/.zprofile"
+HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH=1 \
+    sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
+if [ ! -f "$FAKEHOME/.zprofile" ]; then
+    pass "--no-path leaves the shell configuration untouched"
+else
+    failed "--no-path still wrote to the shell configuration"
+fi
+
 # ---- 汇总 ---------------------------------------------------------------
 
 printf '\n'

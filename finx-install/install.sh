@@ -69,6 +69,7 @@ fi
 # >>> bundle:body
 PREFIX=/opt/finx
 PREFIX_EXPLICIT=0
+NO_PATH=0
 SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
@@ -97,6 +98,7 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --dry-run           print what would happen, change nothing
+  --no-path           leave your shell startup file alone
   --force             replace an existing installation
   -h, --help          show this help
 
@@ -129,6 +131,7 @@ parse_args() {
             --ref=*)          SOURCE_REF=${1#*=} ;;
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
+            --no-path)        NO_PATH=1 ;;
             --dry-run)        DRY_RUN=1 ;;
             --force)          FORCE=1 ;;
             -h|--help)        usage; exit 0 ;;
@@ -169,39 +172,113 @@ check_target() {
 # 在用户没看清的情况下改 .zprofile 是坏做法，而且改错了很难发现。
 # 所以：按用户的登录 shell 给出**精确到文件**的那一行，用户可以复制粘贴；
 # 想让它代劳的，指向随包安装的 pathsetup.sh。
-print_path_help() {
-    shell=$(basename "${SHELL:-/bin/zsh}")
+# ---------------------------------------------------------------------------
+# 让 finx 在当前 shell 与今后的 shell 里都能直接用
+# ---------------------------------------------------------------------------
+#
+# 脚本改不了父 shell 的 PATH —— 子进程影响不了父进程。所以能做的只有两件：
+# 写进 shell 的启动文件（持久），以及告诉用户这一句怎么 source（当次生效）。
+#
+# 写启动文件有个必须小心的前提：安装器可能以 root 跑（`curl | sudo bash`），
+# 那时 $HOME 是 /var/root。往 root 的 .zprofile 里加东西既没用又有害。
+# 所以先解析出「真正在用的那个用户」的家目录（$SUDO_USER + Directory
+# Services），写完之后再把属主改回去。
 
-    case $shell in
-        zsh)  rc="$HOME/.zprofile" ;;
-        bash)
-            if [ -f "$HOME/.bash_profile" ]; then
-                rc="$HOME/.bash_profile"
-            else
-                rc="$HOME/.profile"
-            fi ;;
-        csh|tcsh) rc="$HOME/.cshrc" ;;
-        *)    rc="$HOME/.profile" ;;
-    esac
-
-    if [ "$shell" = "csh" ] || [ "$shell" = "tcsh" ]; then
-        line="test -r $PREFIX/bin/init.csh && source $PREFIX/bin/init.csh"
-    else
-        line="test -r $PREFIX/bin/init.sh && . $PREFIX/bin/init.sh"
+# 正在以 root 跑时，找出调用者的家目录；否则就是 $HOME。
+target_home() {
+    if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+        # 不能写 ~/$SUDO_USER —— 那会拿到 /var/root/xxx。要问 Directory Services。
+        home=$(dscl . -read "/Users/$SUDO_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}')
+        if [ -n "$home" ] && [ -d "$home" ]; then
+            printf '%s\n' "$home"
+            return 0
+        fi
+        return 1
     fi
+    printf '%s\n' "$HOME"
+}
 
+login_shell_name() {
+    basename "${SHELL:-/bin/zsh}"
+}
+
+# 该往哪个启动文件里写。zsh 用 .zprofile（登录 shell 会读），bash 优先
+# .bash_profile（存在才是它），csh 用 .cshrc。
+shell_rc_path() {
+    home=$1
+    case $(login_shell_name) in
+        zsh)  printf '%s/.zprofile\n' "$home" ;;
+        bash)
+            if [ -f "$home/.bash_profile" ]; then
+                printf '%s/.bash_profile\n' "$home"
+            else
+                printf '%s/.profile\n' "$home"
+            fi ;;
+        csh|tcsh) printf '%s/.cshrc\n' "$home" ;;
+        *)    printf '%s/.profile\n' "$home" ;;
+    esac
+}
+
+# 要写进去的那一行。带 test -r 是为了在 finx 被删掉之后不会让每个新
+# shell 都报一次错。
+shell_source_line() {
+    case $(login_shell_name) in
+        csh|tcsh) printf 'test -r %s/bin/init.csh && source %s/bin/init.csh\n' "$PREFIX" "$PREFIX" ;;
+        *)        printf 'test -r %s/bin/init.sh && . %s/bin/init.sh\n' "$PREFIX" "$PREFIX" ;;
+    esac
+}
+
+# 只打印，不写。写失败、或用户明确不要时用。
+print_path_help() {
     printf '\n'
     printf 'To use finx in this shell now:\n'
     printf '    . %s/bin/init.sh\n' "$PREFIX"
     printf '\n'
-    printf 'To make it permanent, append this line to %s:\n' "$rc"
-    printf '    %s\n' "$line"
+    printf 'To make it permanent, add this line to your shell startup file:\n'
+    printf '    %s\n' "$(shell_source_line)"
     printf '\n'
-    printf 'Or let the bundled helper do it (it asks first):\n'
-    printf '    %s/bin/pathsetup.sh\n' "$PREFIX"
+    printf 'Or re-run this installer without --no-path to have it done for you.\n'
     printf '\n'
-    printf 'Note: finx installs into its own prefix, so it never shadows a Fink\n'
+    printf 'Note: finx uses its own prefix, so it never shadows a Fink\n'
     printf 'installation that may already be present under /sw.\n'
+}
+
+# 默认就写。--no-path 关掉。
+setup_path() {
+    if [ "$NO_PATH" -eq 1 ]; then
+        info "leaving your shell configuration alone (--no-path)"
+        print_path_help
+        return 0
+    fi
+
+    home=$(target_home) || {
+        warn "cannot determine the invoking user's home directory"
+        print_path_help
+        return 0
+    }
+
+    rc=$(shell_rc_path "$home")
+    line=$(shell_source_line)
+
+    # 幂等：已经有了就别重复追加。
+    if grep -qxF "$line" "$rc" 2>/dev/null; then
+        info "PATH setup already present in $rc"
+    elif printf '\n# Finx: put finx on PATH\n%s\n' "$line" >> "$rc" 2>/dev/null; then
+        info "added finx to PATH in $rc"
+        # 以 root 写进别人的文件后要把属主还回去，否则那个用户今后改不了它。
+        if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+            chown "$SUDO_USER" "$rc" 2>/dev/null \
+                || warn "could not chown $rc back to $SUDO_USER"
+        fi
+    else
+        warn "could not write $rc"
+        print_path_help
+        return 0
+    fi
+
+    printf '\n'
+    printf 'finx is now on PATH for new shells. For this one, run:\n'
+    printf '    . %s/bin/init.sh\n' "$PREFIX"
 }
 
 main() {
@@ -224,7 +301,7 @@ main() {
 
     printf '\n'
     info "Finx ${INSTALLED_RELEASE:-unknown} installed in $PREFIX"
-    print_path_help
+    setup_path
     info "Package operations run as root, like MacPorts; finx asks for sudo itself."
 }
 
