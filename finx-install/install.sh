@@ -352,8 +352,14 @@ require_write_access() {
         printf '    curl -fsSL <the same URL> | sudo bash\n' >&2
         printf '\n' >&2
         printf '  local file:\n' >&2
-        if [ -f "${0:-}" ] && [ -r "${0:-}" ]; then
-            printf '    sudo /bin/bash %s\n' "$0" >&2
+        # $0 在 `bash -c "..."` 下就是 "bash" 本身，在 `curl | bash` 下也是。
+        # 直接拿它拼命令会得出「sudo /bin/bash /bin/bash」这种废话。
+        self=${0:-}
+        case $(basename -- "$self" 2>/dev/null) in
+            bash|sh|zsh|dash|ksh) self="" ;;
+        esac
+        if [ -n "$self" ] && [ -f "$self" ] && [ -r "$self" ]; then
+            printf '    sudo /bin/bash %s\n' "$self" >&2
         else
             printf '    sudo /bin/bash <path to install.sh>\n' >&2
         fi
@@ -996,7 +1002,7 @@ Environment:
 
 Examples:
   FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
-  /bin/bash -c "$(curl -fsSL <install.sh>)" -- --prefix=/opt/finx
+  curl -fsSL <install.sh> | sudo bash
 USAGE
 }
 

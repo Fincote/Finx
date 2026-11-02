@@ -9,14 +9,23 @@
 ## 一、一条命令
 
 ```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)"
+curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh | sudo bash
 ```
+
+`sudo` 是必需的：默认前缀 `/opt/finx` 只有 root 能写。前缀本来就归你、不需要提权时
+（`--prefix` 指向自己的目录），换成不带的写法：
+
+```
+/bin/bash -c "$(curl -fsSL .../finx-install/install.sh)" -- --prefix="$HOME/finx"
+```
+
+两种都**不要**写成 `sudo curl ... | bash` —— 那样只有 curl 是 root，bash 不是。
 
 带参数时，`--` 之后的都传给安装器：
 
 ```
-/bin/bash -c "$(curl -fsSL .../finx-install/install.sh)" -- --prefix=/opt/finx
-/bin/bash -c "$(curl -fsSL .../finx-install/install.sh)" -- --no-path
+curl -fsSL .../finx-install/install.sh | sudo bash -s -- --no-path
+curl -fsSL .../finx-install/install.sh | sudo bash -s -- --prefix=/opt/finx
 ```
 
 `install.sh` 就是**可以直接下载的那一个文件** —— 没有 npm 式的安装步骤，也不

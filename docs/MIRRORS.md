@@ -59,7 +59,7 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 
 ```sh
 export FINX_INDEX_DOMAIN=https://mirror.example.com/finx/seed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)"
+curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh | sudo bash
 ```
 
 ### 清单走一个域名，大文件走对象存储

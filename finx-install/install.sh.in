@@ -24,7 +24,7 @@
 # 两种调用方式：
 #
 #   目录模式   ./finx-install/install.sh [选项]
-#   单文件     /bin/bash -c "$(curl -fsSL <install.sh 的地址>)" -- [选项]
+#   单文件     curl -fsSL <install.sh 的地址> | sudo bash -s -- [选项]
 #
 # 单文件由 finx-install/build-bundle.sh 从本文件与 lib/*.sh 生成。
 #
@@ -131,7 +131,7 @@ Environment:
 
 Examples:
   FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
-  /bin/bash -c "$(curl -fsSL <install.sh>)" -- --prefix=/opt/finx
+  curl -fsSL <install.sh> | sudo bash
 USAGE
 }
 
