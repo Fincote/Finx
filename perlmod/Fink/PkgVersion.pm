@@ -183,7 +183,7 @@ our %shared_loads;
 			};
 			if ($@ || !defined $loaded) {
 				die "It appears that part of Fink's package database is corrupted "
-					. "or missing. Please run 'fink index' to correct the "
+					. "or missing. Please run 'finx index' to correct the "
 					. "problem.\n";
 			}
 			$shared_loads{$file} = $loaded;
@@ -259,7 +259,7 @@ For the .info file lines processed into the hash ref $properties from
 file $filename, deal with the possibility that the whole thing is in a
 InfoN: block.
 
-If so, make sure this fink is new enough to understand this .info
+If so, make sure this finx is new enough to understand this .info
 format (i.e., NE<lt>=max_info_level). If so, promote the fields of the
 block up to the top level of %$properties and return a ref to this new
 hash. If called in a scalar context, the InfoN level is returned in
@@ -300,7 +300,7 @@ sub handle_infon_block {
 	my $max_info_level = &Fink::FinkVersion::max_info_level;
 	if ($info_level > $max_info_level) {
 		# make sure we can handle this InfoN
-		print_breaking_stderr "Package description too new to be handled by this fink ($info_level>$max_info_level)! Skipping $filename";
+		print_breaking_stderr "Package description too new to be handled by this finx ($info_level>$max_info_level)! Skipping $filename";
 		return {};
 	}
 
@@ -628,7 +628,7 @@ sub initialize {
 			}
 
 			# determine the full package tree, eg: [ qw(stable main) ]
-			# front (removed): '', %p, 'fink', 'dists'
+			# front (removed): '', %p, 'finx', 'dists'
 			my $skip = () = ($basepath =~ m,[^/]+,g); # count components of prefix
 			$self->{_full_trees} = [ [ @parts[(3+$skip)..$finkinfo_index-1] ] ];
 		}
@@ -676,14 +676,14 @@ sub initialize {
 				'b' => '.'
 			};
 
-	# Percent-expansion fields that depend on a fink's runtime configs
+	# Percent-expansion fields that depend on a finx's runtime configs
 	# aren't assigned here. We push that into load_fields, which is
 	# always called before any fields are used.
 	$self->{_expand} = $expand;
 
 	$self->{_bootstrap} = 0;
 
-	# Description is used by 'fink list' so better to get it expanded now
+	# Description is used by 'finx list' so better to get it expanded now
 	# also keeps %type_[] out of all list and search fields of pdb
 	$self->expand_percent_if_available("Description");
 
@@ -1119,12 +1119,12 @@ sub get_defaultscript_type {
 
 			unless ($type =~ /^(autotools|makemaker|ruby|modulebuild|debhelper)$/i) {
 				# don't fall through to unintended if typo, etc.
-				die "this version of fink does not know how to handle DefaultScript:$type to build package ".$self->get_fullname()."\n";
+				die "this version of finx does not know how to handle DefaultScript:$type to build package ".$self->get_fullname()."\n";
 			}
 			if ($self->is_type('bundle')) {
 				die "Type:bundle cannot be overridden by DefaultScript to build package ".$self->get_fullname()."\n";
 			}
-			# Overriding Type:dummy isn't a possible state for fink
+			# Overriding Type:dummy isn't a possible state for finx
 			# because dummy means there's no .info and DefaultScript
 			# is data present only in the .info
 
@@ -1222,7 +1222,7 @@ sub get_script {
 				if ($mbj =~ /^\d+$/ && $mbj > 0) {
 					$mbj = $config->param('MaxBuildJobs');
 				} else {
-					warn "Ignoring invalid MaxBuildJobs value in fink.conf: " .
+					warn "Ignoring invalid MaxBuildJobs value in finx.conf: " .
 						"$mbj is not a positive integer\n";
 				}
 			}
@@ -1589,7 +1589,7 @@ sub get_info_filename {
 These accessors return information about the .deb archive file for the
 package. The debname is the simple filename. The debpath is the
 directory that would contain the debfile if it were locally built
-(this is buried in %p/fink/dists, not the symlink dir %p/fink/debs or
+(this is buried in %p/finx/dists, not the symlink dir %p/finx/debs or
 a cache of downloaded precompiled (apt-get) binaries). The debfile is
 the full path, composed of the debpath and debfile.
 
@@ -1996,7 +1996,7 @@ sub _setup_type_hash {
 	return 1;
 }
 
-# returns whether this fink package is of a given Type:
+# returns whether this finx package is of a given Type:
 
 sub is_type {
 	my $self = shift;
@@ -2191,7 +2191,7 @@ Maintainer.
 =item canonical_prefix (optional)
 
 If the value is true, use "/opt/finx" for %p when parsing the DescDetail and
-DescUsage fields instead of the local fink's normal installation path.
+DescUsage fields instead of the local finx's normal installation path.
 
 =back
 
@@ -2493,7 +2493,7 @@ sub find_local_debfile {
 
 	# first try a local .deb in the dists/ tree
 	$debname = $self->get_debname();
-	foreach $path (@{$self->{_debpaths}}, "$basepath/fink/debs") {
+	foreach $path (@{$self->{_debpaths}}, "$basepath/finx/debs") {
 		$fn = "$path/$debname";
 		if (-f $fn) {
 			return $fn;
@@ -2862,7 +2862,7 @@ case and return true. If not, return false.
 
 All providers of each package name are checked and all alternatives
 are tested. Only one warning is issued for each %n:Depends:%n'
-combination over the lifetime of the fink process.
+combination over the lifetime of the finx process.
 
 =cut
 
@@ -2965,7 +2965,7 @@ the dependency atom.
 
 If any obsolete dependencies are found, issue a warning. Only one
 warning is issued for each %n:DEP_FIELDNAME:%n' combination over the
-lifetime of the fink process.
+lifetime of the finx process.
 
 =cut
 
@@ -3456,7 +3456,7 @@ sub fetch_source {
 						"for the file.",
 						1, "- ", "	");
 		&print_breaking("In any case, you can download '$file' manually and ".
-						"put it in '$basepath/src', then run fink again with ".
+						"put it in '$basepath/src', then run finx again with ".
 						"the same command. If you have checksum problems, ".
 						"make sure you have  updated your package ".
 						"recently; contact the package maintainer.");
@@ -4082,7 +4082,7 @@ sub phase_install {
 				my $pkgname = $self->get_name();
 				print SCRIPT <<EOF;
 #!/bin/sh
-# debconf config script for package $pkgname, auto-created by fink
+# debconf config script for package $pkgname, auto-created by finx
 
 set -e
 
@@ -4272,7 +4272,7 @@ EOF
 
 	# add pre-depends on dpkg >= 1.15 for xz usage
 	if (
-		$parentpkgname ne 'fink'
+		$parentpkgname ne 'finx'
 		and
 		$parentpkgname ne 'dpkg'
 		and
@@ -4347,7 +4347,7 @@ EOF
 		print "Writing triggers file...\n";
 
 # FIXME:
-#    * Make sure each interest/activate is actutally in fink base
+#    * Make sure each interest/activate is actutally in finx base
 
 		my @triggerlines;
 		for my $line (split(/\n/, $triggersbody)) {
@@ -4364,7 +4364,7 @@ EOF
 	}
 
 	### create scripts as neccessary
-	## TODO: refactor more of this stuff to fink-instscripts
+	## TODO: refactor more of this stuff to finx-instscripts
 
 	my %scriptbody;
 	foreach (qw(postinst postrm preinst prerm)) {
@@ -4385,7 +4385,7 @@ EOF
 		my %allowed_autodpkg = map { lc($_)=>1 } (qw/ UpdatePOD /);
 		foreach (sort keys %$autodpkg) {
 			if (!exists $allowed_autodpkg{$_}) {
-				my $error = "AutoDpkg flag \"$_\" in package " . $self->get_fullname() . " cannot be handled by this version of fink";
+				my $error = "AutoDpkg flag \"$_\" in package " . $self->get_fullname() . " cannot be handled by this version of finx";
 				$notifier->notify(event => 'finkPackageBuildFailed', description => $error);
 				die $error . "\n";
 			}
@@ -4557,7 +4557,7 @@ EOF
 		if ( $write_okay = open(SCRIPT,">$scriptfile") ) {
 			print SCRIPT <<EOF;
 #!/bin/sh
-# $scriptname script for package $pkgname, auto-created by fink
+# $scriptname script for package $pkgname, auto-created by finx
 
 set -e
 
@@ -4894,8 +4894,8 @@ EOF
 		Fink::Config::set_options(\%saved_options);
 	}
 
-	# make sure fink and dpkg use gz compression for bindist upgrades
-	my $dpkgdebextra = (($parentpkgname eq 'fink' || $parentpkgname eq 'dpkg') && Fink::Services::version_cmp(Fink::Status->query_package('dpkg'), '>=', '1.16.0-1'))
+	# make sure finx and dpkg use gz compression for bindist upgrades
+	my $dpkgdebextra = (($parentpkgname eq 'finx' || $parentpkgname eq 'dpkg') && Fink::Services::version_cmp(Fink::Status->query_package('dpkg'), '>=', '1.16.0-1'))
 		? ' -Zgzip'
 		: '';
 	# Set ENV so for tar on 10.9+, dpkg-deb calls tar and thus requires it
@@ -4909,8 +4909,8 @@ EOF
 
 	my $debpath = $self->get_debpath();
 	my $distribution = $config->param("Distribution");
-	$debpath =~ s/$basepath\/fink\//..\//;
-	unless (symlink_f $debpath."/".$self->get_debname(), "$basepath/fink/debs/".$self->get_debname()) {
+	$debpath =~ s/$basepath\/finx\//..\//;
+	unless (symlink_f $debpath."/".$self->get_debname(), "$basepath/finx/debs/".$self->get_debname()) {
 		my $error = "can't symlink package ".$self->get_debname()." into pool directory";
 		$notifier->notify(event => 'finkPackageBuildFailed', description => $error);
 		die $error . "\n";
@@ -5071,7 +5071,7 @@ sub phase_deactivate {
 	if (&execute(dpkg_lockwait() . " --remove @packages", ignore_INT=>1)) {
 		&print_breaking("ERROR: Can't remove package(s). If the above error message " .
 		                "mentions dependency problems, you can try\n" .
-		                "  fink remove --recursive @packages\n" .
+		                "  finx remove --recursive @packages\n" .
 		                "This will attempt to remove the package(s) specified as " .
 		                "well as ALL packages that depend on it.");
 		if (@packages == 1) {
@@ -5158,7 +5158,7 @@ sub phase_purge {
 
 
 	if (&execute(dpkg_lockwait() . " --purge @packages", ignore_INT=>1)) {
-		&print_breaking("ERROR: Can't purge package(s). Try 'fink purge --recursive " .
+		&print_breaking("ERROR: Can't purge package(s). Try 'finx purge --recursive " .
 		                "@packages', which will also purge packages that depend " .
 		                "on the package to be purged.");
 		if (@packages == 1) {
@@ -5206,7 +5206,7 @@ Returns the path to the resulting directory.
 =cut
 
 sub ensure_libcxx_prefix {
-	my $dir = "$basepath/var/lib/fink/path-prefix-libcxx";
+	my $dir = "$basepath/var/lib/finx/path-prefix-libcxx";
 	unless (-d $dir) {
 		mkdir_p $dir or die "Path-prefix dir $dir cannot be created!\n";
 	}
@@ -5222,7 +5222,7 @@ IFS=:
 newpath=
 for dir in \$PATH ; do
   case \$dir in
-    *var/lib/fink/path-prefix*) ;;
+    *var/lib/finx/path-prefix*) ;;
     *) newpath="\${newpath:+\${newpath}:}\$dir" ;;
   esac
 done
@@ -5265,7 +5265,7 @@ Returns the path to the resulting directory.
 =cut
 
 sub ensure_clang_prefix {
-	my $dir = "$basepath/var/lib/fink/path-prefix-clang";
+	my $dir = "$basepath/var/lib/finx/path-prefix-clang";
 	unless (-d $dir) {
 		mkdir_p $dir or die "Path-prefix dir $dir cannot be created!\n";
 	}
@@ -5281,7 +5281,7 @@ IFS=:
 newpath=
 for dir in \$PATH ; do
   case \$dir in
-    *var/lib/fink/path-prefix*) ;;
+    *var/lib/finx/path-prefix*) ;;
     *) newpath="\${newpath:+\${newpath}:}\$dir" ;;
   esac
 done
@@ -5332,7 +5332,7 @@ Returns the path to the resulting directory.
 sub ensure_gpp106_prefix {
 	my $arch = shift;
 
-	my $dir = "$basepath/var/lib/fink/path-prefix-10.6";
+	my $dir = "$basepath/var/lib/finx/path-prefix-10.6";
 	unless (-d $dir) {
 		mkdir_p $dir or	die "Path-prefix dir $dir cannot be created!\n";
 	}
@@ -5348,7 +5348,7 @@ IFS=:
 newpath=
 for dir in \$PATH ; do
   case \$dir in
-    *var/lib/fink/path-prefix*) ;;
+    *var/lib/finx/path-prefix*) ;;
     *) newpath="\${newpath:+\${newpath}:}\$dir" ;;
   esac
 done
@@ -5393,7 +5393,7 @@ Returns the path to the resulting directory.
 sub ensure_gpp_prefix {
 	my $vers = shift;
 
-	my $dir = "$basepath/var/lib/fink/path-prefix-g++-$vers";
+	my $dir = "$basepath/var/lib/finx/path-prefix-g++-$vers";
 	unless (-d $dir) {
 		mkdir_p $dir or	die "Path-prefix dir $dir cannot be created!\n";
 	}
@@ -5491,7 +5491,7 @@ sub get_env {
 
 	# create a dummy HOME directory
 	# NB: File::Temp::tempdir CLEANUP breaks if we fork!
-	$script_env{"HOME"} = tempdir( 'fink-build-HOME.XXXXXXXXXX', DIR => File::Spec->tmpdir, CLEANUP => 1 );
+	$script_env{"HOME"} = tempdir( 'finx-build-HOME.XXXXXXXXXX', DIR => File::Spec->tmpdir, CLEANUP => 1 );
 	if ($< == 0) {
 		# we might be writing to ENV{HOME} during build, so fix ownership
 		my $build_as_user_group = $self->pkg_build_as_user_group();
@@ -5508,7 +5508,7 @@ sub get_env {
 		$script_env{"PATH"} = "$bsbase/bin:$bsbase/sbin:" . $script_env{"PATH"};
 	}
 
-	# Stop ccache stompage: allow user to specify directory via fink.conf
+	# Stop ccache stompage: allow user to specify directory via finx.conf
 	my $ccache_dir = $config->param_default("CCacheDir", "$basepath/var/ccache");
 	unless ( lc $ccache_dir eq "none" ) {
 		# make sure directory exists
@@ -5538,7 +5538,7 @@ sub get_env {
 	my $expand = $self->{_expand};
 	foreach my $varname (@setable_env_vars) {
 		my $s;
-		# start with fink's default unless .info says not to
+		# start with finx's default unless .info says not to
 		$s = $defaults{$varname} unless $self->param_boolean("NoSet$varname");
 		if ($self->has_param("Set$varname")) {
 			# set package-defined value (prepend if still have a default)
@@ -5575,7 +5575,7 @@ sub get_env {
 				$script_env{'MAKEFLAGS'} = "-j$mbj";
 			}
 		} else {
-			warn "Ignoring invalid MaxBuildJobs value in fink.conf: " .
+			warn "Ignoring invalid MaxBuildJobs value in finx.conf: " .
 				"$mbj is not a positive integer\n";
 		}
 	}
@@ -5686,24 +5686,24 @@ sub package_error {
 		$error .= "\n\n" . $opts{'preamble'};
 	}
 	$error .= "\n\n" .
-		"Before reporting any errors, please run \"fink selfupdate\" and try again.\n" ;
+		"Before reporting any errors, please run \"finx selfupdate\" and try again.\n" ;
 	if ( $umbj && ($mbj > 1)) {
-		$error .= 	"Also try using \"fink configure\" to set your maximum build jobs to 1 and\n" .
+		$error .= 	"Also try using \"finx configure\" to set your maximum build jobs to 1 and\n" .
 					"attempt to build the package again." ;
 		}
 	$error .= "\nIf you continue to have issues, please check to see if the FAQ on Fink's \n".
 		"website solves the problem.  If not, ask on one (not both, please) of\n".
 		"these mailing lists:\n\n" .
 		"\tThe Fink Users List <fink-users\@lists.sourceforge.net>\n".
-		"\tThe Fink Beginners List <fink-beginners\@lists.sourceforge.net>";
+		"\tThe Fink Beginners List <finx-beginners\@lists.sourceforge.net>";
 	if ($self->has_param('maintainer')) {
-		if ($self->param('maintainer') !~ /fink(.*-core|-devel)/) {
+		if ($self->param('maintainer') !~ /finx(.*-core|-devel)/) {
 			$error .= ",\n\nwith a carbon copy to the maintainer:\n" .
 				"\n".
 				"\t" . $self->param('maintainer') . "\n" .
 				"\n" .
 				"Note that this is preferable to emailing just the maintainer directly,\n".
-				"since most fink package maintainers do not have access to all possible\n" .
+				"since most finx package maintainers do not have access to all possible\n" .
 				"hardware and software configurations"
 		}
 	}
@@ -6148,7 +6148,7 @@ sub log_output {
 
 		} else {
 			# no user-specified, so we'll use default
-			$output_logfile = '/tmp/fink-build-log'
+			$output_logfile = '/tmp/finx-build-log'
 				. '_' . $self->get_family_parent()->get_name()
 				. '_' . $self->get_family_parent()->get_fullversion()
 				. '_' . strftime('%Y.%m.%d-%H.%M.%S', localtime);
@@ -6180,7 +6180,7 @@ sub log_output {
 
 	print DPKG_SCRIPT $self->_instscript(@args);
 
-Returns a bash shell fragment that checks for the fink-instscripts
+Returns a bash shell fragment that checks for the finx-instscripts
 helper program and calls it using the given @args list. $args[0] is
 the script name (preinst, postinst, prerm, postrm) and $args[1] is the
 script action type (for example, updatepod). The meaning of the
@@ -6199,9 +6199,9 @@ sub _instscript {
 	}
 
 	my $return = "\n";
-	$return .= "[ -x \%p/bin/fink-instscripts ] && \%p/bin/fink-instscripts " . join(" ", map { "'" . $_ . "'" } @args) . "\n";
-	$return .= "[ ! -x \%p/bin/fink-instscripts ] && echo 'WARNING: this package was generated with fink 0.25 or higher, and will lose some functionality if' && \\\n";
-	$return .=                                      "echo '         installed using an older version of fink.'\n";
+	$return .= "[ -x \%p/bin/finx-instscripts ] && \%p/bin/finx-instscripts " . join(" ", map { "'" . $_ . "'" } @args) . "\n";
+	$return .= "[ ! -x \%p/bin/finx-instscripts ] && echo 'WARNING: this package was generated with finx 0.25 or higher, and will lose some functionality if' && \\\n";
+	$return .=                                      "echo '         installed using an older version of finx.'\n";
 
 	return $return;
 }
@@ -6210,7 +6210,7 @@ sub _instscript {
 
   my @trees = $pv->get_full_trees;
 
-Get the fink.conf trees in which this package is located. This includes both
+Get the finx.conf trees in which this package is located. This includes both
 the 'Archive' and 'Component', eg: 'stable/main'.
 
 =item get_full_tree
@@ -6351,7 +6351,7 @@ sub pkg_build_as_user_group {
 			'user:group' => "root:admin"
 		};
 	}
-	# default to fink global control
+	# default to finx global control
 	return Fink::Config::build_as_user_group();
 }
 

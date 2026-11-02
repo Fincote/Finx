@@ -24,7 +24,7 @@ Depends: <<
 Suggests: gettext-doc
 BuildDepends: <<
 	expat1 (>= 2.6.0-1),
-	fink (>= 0.30.0),
+	finx (>= 0.30.0),
 	libgettext8-dev (>= %v-1),
 	libiconv-dev (>= 1.14-6),
 	libncurses5 (>= 5.4-20041023-1011)

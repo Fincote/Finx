@@ -8,7 +8,7 @@ use Fink::CLI qw(capture);
 require Fink::Package;
 require Fink::PkgVersion;
 
-my $config = Fink::Config->new_with_path('basepath/etc/fink.conf');
+my $config = Fink::Config->new_with_path('basepath/etc/finx.conf');
 
 require_ok('Fink::Engine');
 
@@ -54,8 +54,8 @@ foreach (sort keys %tests) {
 	Fink::Package->insert_pkgversions(@pv);
 }
 
-# Can only test the underlying functions, not the 'fink' command
-# interface because we don't have a live fink installation to use.
+# Can only test the underlying functions, not the 'finx' command
+# interface because we don't have a live finx installation to use.
 # Be very strict here...must remain compatible with newmirror script.
 
 my(@cmd, @expect, $output, $out_save);

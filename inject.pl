@@ -2,7 +2,7 @@
 # -*- mode: Perl; tab-width: 4; -*-
 #
 # inject.pl - perl script to install a CVS version of one of the
-#             fink packages into an existing Fink tree
+#             finx packages into an existing Fink tree
 #
 # Fink - a package manager that downloads source and installs it
 # Copyright (c) 2001 Christoph Pfisterer
@@ -61,7 +61,7 @@ require Fink::Bootstrap;
 
 ### which package are we injecting?
 
-my $package = "fink";
+my $package = "finx";
 
 ### check if we're unharmed, and specify files for tarball
 
@@ -77,7 +77,7 @@ my $packagefiles = fink_packagefiles();
 my $info_script = "";
 
 # quit immediately if pod2man isn't executable, to avoid folks nearly building
-### fink and then having it crap out.
+### finx and then having it crap out.
 system "./pre-build-test.sh" and exit 1;
 
 ### run the inject_package script

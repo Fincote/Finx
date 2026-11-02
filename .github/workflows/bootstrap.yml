@@ -91,11 +91,11 @@ jobs:
         run: |
           set -uo pipefail
           PREFIX="${{ inputs.prefix }}"
-          # dpkg 把成品放在 %p/fink/debs（符号链接指向 buildpath 里的实物）。
+          # dpkg 把成品放在 %p/finx/debs（符号链接指向 buildpath 里的实物）。
           # 用 find -L 跟过去，拿到真实文件。
-          if [ -d "$PREFIX/fink/debs" ]; then
+          if [ -d "$PREFIX/finx/debs" ]; then
               mkdir -p essential-debs
-              sudo find -L "$PREFIX/fink/debs" -maxdepth 1 -name '*.deb' \
+              sudo find -L "$PREFIX/finx/debs" -maxdepth 1 -name '*.deb' \
                   -exec cp {} essential-debs/ \; 2>/dev/null || true
               sudo chown -R "$(id -u):$(id -g)" essential-debs || true
           fi

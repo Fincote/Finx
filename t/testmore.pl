@@ -11,8 +11,8 @@ if (eval {require Test::More} ) {
 
 $@
 
-This is normal if you are bootstrapping fink, or upgrading to
-fink 0.18.0 for the first time.  Otherwise, you need to install 
+This is normal if you are bootstrapping finx, or upgrading to
+finx 0.18.0 for the first time.  Otherwise, you need to install 
 the test-simple-pm package or perl >= v5.8.0.
 
 ERROR

@@ -47,7 +47,7 @@ Fink::FinkVersion - Fink version numbers
 
 =head1 DESCRIPTION
 
-This module retrieves the version numbers of various parts of the fink
+This module retrieves the version numbers of various parts of the finx
 installation.
 
 =head2 Functions
@@ -62,7 +62,7 @@ These functions are exported on request.  You can export them all with
 
   my $fink_version = fink_version;
 
-Returns the version of the fink source code.
+Returns the version of the finx source code.
 
 =cut
 
@@ -102,7 +102,7 @@ sub get_arch {
    my $b_dist_version = default_binary_version($distribution);
 
 
-Returns the most recent (binary) fink distribution version
+Returns the most recent (binary) finx distribution version
 corresponding to $distribution, or undef if there is no known binary
 distro for the given $distribution.
 
@@ -135,7 +135,7 @@ sub default_binary_version {
 
   my $max_info_level = max_info_level;
 
-Returns the highest level of package description file that this fink
+Returns the highest level of package description file that this finx
 can parse. If a .info is componsed of a 'InfoN: <<' ... '<<' block
 where N is a larger integer than that returned by this function, the
 entire .info file should be ignored.

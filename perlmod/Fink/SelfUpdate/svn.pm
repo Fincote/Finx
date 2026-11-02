@@ -73,7 +73,7 @@ sub system_check {
 	}
 
 	if (!(-x "$svnpath")) {
-		warn "Before changing your selfupdate method to 'svn', you must install the svn package with 'fink install svn'.\n";
+		warn "Before changing your selfupdate method to 'svn', you must install the svn package with 'finx install svn'.\n";
 		return 0;
 	}
 
@@ -87,7 +87,7 @@ sub system_check {
 sub clear_metadata {
 	my $class = shift;  # class method for now
 
-	my $finkdir = "$basepath/fink";
+	my $finkdir = "$basepath/finx";
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
 			"move it out of the way before proceeding.\n";
@@ -104,7 +104,7 @@ Returns a null string.
 sub do_direct {
 	my $class = shift;  # class method for now
 
-	if (-d "$basepath/fink/.svn") {
+	if (-d "$basepath/finx/.svn") {
 		# already have a svn checkout
 		$class->do_direct_svn();
 	} else {
@@ -160,9 +160,9 @@ sub setup_direct_svn {
 	print "\n";
 
 	# start by creating a temporary directory with the right permissions
-	$finkdir = "$basepath/fink";
+	$finkdir = "$basepath/finx";
 	$tempdir = "$finkdir.tmp";
-	$tempfinkdir = "$tempdir/fink";
+	$tempfinkdir = "$tempdir/finx";
 
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
@@ -200,20 +200,20 @@ sub setup_direct_svn {
 		$verbosity = "";
 	}
 	my $svnpath = $config->param("SvnPath");
-	my $repository = "https://github.com/fink/fink-distributions.git/trunk";
-	if (-f "$basepath/lib/fink/URL/svn-repository") {
-		$repository = cat "$basepath/lib/fink/URL/svn-repository";
+	my $repository = "https://github.com/finx/finx-distributions.git/trunk";
+	if (-f "$basepath/lib/finx/URL/svn-repository") {
+		$repository = cat "$basepath/lib/finx/URL/svn-repository";
 		chomp($repository);
 	}
 	if ($vcsuser eq "anonymous") {
-		if (-f "$basepath/lib/fink/URL/anonymous-svn") {
-			$repository = cat "$basepath/lib/fink/URL/anonymous-svn";
+		if (-f "$basepath/lib/finx/URL/anonymous-svn") {
+			$repository = cat "$basepath/lib/finx/URL/anonymous-svn";
 			chomp($repository);
 		}
 	} else {
-		$repository = 'https://USERNAME@github.com/fink/fink-distributions.git/trunk';
-		if (-f "$basepath/lib/fink/URL/developer-svn") {
-			$repository = cat "$basepath/lib/fink/URL/developer-svn";
+		$repository = 'https://USERNAME@github.com/finx/finx-distributions.git/trunk';
+		if (-f "$basepath/lib/finx/URL/developer-svn") {
+			$repository = cat "$basepath/lib/finx/URL/developer-svn";
 			chomp($repository);
 		}
 		$repository =~ s/USERNAME/$vcsuser/;
@@ -229,7 +229,7 @@ sub setup_direct_svn {
 		$dont_recurse = "--depth=files";
 	}
 	
-	$cmdd = "$cmd checkout $dont_recurse ${repository} fink";
+	$cmdd = "$cmd checkout $dont_recurse ${repository} finx";
 	if ($username ne "root") {
 		$cmdd = "/usr/bin/su $username -c '$cmdd'";
 	}
@@ -239,7 +239,7 @@ sub setup_direct_svn {
 	}
 
 	my @trees = split(/\s+/, $config->param_default("SelfUpdateTrees", $distribution));
-	chdir "fink" or die "Can't cd to fink\n";
+	chdir "finx" or die "Can't cd to finx\n";
 
 	for my $tree (@trees) {
 		&print_breaking("Checking out $tree tree...");
@@ -333,7 +333,7 @@ sub do_direct_svn {
 		$verbosity = "";
 	}
 
-	$descdir = "$basepath/fink";
+	$descdir = "$basepath/finx";
 	chdir $descdir or die "Can't cd to $descdir: $!\n";
 
 	@sb = stat("$descdir/.svn");
@@ -348,7 +348,7 @@ sub do_direct_svn {
 
 	$msg .= "After that, the core packages will be updated right away; ".
 			"you should then update the other packages using commands like ".
-			"'fink update-all'.";
+			"'finx update-all'.";
 
 	print "\n";
 	&print_breaking($msg);

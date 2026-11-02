@@ -5,7 +5,7 @@ Fink Usage
 
 Setting The Paths
 -------------------
-To use the software installed in Fink's directory hierarchy, including the `fink` command itself, you must set your PATH environment variable (and some others) accordingly. Shell scripts are provided to do this for you. If you use `tcsh`, add the following to your `.cshrc`:
+To use the software installed in Fink's directory hierarchy, including the `finx` command itself, you must set your PATH environment variable (and some others) accordingly. Shell scripts are provided to do this for you. If you use `tcsh`, add the following to your `.cshrc`:
 
     source /opt/finx/bin/init.csh
 
@@ -29,7 +29,7 @@ What follows is a list of commands that Fink understands:
 ---------
 The `install` command is used to install packages. It downloads, configure, builds and installs the packages you name. It will also install required dependencies automatically, but will ask you for confirmation before it does so. Example:
 
-    fink install nedit
+    finx install nedit
 
     Reading package info...
     Information about 131 packages read.
@@ -44,7 +44,7 @@ Aliases for the `install` command: `update`, `enable`, `activate`, `use`. (Most 
 --------
 The remove command removes packages from the system by calling '`dpkg --remove`'. The current implementation has some flaws: It only works on packages Fink knows about (i.e. where an .info file is present); and it doesn't check dependencies itself but rather completely leaves that to the `dpkg` tool (usually this poses no problem, though).
 
-The remove command only removes the actual package files, but leaves the .deb compressed package file intact. This means that you can re-install the package later without going through the compile process again. If you need the disk space, you can remove the .deb from the /opt/finx/fink/dists tree.
+The remove command only removes the actual package files, but leaves the .deb compressed package file intact. This means that you can re-install the package later without going through the compile process again. If you need the disk space, you can remove the .deb from the /opt/finx/finx/dists tree.
 
 Aliases: `disable`, `deactivate`, `unuse`, `delete`, `purge`.
 
@@ -53,12 +53,12 @@ Aliases: `disable`, `deactivate`, `unuse`, `delete`, `purge`.
 ------------
 This command updates all installed packages to the latest version. It does not need a package list, so you just type:
 
-    fink update-all
+    finx update-all
 
 
 `list`
 ------
-This command produces a list of available packages, listing installation status, the latest version and a short description. If you call it without parameters, it will list all available packages. You can also pass a name or a shell pattern, and fink will list all packages that match.
+This command produces a list of available packages, listing installation status, the latest version and a short description. If you call it without parameters, it will list all available packages. You can also pass a name or a shell pattern, and finx will list all packages that match.
 
 The first column displays the installation state with the following meanings:
 
@@ -68,9 +68,9 @@ The first column displays the installation state with the following meanings:
 
 Some usage examples:
 
-   `fink list`            - list all packages
-   `fink list bash`       - check if bash is available and what version
-   `fink list "gnome*"`   - list all packages that start with 'gnome'
+   `finx list`            - list all packages
+   `finx list bash`       - check if bash is available and what version
+   `finx list "gnome*"`   - list all packages that start with 'gnome'
 
 The quotes in the last example are necessary to stop the shell from interpreting the pattern itself.
 
@@ -119,7 +119,7 @@ Reruns the Fink configuration process. This will let you change your mirror site
 
 `selfupdate`
 ------------
-This command automates the process of upgrading to a new Fink release. It checks the Fink website to see if a new version is available. It then downloads the package descriptions and updates the core packages, including fink itself. This command can only upgrade to regular releases, but you can use it to upgrade from a CVS version to a later regular release. It will refuse to run if you have /opt/finx/fink set up to get package descriptions directly from CVS.
+This command automates the process of upgrading to a new Fink release. It checks the Fink website to see if a new version is available. It then downloads the package descriptions and updates the core packages, including finx itself. This command can only upgrade to regular releases, but you can use it to upgrade from a CVS version to a later regular release. It will refuse to run if you have /opt/finx/finx set up to get package descriptions directly from CVS.
 
 
  Further Questions

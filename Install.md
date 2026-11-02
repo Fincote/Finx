@@ -1,7 +1,7 @@
  Fink 0.41.1 Installation
 =========================
 
-These are the installation instructions for the "source" distribution based on "fink-0.41.1" , intended for use with OS X v.10.9 and later.
+These are the installation instructions for the "source" distribution based on "finx-0.41.1" , intended for use with OS X v.10.9 and later.
 
 This document does not apply to the "[binary](https://www.finkproject.org/download/index.php)" distribution.
 
@@ -56,21 +56,21 @@ You need:
 First Time Installation Very Fast Track
 -----------------------------------------
 Download the Install Fink.tool
-[https://raw.githubusercontent.com/fink/scripts/master/srcinstaller/Install%20Fink.tool] script and double-click on it. This will automate the downloads
+[https://raw.githubusercontent.com/finx/scripts/master/srcinstaller/Install%20Fink.tool] script and double-click on it. This will automate the downloads
 in the steps below.
 
 The script may have to stop for you to do something. If so, run it again.
 
 First Time Installation Fast Track
 ------------------------------------
-Start out by copying the "fink-0.41.1.tar.gz" file to your home folder (it might also show up as "fink-0.41.1.tar" if you used Safari to download it). Then, open Terminal.app and follow the session below. Computer output is in "`normal (monospaced) face`", your input is in **"bold face"** (or otherwise highlighted). The actual input prompts from the shell may vary, and some chunks of the output have been omitted ( "`...`" ).
+Start out by copying the "finx-0.41.1.tar.gz" file to your home folder (it might also show up as "finx-0.41.1.tar" if you used Safari to download it). Then, open Terminal.app and follow the session below. Computer output is in "`normal (monospaced) face`", your input is in **"bold face"** (or otherwise highlighted). The actual input prompts from the shell may vary, and some chunks of the output have been omitted ( "`...`" ).
 
 Note: You may see dialog windows asking whether you want to install Xquartz. 
 If you want to do so, go ahead. You won't have to stop the Fink install to do that.
 
-    [frodo:~] testuser% tar xf fink-0.41.1.tar.gz
-    [frodo:~] testuser% cd fink-0.41.1
-    [frodo:~/fink-0.41.1] testuser% ./bootstrap
+    [frodo:~] testuser% tar xf finx-0.41.1.tar.gz
+    [frodo:~] testuser% cd finx-0.41.1
+    [frodo:~/finx-0.41.1] testuser% ./bootstrap
 
     Fink must be installed and run with superuser (root) privileges
 
@@ -78,13 +78,13 @@ If you want to do so, go ahead. You won't have to stop the Fink install to do th
     Choose a method: [1] 
    **1**
 
-    sudo /Users/testuser/fink-0.41.1/bootstrap .sudo '/opt/finx'
+    sudo /Users/testuser/finx-0.41.1/bootstrap .sudo '/opt/finx'
     Password:
    **(your normal password here)**
 
     ...
     OK, I'll ask you some questions and update the configuration file in
-    '/opt/finx/etc/fink.conf'.
+    '/opt/finx/etc/finx.conf'.
 
     In what additional directory should Fink look for downloaded tarballs? [] 
    **(press return)**
@@ -127,7 +127,7 @@ If you want to do so, go ahead. You won't have to stop the Fink install to do th
    **(enter the numbers corresponding to your location)**
 
     ...
-    Writing updated configuration to '/opt/finx/etc/fink.conf'...
+    Writing updated configuration to '/opt/finx/etc/finx.conf'...
     Bootstrapping a base system via /opt/finx/bootstrap.
     ...
    **(take a coffee break while Fink downloads and compiles the base packages)**
@@ -136,8 +136,8 @@ If you want to do so, go ahead. You won't have to stop the Fink install to do th
    
    You should now have a working Fink installation in '/opt/finx'.
    
-    [frodo:~/fink-0.41.1] testuser% cd
-    [frodo:~] testuser% rm -r fink-0.41.1
+    [frodo:~/finx-0.41.1] testuser% cd
+    [frodo:~] testuser% rm -r finx-0.41.1
     [frodo:~] testuser% /opt/finx/bin/pathsetup.sh
 
 The last command runs a little script to help set up your Unix paths (and other things) for use with Fink. In most cases, it will run automatically, and prompt you for permission to make changes. If the script fails, you'll have to do things by hand.
@@ -149,27 +149,27 @@ Once you have set up the paths, open a new Terminal.app window, and close all ot
 Before you can install additional packages, you will need to download their descriptions. 
 To do this, in your new Terminal.app window, ether use:
 
-    [frodo:~] testuser% fink selfupdate-rsync
+    [frodo:~] testuser% finx selfupdate-rsync
     Password: 
    **(your normal password here)**
    
-    Please note: the simple command 'fink selfupdate' should be used for routine
-    updating; you only need to use a command like 'fink selfupdate-cvs' or 'fink
+    Please note: the simple command 'finx selfupdate' should be used for routine
+    updating; you only need to use a command like 'finx selfupdate-cvs' or 'finx
     selfupdate --method=rsync' if you are changing your update method.
     ...
    **(wait for the downloads to finish)**
 
  **(preferred)** or
 
-    [frodo:~] testuser% fink selfupdate-cvs
+    [frodo:~] testuser% finx selfupdate-cvs
     Password: 
    **(your normal password here)**
 
-    Please note: the simple command `fink selfupdate` should be used for routine
-    updating; you only need to use a command like `fink selfupdate-cvs` or `fink 
+    Please note: the simple command `finx selfupdate` should be used for routine
+    updating; you only need to use a command like `finx selfupdate-cvs` or `finx 
     selfupdate --method=rsync` if you are changing your update method. 
    
-    fink is setting your default update method to cvs
+    finx is setting your default update method to cvs
    
     Fink has the capability to run the CVS commands as a normal user. That has some 
     advantages - it uses that user's CVS settings files and allows the package
@@ -186,12 +186,12 @@ To do this, in your new Terminal.app window, ether use:
     ignore errors on the next few lines.
     Now logging into the CVS server. When CVS asks you for a password, just press
     return (i.e. the password is empty).
-    /usr/bin/su hansen -c 'cvs -d":pserver:anonymous@fink.cvs.sourceforge.net:/cvsroot/fink" login'
-    Logging in to :pserver:anonymous@fink.cvs.sourceforge.net:2401/cvsroot/fink
+    /usr/bin/su hansen -c 'cvs -d":pserver:anonymous@finx.cvs.sourceforge.net:/cvsroot/finx" login'
+    Logging in to :pserver:anonymous@finx.cvs.sourceforge.net:2401/cvsroot/finx
     CVS password: 
    **(press return)**
    
-    Logging in to :pserver:anonymous@fink.cvs.sourceforge.net:2401/cvsroot/fink
+    Logging in to :pserver:anonymous@finx.cvs.sourceforge.net:2401/cvsroot/finx
     ...
    **(wait for the downloads to finish)**
 
@@ -204,14 +204,14 @@ You should also run
 and enter agree so that Fink's unprivileged user can build packages that
 need more than just the basic tools.
 
-You can now install additional packages with the "`fink`" command, like this:
+You can now install additional packages with the "`finx`" command, like this:
 
-    [frodo:~] testuser% fink install gimp2
+    [frodo:~] testuser% finx install gimp2
     Password:
     Scanning package description files..........
     Information about 6230 packages read in 1 seconds.
     
-    fink needs help picking an alternative to satisfy a virtual dependency. The
+    finx needs help picking an alternative to satisfy a virtual dependency. The
     candidates:
    
     (1)	db51-aes: Berkeley DB embedded database - crypto
@@ -337,13 +337,13 @@ A special note about /usr/local: While it is possible to install Fink in /usr/lo
 
 Installation
 --------------
-First, you need to unpack the fink-0.41.1.tar.gz tarball (it might also show up as "fink-0.41.1.tar" if you used Safari to download it). So, in a terminal window, go to the directory where you put the tarball, and run this command:
+First, you need to unpack the finx-0.41.1.tar.gz tarball (it might also show up as "finx-0.41.1.tar" if you used Safari to download it). So, in a terminal window, go to the directory where you put the tarball, and run this command:
 
-    tar xf fink-0.41.1.tar.gz
+    tar xf finx-0.41.1.tar.gz
 
-You now have a directory named fink-0.41.1. Change to it with "`cd fink-0.41.1`".
+You now have a directory named finx-0.41.1. Change to it with "`cd finx-0.41.1`".
 
-The actual installation is performed by the perl script `bootstrap`. So, to start installation, go to the fink-0.41.1 directory and run this command:
+The actual installation is performed by the perl script `bootstrap`. So, to start installation, go to the finx-0.41.1 directory and run this command:
 
     ./bootstrap
 
@@ -351,7 +351,7 @@ After running some tests, the script will ask you what method should be used to 
 
 Next, the script will ask you for the installation path. See 'Choosing A Directory' above for hints about this. The script will create the directory and set it up for the bootstrap that will be done later.
 
-Next up is Fink configuration. The process should be self-explaining. You will be asked how you want to set up fink's build user account. If you are on a networked system where the users and groups are on a central server, you can select the parameters manually--check with your network administrator as to what to use. You will also be asked about proxies -- again, check with your network administrator, and to select mirror sites for downloads. If you don't know what to say, you can just press Return and Fink will use a reasonable default value.
+Next up is Fink configuration. The process should be self-explaining. You will be asked how you want to set up finx's build user account. If you are on a networked system where the users and groups are on a central server, you can select the parameters manually--check with your network administrator as to what to use. You will also be asked about proxies -- again, check with your network administrator, and to select mirror sites for downloads. If you don't know what to say, you can just press Return and Fink will use a reasonable default value.
 
 Finally, the script has enough information to conduct the bootstrap process. That means it will now download, build and install some essential packages. Don't worry if you see some packages being compiled twice. This is required because to build a binary package of the package manager, you first must have the package manager available.
 
@@ -366,21 +366,21 @@ Once your environment is set up, start a new terminal window to ensure that the 
 
 You can use
 
-    fink selfupdate-rsync
+    finx selfupdate-rsync
 
 to download package descriptions using `rsync`. This is the preferred option for most users, since it is quick and there are multiple mirror sites available.
 
 However, `rsync` is often blocked by network administrators. If your firewall doesn't allow you to use `rsync`, then you can try
 
-    fink selfupdate-cvs
+    finx selfupdate-cvs
 
-to download package descriptions using `cvs`. If you have an HTTP proxy set up, `fink` will pass its information along to `cvs`. Note: you can only use anonymous cvs (pserver) through a proxy.
+to download package descriptions using `cvs`. If you have an HTTP proxy set up, `finx` will pass its information along to `cvs`. Note: you can only use anonymous cvs (pserver) through a proxy.
 
-You can now use "`fink`" commands to install packages.
+You can now use "`finx`" commands to install packages.
 
-    fink --help
+    finx --help
 
-is a useful place to get more information about how to use "`fink`" .
+is a useful place to get more information about how to use "`finx`" .
 
 
  Getting X11 Sorted Out
@@ -403,7 +403,7 @@ Updating The Package Manager
 ------------------------------
 To update Fink, run the following command:
 
-    fink selfupdate
+    finx selfupdate
 
 This will automatically update your existing Fink installation to use the latest package manager, and also update all essential packages. However, it will not update any other packages.
 
@@ -412,7 +412,7 @@ Updating Packages
 -------------------
 The above updating steps will not update the actual packages, they only provide you with the means to do so. The easiest way to get the new packages is to use the 'update-all' command:
 
-    fink update-all
+    finx update-all
 
 This will bring all installed packages to the latest version. If you don't want to do this (it may take some time), you can update individual packages with the 'update' command.
 
@@ -478,12 +478,12 @@ Once you have downloaded package descriptions, you can put the sources that you 
 
     sudo cp /path/to/backup/* /opt/finx/src
 
-(As usual, replace "/opt/finx" with your Fink tree). If you prefer, you can use "`fink configure`" to specify your backup location:
+(As usual, replace "/opt/finx" with your Fink tree). If you prefer, you can use "`finx configure`" to specify your backup location:
 
     In what additional directory should Fink look for downloaded tarballs? [] 
    **(enter your backup directory at the prompt)**
 
 Note: this requires that the entire path to and including your backup directory is world-readable.
 
-You can also restore your global configuration files at this time. Note: we recommend that you not restore "/opt/finx/etc/fink.conf" from your prior installation of Fink, to avoid incompatibilities. You can open it up in a text editor and enter the corresponding values into "`fink configure`".
+You can also restore your global configuration files at this time. Note: we recommend that you not restore "/opt/finx/etc/finx.conf" from your prior installation of Fink, to avoid incompatibilities. You can open it up in a text editor and enter the corresponding values into "`finx configure`".
 

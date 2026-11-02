@@ -44,7 +44,7 @@ sub new {
 
 	my $self = bless({}, $class);
 
-	eval "require Digest::MD5";  # fink's "digest-sha1-pmXXX" pkg
+	eval "require Digest::MD5";  # finx's "digest-sha1-pmXXX" pkg
 	if (!$@) {
 		$md5pm = 1;
 	} else {

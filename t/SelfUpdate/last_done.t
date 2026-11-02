@@ -10,9 +10,9 @@ use Fink::CLI (qw/ capture /);
 use Fink::Command (qw/ mkdir_p /);
 use Fink::Config;
 
-# create a temp fink hierarchy
+# create a temp finx hierarchy
 my $basepath = tempdir('last_done.t_XXXXX', DIR=>'/tmp', CLEANUP=>1);
-mkdir_p "$basepath/fink/10.4", "$basepath/etc";
+mkdir_p "$basepath/finx/10.4", "$basepath/etc";
 my $config = Fink::Config->new_from_properties({
 	'basepath'     => $basepath,
 	'distribution' => '10.4',
@@ -73,8 +73,8 @@ sub _write_vfiles {
 	my $lines_old = shift;
 	my $lines_new = shift;
 	
-	my $vfile_old = "$basepath/fink/10.4/VERSION";
-	my $vfile_new = "$basepath/fink/10.4/VERSION.selfupdate";
+	my $vfile_old = "$basepath/finx/10.4/VERSION";
+	my $vfile_new = "$basepath/finx/10.4/VERSION.selfupdate";
 
 	unlink $vfile_old, $vfile_new;
 	_write_file($vfile_old, @$lines_old) if defined $lines_old;

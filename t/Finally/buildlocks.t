@@ -12,7 +12,7 @@ can_ok('Fink::Finally::Buildlock','finalize');
 
 # dpkg needs BDO pkgs
 {
-my $prog = 'fink-virtual-pkgs';
+my $prog = 'finx-virtual-pkgs';
 my $path;
 foreach ('.', '..') {
 	# test could run with PWD as parent of t/ or t/ itself

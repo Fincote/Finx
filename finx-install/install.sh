@@ -18,8 +18,8 @@
 #
 # finx-install/install.sh - 从零安装 Finx（模块化入口）
 #
-# 注意：这不是 fink 包的安装阶段脚本。那个是仓库根的 install.sh，
-# 由 fink.info.in 的 InstallScript 调用。区别见 docs/TECHNICAL-GUIDE.md 8.6。
+# 注意：这不是 finx 包的安装阶段脚本。那个是仓库根的 install.sh，
+# 由 finx.info.in 的 InstallScript 调用。区别见 docs/TECHNICAL-GUIDE.md 8.6。
 #
 # 两种调用方式：
 #
@@ -162,6 +162,48 @@ check_target() {
     esac
 }
 
+# 装完之后 finx 还不在 PATH 上 —— 子进程改不了父 shell 的环境变量，
+# 所以只有两条路：让用户自己 source，或写进 shell 的启动文件。
+#
+# 这里不自动写启动文件。这个安装器的典型用法是 `curl ... | bash`，
+# 在用户没看清的情况下改 .zprofile 是坏做法，而且改错了很难发现。
+# 所以：按用户的登录 shell 给出**精确到文件**的那一行，用户可以复制粘贴；
+# 想让它代劳的，指向随包安装的 pathsetup.sh。
+print_path_help() {
+    shell=$(basename "${SHELL:-/bin/zsh}")
+
+    case $shell in
+        zsh)  rc="$HOME/.zprofile" ;;
+        bash)
+            if [ -f "$HOME/.bash_profile" ]; then
+                rc="$HOME/.bash_profile"
+            else
+                rc="$HOME/.profile"
+            fi ;;
+        csh|tcsh) rc="$HOME/.cshrc" ;;
+        *)    rc="$HOME/.profile" ;;
+    esac
+
+    if [ "$shell" = "csh" ] || [ "$shell" = "tcsh" ]; then
+        line="test -r $PREFIX/bin/init.csh && source $PREFIX/bin/init.csh"
+    else
+        line="test -r $PREFIX/bin/init.sh && . $PREFIX/bin/init.sh"
+    fi
+
+    printf '\n'
+    printf 'To use finx in this shell now:\n'
+    printf '    . %s/bin/init.sh\n' "$PREFIX"
+    printf '\n'
+    printf 'To make it permanent, append this line to %s:\n' "$rc"
+    printf '    %s\n' "$line"
+    printf '\n'
+    printf 'Or let the bundled helper do it (it asks first):\n'
+    printf '    %s/bin/pathsetup.sh\n' "$PREFIX"
+    printf '\n'
+    printf 'Note: finx installs into its own prefix, so it never shadows a Fink\n'
+    printf 'installation that may already be present under /sw.\n'
+}
+
 main() {
     parse_args "$@"
     apply_test_root
@@ -182,8 +224,8 @@ main() {
 
     printf '\n'
     info "Finx ${INSTALLED_RELEASE:-unknown} installed in $PREFIX"
-    info "Add it to this shell with: . $PREFIX/bin/init.sh"
-    info "Package operations run as root, like MacPorts; fink asks for sudo itself."
+    print_path_help
+    info "Package operations run as root, like MacPorts; finx asks for sudo itself."
 }
 
 # 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，

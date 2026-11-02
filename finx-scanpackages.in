@@ -13,21 +13,21 @@ die "ERROR: Can't find a Fink installation in '$PREFIX'!\n"
 
 =head1 NAME
 
-fink-scanpackages - Scan a directory of .debs.
+finx-scanpackages - Scan a directory of .debs.
 
 =head1 SYNOPSIS
 
-fink-scanpackages
+finx-scanpackages
 
-fink-scanpackages [OPTIONS] DIR
+finx-scanpackages [OPTIONS] DIR
 
-fink-scanpackages --help
+finx-scanpackages --help
 
-fink-scanpackages --man
+finx-scanpackages --man
 
 =head1 DESCRIPTION
 
-B<fink-scanpackages> looks at all the .deb files in a directory, and creates a
+B<finx-scanpackages> looks at all the .deb files in a directory, and creates a
 Packages index suitable for use by B<apt-get>.
 
 It is similar to B<apt-ftparchive> and B<dpkg-scanpackages>, but dispenses
@@ -77,12 +77,12 @@ Display the man page.
 
 =head1 BUGS
 
-B<fink-scanpackages> is designed to work with .deb files produced by Fink.
+B<finx-scanpackages> is designed to work with .deb files produced by Fink.
 It may not deal well with extremely old .debs containing obsolete fields.
 
 =head1 SEE ALSO
 
-apt-ftparchive(1), dpkg-scanpackages(8), fink(8)
+apt-ftparchive(1), dpkg-scanpackages(8), finx(8)
 
 =cut
 

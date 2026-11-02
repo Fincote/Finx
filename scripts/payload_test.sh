@@ -18,7 +18,7 @@
 #
 # payload_test.sh - 在「载荷树」里跑一遍 make test
 #
-# fink 这个包自己的 CompileScript（见 fink.info.in）就是：
+# finx 这个包自己的 CompileScript（见 finx.info.in）就是：
 #
 #     ./pre-build-test.sh
 #     make test PREFIX=%p ARCHITECTURE=%m DISTRIBUTION=@DISTRIBUTION@
@@ -32,7 +32,7 @@
 #   - 没有 finx-install/
 #   - 没有 .git，因此也跑不了 git ls-files
 #
-# 于是任何「只在仓库里成立」的假设都会在自举走到装 fink 这一步时炸掉，而
+# 于是任何「只在仓库里成立」的假设都会在自举走到装 finx 这一步时炸掉，而
 # 本地 `make test` 是绿的。这个目标就是为这类错误准备的：它重现那棵树，
 # 在里面原样跑一遍 make test。
 #
@@ -74,7 +74,7 @@ fi
 
 if ! ( cd "$WORK" && make test ARCHITECTURE="$ARCH" ); then
     printf '\nFAILED: make test does not pass inside the payload tree.\n' >&2
-    printf 'bootstrap runs exactly this from fink.info.in'"'"'s CompileScript,\n' >&2
+    printf 'bootstrap runs exactly this from finx.info.in'"'"'s CompileScript,\n' >&2
     printf 'in a tree that only contains what MANIFEST lists.\n' >&2
     exit 1
 fi

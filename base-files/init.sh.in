@@ -43,7 +43,7 @@ prepend_path()
   fi
 }
 
-# setup fink related paths. we assume that the fink directories exist.
+# setup finx related paths. we assume that the finx directories exist.
 if [ -z "$PATH" ]; then
   PATH=BASEPATH/bin:BASEPATH/sbin:/bin:/sbin:/usr/bin:/usr/sbin
 else
@@ -107,7 +107,7 @@ elif [ -r /usr/X11/man ]; then
     export MANPATH
 fi
 
-PROXYHTTP=`grep ProxyHTTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+PROXYHTTP=`grep ProxyHTTP BASEPATH/etc/finx.conf | grep -v "#" | cut -d " " -f2`
 
 if [ "$PROXYHTTP" != "" ]; then
   HTTP_PROXY=$PROXYHTTP
@@ -116,7 +116,7 @@ if [ "$PROXYHTTP" != "" ]; then
   export HTTP_PROXY http_proxy
 fi
 
-PROXYFTP=`grep ProxyFTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+PROXYFTP=`grep ProxyFTP BASEPATH/etc/finx.conf | grep -v "#" | cut -d " " -f2`
 
 if [ "$PROXYFTP" != "" ]; then
   FTP_PROXY=$PROXYFTP

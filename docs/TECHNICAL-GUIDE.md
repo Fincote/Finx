@@ -7,7 +7,7 @@
 ## 目录
 
 1. [安装体系现状](#一安装体系现状)
-2. [fink 如何安装自己](#二fink-如何安装自己)
+2. [finx 如何安装自己](#二fink-如何安装自己)
 3. [装包流水线](#三装包流水线)
 4. [依赖模型与一致性求解](#四依赖模型与一致性求解)
 5. [dpkg 定制](#五dpkg-定制)
@@ -29,7 +29,7 @@
 ```
 macOS + Xcode CLT（cc / GNU make / tar / pod2man）+ /usr/bin/perl + 网络
         │
-        │  用户手动下载 fink-<ver>.tar.gz  ← 唯一需要用户动手的下载
+        │  用户手动下载 finx-<ver>.tar.gz  ← 唯一需要用户动手的下载
         ▼
    ./bootstrap                                          bootstrap:1
         │
@@ -45,13 +45,13 @@ macOS + Xcode CLT（cc / GNU make / tar / pod2man）+ /usr/bin/perl + 网络
 | 步骤 | 位置 | 说明 |
 | --- | --- | --- |
 | 选址与护栏 | [bootstrap:505](../bootstrap) | 禁止清单（`/usr`、`/usr/local`、`/opt/local`、`/opt/homebrew`）、整条路径必须 world-rx |
-| 铺骨架 | [bootstrap:630](../bootstrap) | `etc etc/apt src fink/debs var/lib/dpkg var/lib/fink …` |
-| 把自己变成包 | [create_tarball](../perlmod/Fink/Bootstrap.pm:792) | 按 `MANIFEST` 打 `$prefix/src/fink-<ver>.tar` |
+| 铺骨架 | [bootstrap:630](../bootstrap) | `etc etc/apt src finx/debs var/lib/dpkg var/lib/finx …` |
+| 把自己变成包 | [create_tarball](../perlmod/Fink/Bootstrap.pm:792) | 按 `MANIFEST` 打 `$prefix/src/finx-<ver>.tar` |
 | 写包描述 | [copy_description](../perlmod/Fink/Bootstrap.pm:858) | 填 MD5/SHA256，`Source` 指向刚打的 tar，追加 `NoSourceDirectory: true` |
 | 阶段一 | [bootstrap1](../perlmod/Fink/Bootstrap.pm:492) | 只编 tar-bootstrap / dpkg-bootstrap，**绕过包管理**，落进 `$prefix/bootstrap` |
 | 阶段二 | [bootstrap2](../perlmod/Fink/Bootstrap.pm:586) | 用目标 perl 重新 exec `bootstrap-phase2.pl`，首次走 `cmd_install` |
 | 阶段三 | [bootstrap3](../perlmod/Fink/Bootstrap.pm:632) | 删掉脚手架 |
-| 建索引 | [bootstrap:860](../bootstrap) | `fink scanpackages` 生成 `Packages.gz` |
+| 建索引 | [bootstrap:860](../bootstrap) | `finx scanpackages` 生成 `Packages.gz` |
 
 ### 1.2 为什么必须先造 tar 再造 dpkg
 
@@ -83,9 +83,9 @@ if [ "%n" = "dpkg-bootstrap" ]; then
 
 ---
 
-## 二、fink 如何安装自己
+## 二、finx 如何安装自己
 
-fink 对自己没有特殊待遇 —— 它把自己变成一个包，然后按普通包安装。
+finx 对自己没有特殊待遇 —— 它把自己变成一个包，然后按普通包安装。
 
 | 路径 | 入口 | 源码从哪来 | 是否经过 dpkg |
 | --- | --- | --- | --- |
@@ -96,12 +96,12 @@ fink 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
 `inject_package` 的最后一步最能说明它的本质：
 
 ```perl
-&execute("/usr/bin/perl $bpath/bin/fink install $package-$packageversion-$packagerevision")
+&execute("/usr/bin/perl $bpath/bin/finx install $package-$packageversion-$packagerevision")
 ```
 
-**用旧 fink 装新 fink。** 三条路径共用同一套 `setup.sh` + `install.sh` + `dpkg-deb -b`。
+**用旧 finx 装新 finx。** 三条路径共用同一套 `setup.sh` + `install.sh` + `dpkg-deb -b`。
 
-因为 `fink` 声明了 `Essential: yes`，`selfupdate` 的
+因为 `finx` 声明了 `Essential: yes`，`selfupdate` 的
 `cmd_install(list_essential_packages())` 天然会把它自己包含进去，不需要专门的
 "升级自己"分支。
 
@@ -109,7 +109,7 @@ fink 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
 
 ## 三、装包流水线
 
-`fink install foo` → [real_install](../perlmod/Fink/Engine.pm:1730)：
+`finx install foo` → [real_install](../perlmod/Fink/Engine.pm:1730)：
 
 ```
 解析参数 → 依赖求解 → 决定源码/二进制 → 对每个包跑 phase_*
@@ -155,7 +155,7 @@ fink 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
    失败即中止；它带 `checkpoint` / `undo`，可以在中途回退。
 
 虚拟包通过 [VirtPackage](../perlmod/Fink/VirtPackage.pm) 生成，再以 dpkg status 的形式
-喂给 dpkg / apt（[fink-virtual-pkgs.in](../fink-virtual-pkgs.in) 提供 `--dpkg` / `--apt` 两种输出）。
+喂给 dpkg / apt（[finx-virtual-pkgs.in](../finx-virtual-pkgs.in) 提供 `--dpkg` / `--apt` 两种输出）。
 这是 macOS 没有 X11、没有真 gcc 时，让 dpkg 的依赖求解仍然成立的关键手段。
 
 ---
@@ -168,8 +168,8 @@ fink 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
 | --- | --- |
 | `protect-system-dirs` | Darwin 的 `/etc`、`/var`、`/tmp` 是 symlink；dpkg 卸掉最后一个包时会把它当空目录删掉。补丁强行认为它们"被占用" |
 | `so-to-dylib` | 给 `Dpkg/Shlibs/Objdump.pm` 加 `is_mach_o`，认 32/64 位与 fat Mach-O |
-| `extra-statusfile` | 新增 `FINKSTATUSFILE "status-fink"` 第二个状态文件 |
-| `fink-as-vendor` | 让 dpkg 接受 Fink 作为 vendor |
+| `extra-statusfile` | 新增 `FINKSTATUSFILE "status-finx"` 第二个状态文件 |
+| `finx-as-vendor` | 让 dpkg 接受 Fink 作为 vendor |
 | `fink-bld_no_fakeroot` | 去掉 fakeroot 依赖 |
 
 另外用 `awk` 往 `data/cputable` 与 `data/tupletable` 插入 `aarch64` / `darwin-arm64` 表项 ——
@@ -225,7 +225,7 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 
 | 方案 | 做法 | 优点 | 代价 |
 | --- | --- | --- | --- |
-| **A. 二进制种子** | 预编译 dpkg + 依赖树 + fink 打成一个 tar，脚本下载校验后解压 | 秒级、无需编译器、行为确定 | 需要持续产出种子；新 macOS 版本要有种子 |
+| **A. 二进制种子** | 预编译 dpkg + 依赖树 + finx 打成一个 tar，脚本下载校验后解压 | 秒级、无需编译器、行为确定 | 需要持续产出种子；新 macOS 版本要有种子 |
 | **B. 保留自举，现代化脚本** | 仍从源码编 dpkg，但改成无人值守、幂等、进度可视 | 不依赖任何预编译产物 | 仍要 Xcode、仍会因补丁失败而中断；本质没变 |
 | **C. 混合（推荐）** | 有种子走 A，无种子自动回退 B | 新系统不至于无路可走 | 两条路径都要维护 |
 
@@ -236,15 +236,15 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 **种子 = 一台参考机上 `bootstrap` 成功之后的 `/opt/finx` 快照**，去掉 `src/` 缓存与
 与机器相关的配置。不是手工拼装的产物，所以不会与自举结果漂移。
 
-内容（即 14 个发行版 Essential 包 + 仓库根注入的 `fink` 本身）：
+内容（即 14 个发行版 Essential 包 + 仓库根注入的 `finx` 本身）：
 
 ```
-/opt/finx/bin/{dpkg,dpkg-deb,dpkg-query,dpkg-lockwait,fink,fink-scanpackages,…}
+/opt/finx/bin/{dpkg,dpkg-deb,dpkg-query,dpkg-lockwait,finx,finx-scanpackages,…}
 /opt/finx/lib/{libgettext*,liblzma*,libbz2*,libiconv*,…}.dylib
 /opt/finx/lib/perl5/Fink/…            ← 纯 Perl，架构无关
-/opt/finx/etc/fink.conf               ← 模板，留 Basepath 占位
-/opt/finx/var/lib/dpkg/{status,status-fink,available}
-/opt/finx/fink/dists → <distribution>
+/opt/finx/etc/finx.conf               ← 模板，留 Basepath 占位
+/opt/finx/var/lib/dpkg/{status,status-finx,available}
+/opt/finx/finx/dists → <distribution>
 ```
 
 **为什么种子必须是 `/opt/finx`**：dylib 的 `install_name` 在构建时就被写成
@@ -287,8 +287,8 @@ url     https://host/b/seed.tar.gz
 3. 取产物    本地拷贝，或按 url 逐个尝试（.part 续传）
 4. 校验      size + sha256，不符即中止
 5. 落盘      mkdir 前缀 → tar 解到 /opt/finx（dpkg 要求扁平树，不能 package@version）
-6. 收尾      权限归一；Mach-O ad-hoc 重签名；写 fink.conf
-7. 收束      fink scanpackages → 提示 source <prefix>/bin/init.sh
+6. 收尾      权限归一；Mach-O ad-hoc 重签名；写 finx.conf
+7. 收束      finx scanpackages → 提示 source <prefix>/bin/init.sh
 ```
 
 顺序上有一处是刻意的：**校验在第 5 步之前**，失败时不会留下一个空壳目录。
@@ -340,7 +340,7 @@ sub restart_as_root {
 | --- | --- | --- |
 | `bindist_check_prefix` 钉死 `/opt/finx` | [Config.pm:858](../perlmod/Fink/Config.pm:858) | 改一行，但要同时决定用户前缀还能不能用官方二进制包 |
 | dylib `install_name` 是绝对路径 | 构建期写死 `$prefix/lib/...` | **用户前缀无法复用现有 .deb**，必须自带按该前缀构建的种子 |
-| 配置位置 | `$prefix/etc/fink.conf` | 已是相对路径，天然支持 |
+| 配置位置 | `$prefix/etc/finx.conf` | 已是相对路径，天然支持 |
 
 也就是说，"免密码"的成本不是一行 chown，而是一整套按用户前缀构建的二进制分发。
 在做出那个决定之前，保持 root 所有是唯一安全的选择。
@@ -381,7 +381,7 @@ finx-install/
 
 | 包 | 源码在哪 | 可改 |
 | --- | --- | --- |
-| `fink` | 仓库根 | 可 |
+| `finx` | 仓库根 | 可 |
 | `fink-mirrors` | `mirror/` | 可 |
 | `base-files` | [`base-files/`](../base-files/) | 可（已内置，见 8.9） |
 | `dpkg-base-files` | 外部 tarball | 不可 |
@@ -398,7 +398,7 @@ finx-install/
 #### 为什么不是「把种子放进仓库」
 
 git 对单个文件有 **100 MiB 硬限**，超了连 push 都会被拒。种子是 14 个 Essential 包
-加 `fink` 本体的编译产物（见 8.3），是二进制，没有"改几行再提交"的余地 —— 一旦进来，
+加 `finx` 本体的编译产物（见 8.3），是二进制，没有"改几行再提交"的余地 —— 一旦进来，
 仓库历史会随每次重建种子而膨胀，而历史是删不掉的。这条限制不能绕过，
 只能换个地方存。
 
@@ -490,14 +490,14 @@ finx-install/seed/manifest-x86_64.txt      ← 按架构分开，arch 字段与�
 
 `base-files` 是 `Essential: yes` 的目录基础设施包，提供 `bin/init.sh`、`bin/init.csh`、
 `bin/{pager,editor}`、`share/base-files/dir-base`，以及 `bin`、`etc`、`var/lib/dpkg`
-那套目录骨架。它以前只在 SourceForge 上的 `fink/base-files-1.9.19.tar.gz` 里。
+那套目录骨架。它以前只在 SourceForge 上的 `finx/base-files-1.9.19.tar.gz` 里。
 
 这造成一个纯粹的可理解性问题：**仓库里有 11 处引用 `$prefix/bin/init.sh`，零处生成它的
 代码。** 用户被要求 `source` 一个仓库里根本不存在的文件；`Fink::Bootstrap::locate_Fink`
 判定「这是不是一个 Fink 安装」时也拿它当条件之一（[Bootstrap.pm:733](../perlmod/Fink/Bootstrap.pm:733)）。
 读完整个仓库仍然说不清系统是怎么跑起来的。
 
-现在源码在 [`base-files/`](../base-files/)，来自上游 `fink/base-files` 的
+现在源码在 [`base-files/`](../base-files/)，来自上游 `finx/base-files` 的
 `release_1_9_19` 标签，与 `.info` 里 pin 的版本对应。相对上游只改了两处：示例路径
 `/sw` → `/opt/finx`，shell 缩进 2 空格 → 4 空格。行为未动。
 
@@ -534,7 +534,7 @@ Fink 的 `find_tarball()` 只认归档文件，且先搜 `$basepath/src`，找�
 
 ```
 /usr/bin/tar --no-same-owner --no-same-permissions -xf /opt/finx/src/base-files-1.9.19.tar.gz
-directory /opt/finx/src/fink.build/base-files-1.9.19-1/base-files-1.9.19 doesn't exist,
+directory /opt/finx/src/finx.build/base-files-1.9.19-1/base-files-1.9.19 doesn't exist,
 check the package description
 ```
 
@@ -543,7 +543,7 @@ check the package description
 `base-files-1.9.19.tar.gz` 解出来的东西必须在 `base-files-1.9.19/` 之下，`phase_compile`
 才 `chdir` 得进去。上游 SourceForge 上的原始 tar 也是这个布局。
 
-（`fink` 包那个 tar 是扁平的，因为它是 `create_tarball` 直接打的、走 `inject_package`
+（`finx` 包那个 tar 是扁平的，因为它是 `create_tarball` 直接打的、走 `inject_package`
 而不是 `phase_unpack`。两者路径不同，别类推。）
 
 扁平 tar 本身是合法的 gzip+tar，MD5 也自洽，所以**只有自举能发现**，而报错说的是
@@ -553,13 +553,13 @@ check the package description
 #### 版本与校验和存在哪儿：一个自己制造的事故
 
 第一版把 `Version` 与期望的 MD5 都从 [`10.9-libcxx/base-files.info`](../10.9-libcxx/base-files.info)
-读。它读得到 —— 在仓库里。但 `make test` 不止在仓库里跑：`fink` 这个包的
-`CompileScript`（[fink.info.in:19](../fink.info.in:19)）里就有 `make test PREFIX=%p ...`，
+读。它读得到 —— 在仓库里。但 `make test` 不止在仓库里跑：`finx` 这个包的
+`CompileScript`（[finx.info.in:19](../finx.info.in:19)）里就有 `make test PREFIX=%p ...`，
 而它执行时的工作目录是 `create_tarball` 从 `MANIFEST` 打出来、再由 dpkg 解开的那棵树。
 那棵树里**没有 `10.9-libcxx/`** —— 它被 `MANIFEST.SKIP` 的 `^10\.[^/]*/` 排除。
 
 于是 `pack.sh --check` 读不到文件，`make sources_check` 失败，`make test` 失败，
-fink 包编译失败，**bootstrap 死在 phase 3**。而在仓库里 `make test` 一路是绿的。
+finx 包编译失败，**bootstrap 死在 phase 3**。而在仓库里 `make test` 一路是绿的。
 
 修法是把版本与期望 MD5 放进 [`base-files/pack.conf`](../base-files/pack.conf) —— 它随
 载荷一起发布，所以在载荷树里也读得到。`.info` 的 `Source-MD5` 仍然存在（Fink 只认它），
@@ -611,7 +611,7 @@ make test        # manifest_check → test_setup → 跑完 t/ 全部测试
 | 阶段 | 作用 |
 | --- | --- |
 | `manifest_check` | `MANIFEST` 必须列出仓库里每个文件（漏了就不会进发行 tarball），同时 `MANIFEST.SKIP` 必须排除全部生成物 |
-| `test_setup` | `./setup.sh t/basepath x86_64`，生成 `fink` / `postinstall.pl` / `lockwait` / `FinkVersion.pm` 等运行时文件 |
+| `test_setup` | `./setup.sh t/basepath x86_64`，生成 `finx` / `postinstall.pl` / `lockwait` / `FinkVersion.pm` 等运行时文件 |
 | 测试本体 | `cd t && ./testmore.pl && find . -name '*.t' \| sort \| PREFIX=... xargs perl -MTest::Harness` |
 
 维护 `MANIFEST` 的两条经验：
@@ -691,7 +691,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | `manifest_check` 曾经必然失败 | 见 10.1 | **已修** |
 | `setup.sh` 变量拼写错误 | 原来第 117 行（现 [118](../setup.sh:118)）把 `$basepath` 写成 `$basepeath`，`compiler_wrapper-10.9` 里的前缀被替换成空串 | **已修**，见 10.2。影响仅限一行注释 |
 | phase 2 被执行两次 | [bootstrap:794](../bootstrap) 在错误检查之前多了一次裸的 `execute`，第一次的返回值被丢弃 | **已修**，见 10.3 |
-| 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`fink-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | **已修**，见 10.4 |
+| 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`finx-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | **已修**，见 10.4 |
 | 三份手写清单互不校验 | `MANIFEST`、`check_files`、`install.sh` 是同一份事实的三个副本 | **已修**，见 10.5 |
 | 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 是 0.45.99.git | 未修。新文档以本手册为准 |
 | `NEWS` 里的旧路径 | 历史条目仍写 `/sw`、`/opt/sw` | 刻意保留，见 [AGENTS.md](../AGENTS.md) |
@@ -749,7 +749,7 @@ exec $compiler -stdlib=libc++ "$suppress_hard_error" "$@"
 
 ### 10.4 已修：两个锁实现不一致
 
-`lockwait.in` 与 `fink-dpkg-status-cleanup.in` 的文件头互相要求保持同步，但只有前者用
+`lockwait.in` 与 `finx-dpkg-status-cleanup.in` 的文件头互相要求保持同步，但只有前者用
 `@PACKARGS@` 模板，后者硬编码 `pack("lllliss", (0,0), (0,0), 0, F_WRLCK, SEEK_SET)`。
 
 这两个格式**当前恰好等价**，但不是因为它们正确。Perl 的 `l` 是 `long`，实测本机
@@ -757,7 +757,7 @@ exec $compiler -stdlib=libc++ "$suppress_hard_error" "$@"
 而 `q` 是恒定 64 位，`"qqiss"` 不随 perl 构建变化——这才是 `lockwait.in` 用 `q` 的原因。
 换句话说：**硬编码的那份当时写对了，只是靠了本机 perl 的一个偶然性质。**
 
-修法是把 `packargs` 的定义提到 `fink-dpkg-status-cleanup` 的 `sed` 之前，让两个模板共用
+修法是把 `packargs` 的定义提到 `finx-dpkg-status-cleanup` 的 `sed` 之前，让两个模板共用
 同一个 `@PACKARGS@`：
 
 ```sh
@@ -769,7 +769,7 @@ packargs='"qqiss", 0, 0'
 
 ```sh
 ./setup.sh /opt/finx arm64
-grep -h 'pack(@\|pack("' dpkg-lockwait fink-dpkg-status-cleanup   # 两行必须逐字相同
+grep -h 'pack(@\|pack("' dpkg-lockwait finx-dpkg-status-cleanup   # 两行必须逐字相同
 ```
 
 ### 10.5 已修：三份手写清单互不校验
@@ -787,7 +787,7 @@ grep -h 'pack(@\|pack("' dpkg-lockwait fink-dpkg-status-cleanup   # 两行必须
 
 ```sh
 for file in update-packages/* ; do
-    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update-packages/"
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/finx/update-packages/"
 done
 ```
 
@@ -810,9 +810,9 @@ done
 而不是「两棵树是否一样」。
 
 三条检测路径都做过反向验证：从 `MANIFEST` 里删掉 `readme.de.html` → 报
-`Only in tree-git.prefix/share/doc/fink: readme.de.html`；加一条不存在的文件 → 报
+`Only in tree-git.prefix/share/doc/finx: readme.de.html`；加一条不存在的文件 → 报
 "打 tar 时会被静默跳过"；往 `check_files` 里塞一个不存在的名字 → 报"自举会在这里 die"；
-把 `install.sh` 里 `$bin` 那行的 `-m 755` 改成 `-m 644` → 逐条列出 `bin/fink` 等七个
+把 `install.sh` 里 `$bin` 那行的 `-m 755` 改成 `-m 644` → 逐条列出 `bin/finx` 等七个
 文件"没有可执行位"。
 
 不在 git 工作区里运行时（例如从 tarball 解出来的树）跳过双树比对，只做静态检查——
@@ -820,9 +820,9 @@ bootstrap 会在那种场景下跑 `make test`，不该因此失败。
 
 #### 顺带纠正：`MANIFEST` 不是发行清单，是载荷清单
 
-一度以为 `check_files ⊆ MANIFEST` 应当成立，而 `fink.info.in` 违反了它。查下来是**理解错了**：
+一度以为 `check_files ⊆ MANIFEST` 应当成立，而 `finx.info.in` 违反了它。查下来是**理解错了**：
 
-- `fink.info.in` 被 [`MANIFEST.SKIP:18`](../MANIFEST.SKIP:18) 明确排除，是**对的**。
+- `finx.info.in` 被 [`MANIFEST.SKIP:18`](../MANIFEST.SKIP:18) 明确排除，是**对的**。
   它不是载荷，是元数据模板：`bootstrap` 从当前目录读它，经 `copy_description`
   生成为包描述，再把 `MANIFEST` 打出来的 tar 填进该描述的 `Source` 字段。
 - `check_files` 查的是"源码树是否完整到可以自举"，`MANIFEST` 查的是"载荷 tar 里有什么"。

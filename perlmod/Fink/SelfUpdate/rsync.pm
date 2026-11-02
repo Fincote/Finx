@@ -76,7 +76,7 @@ sub system_check {
 			 "which is part of the BSD subsystem.\n".
 			 "Before changing your selfupdate method to 'rsync', you must either:\n".
 			 "* reinstall your system (or just BSD.pkg)\n".
-			 "* or install the rsync package with 'fink install rsync'.\n";
+			 "* or install the rsync package with 'finx install rsync'.\n";
 		return 0;
 	}
 
@@ -114,7 +114,7 @@ sub do_direct {
 		$nohfs = "--nohfs";
 	}
 
-	my $descdir = "$basepath/fink";
+	my $descdir = "$basepath/finx";
 	chdir $descdir or die "Can't cd to $descdir: $!\n";
 
 
@@ -195,17 +195,17 @@ RSYNCAGAIN:
 			}
 			$rinclist .= " --include='$oldpart/finkinfo/' --include='$oldpart/finkinfo/*/' --include='$oldpart/finkinfo/*' --include='$oldpart/finkinfo/**/*'";
 
-			if (! -d "$basepath/fink/$dist/$tree" ) {
-				mkdir_p "$basepath/fink/$dist/$tree";
+			if (! -d "$basepath/finx/$dist/$tree" ) {
+				mkdir_p "$basepath/finx/$dist/$tree";
 			}
 		}
-		my $cmd = "$rsyncpath -rtz --delete-after --delete $verbosity $nohfs $rinclist --include='VERSION' --include='DISTRIBUTION' --include='README' --exclude='**' '$rsynchost' '$basepath/fink/'";
+		my $cmd = "$rsyncpath -rtz --delete-after --delete $verbosity $nohfs $rinclist --include='VERSION' --include='DISTRIBUTION' --include='README' --exclude='**' '$rsynchost' '$basepath/finx/'";
 		if ($sb[4] != 0 and $> != $sb[4]) {
 			my $username;
 			($username) = getpwuid($sb[4]);
 			if ($username) {
 				$cmd = "/usr/bin/su $username -c \"$cmd\"";
-				chowname $username, "$basepath/fink/$dist";
+				chowname $username, "$basepath/finx/$dist";
 			}
 		}
 		&print_breaking("I will now run the rsync command to retrieve the latest package descriptions. \n");

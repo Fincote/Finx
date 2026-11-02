@@ -104,7 +104,7 @@ IN_GIT=0
 # .gitignore 里 → git 干净了，但 make manifest_check 会在下次 bootstrap 之后
 # 突然变红；加在 MANIFEST.SKIP 里 → tarball 干净了，但文件会被误提交。
 #
-# 真实事故：fink-virtual-pkgs-bootstrap 只在 .gitignore 里，于是每次
+# 真实事故：finx-virtual-pkgs-bootstrap 只在 .gitignore 里，于是每次
 # ./bootstrap 跑完之后 make test 都失败，而报错只说 "Not in MANIFEST"，
 # 完全看不出是少了一条 SKIP 规则。
 #
@@ -225,7 +225,7 @@ if [ "$IN_GIT" -eq 1 ]; then
 
     # 语义断言：可执行位的分布。这是唯一能抓到 -m 参数写错的地方 ——
     # 两棵树共用同一个 install.sh，所以「两棵树权限位相同」是恒真的，
-    # 比它没有意义。少了可执行位等于装了个敲了就 command not found 的 fink。
+    # 比它没有意义。少了可执行位等于装了个敲了就 command not found 的 finx。
     assert_perm() {  # $1=前缀 $2=子目录 $3=exec|noexec
         _prefix=$1
         _sub=$2

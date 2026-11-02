@@ -36,7 +36,7 @@ extract_seed() {
 # 前缀必须归 root 所有，不能 chown 给调用者。
 #
 # 两个理由，都不是风格问题：
-#   1. 解决不了免密码 —— fink install 的 rootflag 是 1，只看 $>，与归属无关；
+#   1. 解决不了免密码 —— finx install 的 rootflag 是 1，只看 $>，与归属无关；
 #   2. 会开提权口子 —— dpkg 以 root 执行 postinst，且 Fink 的 dpkg 打了
 #      fink-bld_no_fakeroot 补丁用真 root。前缀一旦用户可写，$prefix/bin/dpkg
 #      与 var/lib/dpkg/status 就成了用户可控的 root 输入。
@@ -100,7 +100,7 @@ resign_macho() {
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
 write_config() {
     target=$1
-    conf=$target/etc/fink.conf
+    conf=$target/etc/finx.conf
 
     if [ -e "$conf" ]; then
         info "keeping existing $conf"
@@ -115,7 +115,7 @@ write_config() {
     mkdir -p "$target/etc" || die "cannot create $target/etc"
     cat > "$conf" <<EOF
 # Finx configuration, created by finx-install
-# 其余字段（Trees / Distribution / SelfUpdateTrees）由 fink configure 补全。
+# 其余字段（Trees / Distribution / SelfUpdateTrees）由 finx configure 补全。
 Basepath: $target
 EOF
 }
@@ -123,11 +123,11 @@ EOF
 run_scanpackages() {
     target=$1
 
-    if [ ! -x "$target/bin/fink" ]; then
-        warn "this seed has no $target/bin/fink; skipping the package index rebuild"
+    if [ ! -x "$target/bin/finx" ]; then
+        warn "this seed has no $target/bin/finx; skipping the package index rebuild"
         return 0
     fi
 
-    run "$target/bin/fink" scanpackages || warn "fink scanpackages failed; run it manually later"
+    run "$target/bin/finx" scanpackages || warn "finx scanpackages failed; run it manually later"
     return 0
 }

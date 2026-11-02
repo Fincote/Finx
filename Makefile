@@ -7,11 +7,11 @@ TESTS=.
 all:
 	@echo    "usage: $(MAKE) <target>"
 	@echo    ""
-	@echo -e "\tbootstrap   install a fresh fink installation"
+	@echo -e "\tbootstrap   install a fresh finx installation"
 	@echo -e "\t            PREFIX can be set, defaults to /opt/finx"   
 	@echo -e "              ARCHITECTURE can also be set, defaults to x86_64"   
-	@echo -e "\tinstall     install to an existing fink installation"
-	@echo -e "\ttest        perform tests on the fink code"
+	@echo -e "\tinstall     install to an existing finx installation"
+	@echo -e "\ttest        perform tests on the finx code"
 	@echo -e "\tstructure   cross-check git, MANIFEST and what install.sh really installs"
 	@echo -e "\tsources_check  verify the bundled source tarballs still match their checksums"
 	@echo -e "\tformat      check indentation of all Perl and shell sources"
@@ -42,8 +42,8 @@ structure:
 sources_check:
 	./base-files/pack.sh --check
 
-# 在「只有 MANIFEST 文件的树」里跑一遍 make test —— 那就是 fink 包自己的
-# CompileScript 执行时的环境（见 fink.info.in）。故意不挂进 test：那等于在
+# 在「只有 MANIFEST 文件的树」里跑一遍 make test —— 那就是 finx 包自己的
+# CompileScript 执行时的环境（见 finx.info.in）。故意不挂进 test：那等于在
 # 载荷树里递归调用自己。
 payload_test:
 	FINX_ARCH="$(ARCHITECTURE)" ./scripts/payload_test.sh
@@ -54,7 +54,7 @@ format:
 	./scripts/format_check.pl
 
 test: manifest_check structure sources_check test_setup
-	@# must test with same perl binary as the one to be used to run fink
+	@# must test with same perl binary as the one to be used to run finx
 	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
 	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
 
@@ -64,14 +64,14 @@ clean:
 	rm -f compiler_wrapper-10.7
 	rm -f compiler_wrapper-10.9
 	rm -f config*
-	rm -f fink
-	rm -f fink-dpkg-status-cleanup
-	rm -f fink-virtual-pkgs
-	rm -f fink-virtual-pkgs-bootstrap
-	rm -f fink-instscripts
-	rm -f fink-scanpackages
-	rm -f fink.8
-	rm -f fink.conf.5
+	rm -f finx
+	rm -f finx-dpkg-status-cleanup
+	rm -f finx-virtual-pkgs
+	rm -f finx-virtual-pkgs-bootstrap
+	rm -f finx-instscripts
+	rm -f finx-scanpackages
+	rm -f finx.8
+	rm -f finx.conf.5
 	rm -f pathsetup.command
 	rm -f pathsetup.sh
 	rm -f postinstall.pl

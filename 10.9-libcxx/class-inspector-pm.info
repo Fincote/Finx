@@ -5,7 +5,7 @@ Essential: true
 Description: Get information about a class
 Type: perl
 License: Artistic/GPL
-Maintainer: Benjamin Reed <class-inspector-pm@fink.raccoonfink.com>
+Maintainer: Benjamin Reed <class-inspector-pm@finx.raccoonfink.com>
 Source: mirror:cpan:modules/by-module/Class/Class-Inspector-%v.tar.gz
 Source-MD5: 084c3aeec023639d21ecbaf7d4460b21
 UpdatePOD: true

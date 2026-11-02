@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # -*- mode: Shell; tab-width: 4; -*-
 #
-# install.sh - install fink package
+# install.sh - install finx package
 #
 # Fink - a package manager that downloads source and installs it
 # Copyright (c) 2001 Christoph Pfisterer
@@ -48,16 +48,16 @@ echo "Creating directories..."
 for dir in bin sbin \
     lib lib/${archdir} lib/perl5 lib/perl5/Fink \
     lib/perl5/Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} \
-    lib/fink lib/fink/update lib/fink/update-packages \
+    lib/finx lib/finx/update lib/finx/update-packages \
     etc etc/dpkg \
-    share share/doc share/doc/fink \
+    share share/doc share/doc/finx \
     share/man share/man/man{3,5,8} \
-    share/fink share/fink/images \
-    var var/run var/run/fink var/run/fink/buildlock \
-    var/lib var/lib/fink var/lib/fink/path-prefix-g++-{3.3,4.0} \
-    var/lib/fink/path-prefix-10.6 \
-    var/lib/fink/path-prefix-clang \
-    var/lib/fink/path-prefix-libcxx ; do
+    share/finx share/finx/images \
+    var var/run var/run/finx var/run/finx/buildlock \
+    var/lib var/lib/finx var/lib/finx/path-prefix-g++-{3.3,4.0} \
+    var/lib/finx/path-prefix-10.6 \
+    var/lib/finx/path-prefix-clang \
+    var/lib/finx/path-prefix-libcxx ; do
     /bin/mkdir "$basepath/$dir"
     /bin/chmod 755 "$basepath/$dir"
 done
@@ -74,22 +74,22 @@ fi
 echo "Copying files..."
 
 if [ "$architecture" == "i386" ]; then
-    /usr/bin/install -c -p -m 755 fink.csh "$basepath/etc/profile.d"
-    /usr/bin/install -c -p -m 755 fink.sh "$basepath/etc/profile.d"
+    /usr/bin/install -c -p -m 755 finx.csh "$basepath/etc/profile.d"
+    /usr/bin/install -c -p -m 755 finx.sh "$basepath/etc/profile.d"
 fi
 
-/usr/bin/install -c -p -m 755 postinstall.pl "$basepath/lib/fink/"
+/usr/bin/install -c -p -m 755 postinstall.pl "$basepath/lib/finx/"
 /usr/bin/install -c -p -m 644 shlibs.default "$basepath/etc/dpkg/"
-/usr/bin/install -c -p -m 644 fink.8 "$basepath/share/man/man8/"
-/usr/bin/install -c -p -m 644 fink.conf.5 "$basepath/share/man/man5/"
-/usr/bin/install -c -p -m 644 images/*.png "$basepath/share/fink/images/"
+/usr/bin/install -c -p -m 644 finx.8 "$basepath/share/man/man8/"
+/usr/bin/install -c -p -m 644 finx.conf.5 "$basepath/share/man/man5/"
+/usr/bin/install -c -p -m 644 images/*.png "$basepath/share/finx/images/"
 
 # copy executables
-for bin in fink fink-{virtual-pkgs,instscripts,scanpackages} pathsetup.sh \
+for bin in finx finx-{virtual-pkgs,instscripts,scanpackages} pathsetup.sh \
         {dpkg,apt-get}-lockwait; do
     /usr/bin/install -c -p -m 755 $bin "$basepath/bin/"
 done
-/usr/bin/install -c -m 755 fink-dpkg-status-cleanup "$basepath/sbin/"
+/usr/bin/install -c -m 755 finx-dpkg-status-cleanup "$basepath/sbin/"
 
 # copy all perl modules
 for subdir in . Fink Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} ; do
@@ -101,35 +101,35 @@ for subdir in . Fink Fink/{Text,Tie,Notify,Checksum,Finally,SelfUpdate} ; do
 done
 
 for file in update-packages/* ; do
-    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update-packages/"
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/finx/update-packages/"
 done
 
 for file in update/config.guess update/config.sub update/ltconfig ; do
-    /usr/bin/install -c -p -m 755 $file "$basepath/lib/fink/update/"
+    /usr/bin/install -c -p -m 755 $file "$basepath/lib/finx/update/"
 done
 for file in update/ltmain.sh update/Makefile.in.in ; do
-    /usr/bin/install -c -p -m 644 $file "$basepath/lib/fink/update/"
+    /usr/bin/install -c -p -m 644 $file "$basepath/lib/finx/update/"
 done
 
 for file in AUTHORS LICENSE README README.html README.removing-fink-bld readme.*.html \
             INSTALL INSTALL.html NEWS STYLE TODO* USAGE USAGE.html ; do
-    /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/fink/"
+    /usr/bin/install -c -p -m 644  $file "$basepath/share/doc/finx/"
 done
 
 for gccvers in 3.3 4.0; do
     /usr/bin/install -c -p -m 755 "g++-wrapper-$gccvers" \
-        "$basepath/var/lib/fink/path-prefix-g++-$gccvers/g++"
-    /bin/ln -s -n -f g++ "$basepath/var/lib/fink/path-prefix-g++-$gccvers/c++" 
+        "$basepath/var/lib/finx/path-prefix-g++-$gccvers/g++"
+    /bin/ln -s -n -f g++ "$basepath/var/lib/finx/path-prefix-g++-$gccvers/c++" 
 done
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper" \
-        "$basepath/var/lib/fink/path-prefix-10.6/compiler_wrapper"
+        "$basepath/var/lib/finx/path-prefix-10.6/compiler_wrapper"
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper-10.7" \
-        "$basepath/var/lib/fink/path-prefix-clang/compiler_wrapper"
+        "$basepath/var/lib/finx/path-prefix-clang/compiler_wrapper"
 
 /usr/bin/install -c -p -m 755 "compiler_wrapper-10.9" \
-        "$basepath/var/lib/fink/path-prefix-libcxx/compiler_wrapper"
+        "$basepath/var/lib/finx/path-prefix-libcxx/compiler_wrapper"
 
 for file in \
     cc \
@@ -138,17 +138,17 @@ for file in \
     g++ g++-4.0 g++-4.2 \
     clang clang++ \
 ; do
-        /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-10.6/$file"
+        /bin/ln -s compiler_wrapper "$basepath/var/lib/finx/path-prefix-10.6/$file"
 done
 
 for file in cc c++ gcc g++ clang clang++ \
 ; do
-    /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-clang/$file"
+    /bin/ln -s compiler_wrapper "$basepath/var/lib/finx/path-prefix-clang/$file"
 done
 
 for file in c++ g++ clang++ \
 ; do
-    /bin/ln -s compiler_wrapper "$basepath/var/lib/fink/path-prefix-libcxx/$file"
+    /bin/ln -s compiler_wrapper "$basepath/var/lib/finx/path-prefix-libcxx/$file"
 done
 
 
@@ -165,7 +165,7 @@ function manify_pm () {
     /usr/bin/pod2man --center "Fink documentation" --release "Fink $version" \
         --section 3 "$pm" "$basepath/share/man/man3/$1.3pm"
 }
-manify_bin fink-scanpackages 8
+manify_bin finx-scanpackages 8
 for p in \
         Fink				\
         Fink::Base			\

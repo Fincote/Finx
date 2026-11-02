@@ -76,16 +76,16 @@ check_fails() {
 # ---- 造一个假种子，结构足以走完七个阶段 ----------------------------------
 
 SEED=$ROOT/seed
-mkdir -p "$SEED/bin" "$SEED/lib/fink" "$SEED/etc" || exit 1
+mkdir -p "$SEED/bin" "$SEED/lib/finx" "$SEED/etc" || exit 1
 
-cat > "$SEED/bin/fink" <<'STUB'
+cat > "$SEED/bin/finx" <<'STUB'
 #!/bin/sh
 case "$1" in
-    scanpackages) echo "stub: fink scanpackages"; exit 0 ;;
-    *) echo "stub fink $*"; exit 0 ;;
+    scanpackages) echo "stub: finx scanpackages"; exit 0 ;;
+    *) echo "stub finx $*"; exit 0 ;;
 esac
 STUB
-chmod 755 "$SEED/bin/fink"
+chmod 755 "$SEED/bin/finx"
 
 # 安装器收尾会提示 source 它，假种子也得有，否则那句提示对不上真实产物
 cat > "$SEED/bin/init.sh" <<'STUB'
@@ -95,7 +95,7 @@ chmod 755 "$SEED/bin/init.sh"
 
 printf 'Debian dpkg version 1.19.7 (stub)\n' > "$SEED/bin/dpkg-stub"
 chmod 755 "$SEED/bin/dpkg-stub"
-echo "0.46.0" > "$SEED/lib/fink/version"
+echo "0.46.0" > "$SEED/lib/finx/version"
 printf 'placeholder\n' > "$SEED/etc/seed.txt"
 
 # 放一个真的 Mach-O 进去，否则 resign_macho 只是在空转（re-signed 0）。
@@ -143,7 +143,7 @@ else
     failed "install with default prefix"
 fi
 
-if [ -f "$ROOT/opt/finx/bin/fink" ]; then
+if [ -f "$ROOT/opt/finx/bin/finx" ]; then
     pass "seed extracted into the test root"
 else
     failed "seed not extracted into the test root"
@@ -171,10 +171,10 @@ else
     printf 'skip re-signing assertions (no cc available)\n'
 fi
 
-if grep -qx "Basepath: $ROOT/opt/finx" "$ROOT/opt/finx/etc/fink.conf" 2>/dev/null; then
-    pass "fink.conf records the sandbox prefix"
+if grep -qx "Basepath: $ROOT/opt/finx" "$ROOT/opt/finx/etc/finx.conf" 2>/dev/null; then
+    pass "finx.conf records the sandbox prefix"
 else
-    failed "fink.conf does not record the sandbox prefix"
+    failed "finx.conf does not record the sandbox prefix"
 fi
 
 # ---- 3. 重复安装必须被拒 -------------------------------------------------
@@ -213,7 +213,7 @@ if cat "$HERE/standalone.sh" | /bin/bash -s -- --seed-dir="$ROOT" --prefix="$ROO
 else
     failed "piped standalone install"
 fi
-[ -f "$ROOT/piped/bin/fink" ] && pass "piped install landed in the sandbox" \
+[ -f "$ROOT/piped/bin/finx" ] && pass "piped install landed in the sandbox" \
     || failed "piped install did not land in the sandbox"
 
 # ---- 7. 单文件必须与源同步 ----------------------------------------------
@@ -229,8 +229,8 @@ cat > "$SRCROOT/Finx-main/bootstrap" <<'STUB'
 set -e
 prefix=$1
 mkdir -p "$prefix/bin"
-printf '#!/bin/sh\nexit 0\n' > "$prefix/bin/fink"
-chmod 755 "$prefix/bin/fink"
+printf '#!/bin/sh\nexit 0\n' > "$prefix/bin/finx"
+chmod 755 "$prefix/bin/finx"
 printf 'ran %s\n' "$prefix" > "$prefix/marker"
 STUB
 chmod 755 "$SRCROOT/Finx-main/bootstrap"
@@ -286,7 +286,7 @@ else
     failed "dead mirror was not reported"
 fi
 
-if [ -f "$ROOT/replica/bin/fink" ]; then
+if [ -f "$ROOT/replica/bin/finx" ]; then
     pass "downloaded seed landed in the sandbox"
 else
     failed "downloaded seed did not land in the sandbox"

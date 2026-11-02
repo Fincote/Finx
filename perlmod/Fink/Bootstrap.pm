@@ -74,7 +74,7 @@ END { }				# module clean-up code here (global destructor)
 
 =head1 NAME
 
-Fink::Bootstrap - Bootstrap a fink installation
+Fink::Bootstrap - Bootstrap a finx installation
 
 =head1 SYNOPSIS
 
@@ -104,10 +104,10 @@ Fink::Bootstrap - Bootstrap a fink installation
 
 =head1 DESCRIPTION
 
-This module defines functions that are used to bootstrap a fink installation
+This module defines functions that are used to bootstrap a finx installation
 or update to a new version.  The functions are intended to be called from
-scripts that are not part of fink itself.  In particular, the scripts
-bootstrap, inject.pl, scripts/srcdist/dist-module.pl, and fink's
+scripts that are not part of finx itself.  In particular, the scripts
+bootstrap, inject.pl, scripts/srcdist/dist-module.pl, and finx's
 postinstall.pl all depend on functions from this module.
 
 =head2 Functions
@@ -139,18 +139,18 @@ from postinstall.pl).  It defaults to the empty string.
 This function also warns the user about certain bad configurations, or
 incorrect versions of gcc.
 
-After every release of macOS, fink should be tested against the new
+After every release of macOS, finx should be tested against the new
 release and then this function should be updated.
 
-Called by bootstrap and fink's postinstall.pl.
+Called by bootstrap and finx's postinstall.pl.
 
 =cut
 
 sub host_no_longer_supported {
 	my $last_supported_version = shift @_;
 	&print_breaking(
-		"\nThis system is no longer supported for current versions of fink.  " .
-		"Please use fink $last_supported_version or earlier.\n");
+		"\nThis system is no longer supported for current versions of finx.  " .
+		"Please use finx $last_supported_version or earlier.\n");
 }
 
 sub host_supported_if {
@@ -270,7 +270,7 @@ GCC_MSG
 
 	my $result = inject_package($package, $packagefiles, $info_script, $param);
 
-The primary routine to update a fink installation, called by inject.pl.
+The primary routine to update a finx installation, called by inject.pl.
 Installs a new version of $package (passing $param to the locate_Fink function
 to find out where to install it), whose source files are those listed in
 $packagefiles, and executing the script $info_script prior to making the new
@@ -287,7 +287,7 @@ sub inject_package {
 	### Note to developers: Fink::Config loads Fink::FinkVersion, but it is
 	### important not to call Fink::FinkVersion::fink_version or
 	### Fink::FinkVersion::get_arch during inject_package, because inject.pl
-	### may be running a version of fink in which those values are incorrect.
+	### may be running a version of finx in which those values are incorrect.
 
 	my $package = shift;
 	my $packagefiles = shift;
@@ -304,7 +304,7 @@ sub inject_package {
 	}
 
 	### determine $distribution
-	my $distribution = readlink("$bpath/fink/dists");
+	my $distribution = readlink("$bpath/finx/dists");
 #	print "DISTRIBUTION $distribution\n";
 
 	### get version
@@ -313,7 +313,7 @@ sub inject_package {
 
 	### load configuration
 
-	my $config = &read_config("$bpath/etc/fink.conf",
+	my $config = &read_config("$bpath/etc/finx.conf",
 							  { Basepath => $bpath });
 
 	### parse config file for root method
@@ -345,12 +345,12 @@ sub inject_package {
 
 	# force /usr/bin/perl incase we are injecting a new osx version where
 	# perl version changed
-	if (&execute("/usr/bin/perl $bpath/bin/fink install $package-$packageversion-$packagerevision")) {
+	if (&execute("/usr/bin/perl $bpath/bin/finx install $package-$packageversion-$packagerevision")) {
 		print "\n";
 		&print_breaking("Installing the new $package package failed. ".
 		  "The description and the tarball were installed, though. ".
 		  "You can retry at a later time by issuing the ".
-		  "appropriate fink commands.");
+		  "appropriate finx commands.");
 	} else {
 		print "\n";
 		&print_breaking("Your Fink installation in '$bpath' was updated with ".
@@ -369,7 +369,7 @@ Adds local/injected to the Trees list, if not already present.  Now
 depends on $distribution because the default Trees list does.  Returns
 1 on failure, 0 on success.
 
-Called by inject_package() and fink's postinstall.pl.
+Called by inject_package() and finx's postinstall.pl.
 
 =cut
 
@@ -377,17 +377,17 @@ sub add_injected_to_trees {
 
 	my $distribution = shift || die "The API for add_injected_to_trees has
 	   changed, and now requires an argument.  If you see this message,
-	   complain to your friendly neighborhood fink maintainers.\n";;
+	   complain to your friendly neighborhood finx maintainers.\n";;
 
 	my $trees = $config->param("Trees");
 	if ($trees =~ /^\s*$/) {
-		print "Adding a Trees line to fink.conf...\n";
+		print "Adding a Trees line to finx.conf...\n";
 		my $fink_trees = Fink::Config::fink_tree_default($distribution);
 		$config->set_param("Trees", "$fink_trees local/injected");
 		$config->save();
 	} else {
 		if (grep({$_ eq "local/injected"} split(/\s+/, $trees)) < 1) {
-			print "Adding local/injected to the Trees line in fink.conf...\n";
+			print "Adding local/injected to the Trees line in finx.conf...\n";
 			$config->set_param("Trees", "$trees local/injected");
 			$config->save();
 		}
@@ -509,7 +509,7 @@ sub bootstrap1 {
 	mkdir_p "$bsbase/bin", "$bsbase/sbin", "$bsbase/lib";
 
 	# copy f-v-p bootstrap
-	my $cmd = "cp fink-virtual-pkgs-bootstrap $bsbase/bin/fink-virtual-pkgs";
+	my $cmd = "cp finx-virtual-pkgs-bootstrap $bsbase/bin/finx-virtual-pkgs";
 	if (&execute($cmd)) {
 		die "ERROR: Can't install f-v-p.\n";
 	}
@@ -517,7 +517,7 @@ sub bootstrap1 {
 	# create empty dpkg database
 	mkdir_p "$basepath/var/lib/dpkg";
 	touch "$basepath/var/lib/dpkg/status",
-	      "$basepath/var/lib/dpkg/status-fink",
+	      "$basepath/var/lib/dpkg/status-finx",
 	      "$basepath/var/lib/dpkg/available",
 	      "$basepath/var/lib/dpkg/diversions";
 
@@ -585,7 +585,7 @@ sub bootstrap1 {
 
 The second part of the primary bootstrap routine, called by bootstrap.
 This part must be run under a perl binary which is identical to the one
-which will be used to run fink itself, post-bootstrap.
+which will be used to run finx itself, post-bootstrap.
 
 =cut
 
@@ -667,7 +667,7 @@ sub pack_included_sources {
 		mkdir_p $destdir unless -d $destdir;
 		&print_breaking("Generating the included $pkg source tarball.");
 
-		# 失败要当场停：否则后面 fink 会去联网取，而那个地址常年不可用，
+		# 失败要当场停：否则后面 finx 会去联网取，而那个地址常年不可用，
 		# 用户看到的会是一个和他的改动毫无关系的下载错误。
 		if (&execute("/bin/sh '$packer' '$destdir'", quiet=>1)) {
 			die "ERROR: Can't generate the $pkg source tarball.\n";
@@ -711,18 +711,18 @@ sub get_bsbase {
 	my $result = check_files();
 
 Tests whether the current directory contains all of the files needed to
-compile fink.  Returns 0 on success, 1 on failure.
+compile finx.  Returns 0 on success, 1 on failure.
 
-Called by bootstrap and fink's inject.pl.
+Called by bootstrap and finx's inject.pl.
 
 =cut
 
 sub check_files {
 	my ($file);
-	foreach $file (qw(fink.in install.sh LICENSE VERSION
-	perlmod/Fink update fink.info.in postinstall.pl.in
-	update/config.guess perlmod/Fink/Config.pm fink-virtual-pkgs.in
-		fink-instscripts.in fink-scanpackages.in fink-dpkg-status-cleanup.in
+	foreach $file (qw(finx.in install.sh LICENSE VERSION
+	perlmod/Fink update finx.info.in postinstall.pl.in
+	update/config.guess perlmod/Fink/Config.pm finx-virtual-pkgs.in
+		finx-instscripts.in finx-scanpackages.in finx-dpkg-status-cleanup.in
 	)) {
 		if (not -e $file) {
 			print "ERROR: Package incomplete, '$file' is missing.\n";
@@ -737,7 +737,7 @@ sub check_files {
 	my $packagefiles = fink_packagefiles();
 
 Returns a space-separated list of all files which should be contained
-in the fink tarball.  Called by bootstrap and fink's inject.pl.
+in the finx tarball.  Called by bootstrap and finx's inject.pl.
 This list is complete: you do not need to recurse through directories,
 and simple directories are not even included here.
 
@@ -756,7 +756,7 @@ sub fink_packagefiles {
 	my ($notlocated, $basepath) = locate_Fink();
 	my ($notlocated, $basepath) = locate_Fink($param);
 
-If called without a parameter, attempts to guess the base path of the fink
+If called without a parameter, attempts to guess the base path of the finx
 installation.  If the guess is successful, returns (0, base path).  If
 the guess is unsuccessful, returns (1, guessed value) and suggests to the
 user to call the script with a parameter.
@@ -785,7 +785,7 @@ sub locate_Fink {
 				if (substr($path,-1) eq "/") {
 					$path = substr($path,0,-1);
 				}
-				if (-f "$path/init.sh" and -f "$path/fink") {
+				if (-f "$path/init.sh" and -f "$path/finx") {
 					$path =~ /^(.+)\/[^\/]+$/;
 					$bpath = $1;
 					last;
@@ -797,10 +797,10 @@ sub locate_Fink {
 		}
 		$guessed = " (guessed)";
 	}
-	unless (-f "$bpath/bin/fink" and
+	unless (-f "$bpath/bin/finx" and
 	        -f "$bpath/bin/init.sh" and
-	        -f "$bpath/etc/fink.conf" and
-	        -d "$bpath/fink/dists") {
+	        -f "$bpath/etc/finx.conf" and
+	        -d "$bpath/finx/dists") {
 		&print_breaking("The directory '$bpath'$guessed does not contain a ".
 						"Fink installation. Please provide the correct path ".
 						"as a parameter to this script.");
@@ -890,12 +890,12 @@ sub create_tarball {
 	my $result = copy_description($script, $bpath, $package, $packageversion, $packagerevision, $destination, $target_file);
 	my $result = copy_description($script, $bpath, $package, $packageversion, $packagerevision, $destination, $target_file, $template_file);
 
-Execute the given $script, create the directories $bpath/fink/debs and
-$bpath/fink/dists/$destination if necessary, and backup the file
-$bpath/fink/dists/$destination/$target_file if it already exists.
+Execute the given $script, create the directories $bpath/finx/debs and
+$bpath/finx/dists/$destination if necessary, and backup the file
+$bpath/finx/dists/$destination/$target_file if it already exists.
 
 Next, copy $template_file (from the current directory) to
-$bpath/fink/dists/$destination/$target_file, supplying the correct
+$bpath/finx/dists/$destination/$target_file, supplying the correct
 $packageversion and $packagerevision as well as the MD5 and SHA256 sums calculated from
 $bpath/src/$package-$packageversion.tar.  Ensure that the created file
 has mode 644.
@@ -926,22 +926,22 @@ sub copy_description {
 
 	print "Copying package description(s)...\n";
 
-	if (not -d "$bpath/fink/debs") {
-		$script .= "/bin/mkdir -p -m755 $bpath/fink/debs\n";
+	if (not -d "$bpath/finx/debs") {
+		$script .= "/bin/mkdir -p -m755 $bpath/finx/debs\n";
 	}
-	if (not -d "$bpath/fink/dists/$destination") {
-		$script .= "/bin/mkdir -p -m755 $bpath/fink/dists/$destination\n";
+	if (not -d "$bpath/finx/dists/$destination") {
+		$script .= "/bin/mkdir -p -m755 $bpath/finx/dists/$destination\n";
 	}
-	if (-e "$bpath/fink/dists/$destination/$target_file") {
-#		if (-e "$bpath/fink/dists/$destination/$target_file.bak") {
-#			my $answer = &prompt_boolean("\nWARNING: The file $bpath/fink/dists/$destination/$target_file.bak exists and will be overwritten.  Do you wish to continue?", default => 1);
+	if (-e "$bpath/finx/dists/$destination/$target_file") {
+#		if (-e "$bpath/finx/dists/$destination/$target_file.bak") {
+#			my $answer = &prompt_boolean("\nWARNING: The file $bpath/finx/dists/$destination/$target_file.bak exists and will be overwritten.  Do you wish to continue?", default => 1);
 #			if (not $answer) {
 #				die "\nOK, you can re-run ./inject.pl after moving the file.\n\n";
 #			}
-			unlink "$bpath/fink/dists/$destination/$target_file.bak";
+			unlink "$bpath/finx/dists/$destination/$target_file.bak";
 #		}
-#		&print_breaking("\nNOTICE: the previously existing file $bpath/fink/dists/$destination/$target_file has been moved to $bpath/fink/dists/$destination/$target_file.bak .\n\n");
-		&execute("/bin/mv $bpath/fink/dists/$destination/$target_file $bpath/fink/dists/$destination/$target_file.bak");
+#		&print_breaking("\nNOTICE: the previously existing file $bpath/finx/dists/$destination/$target_file has been moved to $bpath/finx/dists/$destination/$target_file.bak .\n\n");
+		&execute("/bin/mv $bpath/finx/dists/$destination/$target_file $bpath/finx/dists/$destination/$target_file.bak");
 		}
 
 	my $result = 0;
@@ -956,15 +956,15 @@ sub copy_description {
 	}
 
 # determine $distribution
-	my $distribution = readlink("$bpath/fink/dists");
+	my $distribution = readlink("$bpath/finx/dists");
 #	print "DISTRIBUTION $distribution\n";
 
 	my $coda = "NoSourceDirectory: true\n";
 
-	if (modify_description($template_file, "$bpath/fink/dists/$destination/$target_file","$bpath/src/$package-$packageversion.tar",".","%n-%v.tar",$distribution,$coda, $packageversion, $packagerevision)) {
+	if (modify_description($template_file, "$bpath/finx/dists/$destination/$target_file","$bpath/src/$package-$packageversion.tar",".","%n-%v.tar",$distribution,$coda, $packageversion, $packagerevision)) {
 			print "ERROR: Can't copy package description(s).\n";
 			$result = 1;
-		} elsif (&execute("/bin/chmod 644 $bpath/fink/dists/$destination/*.*")) {
+		} elsif (&execute("/bin/chmod 644 $bpath/finx/dists/$destination/*.*")) {
 			print "ERROR: Can't copy package description(s).\n";
 			$result = 1;
 		}

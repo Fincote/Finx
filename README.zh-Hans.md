@@ -25,7 +25,7 @@
 5. **源码与二进制双分发。** 有预编译的 `.deb` 就下，没有就从源码编；两者走同一条安装路径。
 6. **只用 Perl 与 Shell。** 没有编译型依赖，读代码不必先配好工具链。
 7. **锁是真锁。** 先抢 `dpkg` 数据库锁再 `exec`，锁随子进程继承，并发操作不会互相踩。
-8. **装包需要 root，与 MacPorts 一样。** `sudo` 由 `fink` 自己调用；前缀始终归 root 所有，一份系统级二进制分发供所有用户使用。
+8. **装包需要 root，与 MacPorts 一样。** `sudo` 由 `finx` 自己调用；前缀始终归 root 所有，一份系统级二进制分发供所有用户使用。
 
 ## 🧩 支持的 macOS 版本
 
@@ -67,7 +67,7 @@ cd finx
 . /opt/finx/bin/init.sh
 ```
 
-想让它长期生效，让安装器改你的 shell 启动文件：
+想让它长期生效，让随包安装的 helper 改（它会先问）：
 
 ```bash
 /opt/finx/bin/pathsetup.sh
@@ -76,18 +76,18 @@ cd finx
 ## 🧩 使用 Finx
 
 ```bash
-fink install wget       # 安装
-fink list               # 列出可用软件包
-fink describe wget      # 查看包描述
-fink remove wget        # 卸载，保留配置文件
-fink purge wget         # 卸载，配置文件一并删除
-fink selfupdate         # 更新包管理器自身
-fink update-all         # 更新全部已安装包
+finx install wget       # 安装
+finx list               # 列出可用软件包
+finx describe wget      # 查看包描述
+finx remove wget        # 卸载，保留配置文件
+finx purge wget         # 卸载，配置文件一并删除
+finx selfupdate         # 更新包管理器自身
+finx update-all         # 更新全部已安装包
 ```
 
-装包操作需要 root；`sudo` 由 `fink` 自己调用，不必手动加。
+装包操作需要 root；`sudo` 由 `finx` 自己调用，不必手动加。
 
-完整命令表见 `USAGE`。构建产物不会自动清理 —— 用 `fink cleanup` 清掉源码 tarball、`.deb` 与陈旧构建锁。
+完整命令表见 `USAGE`。构建产物不会自动清理 —— 用 `finx cleanup` 清掉源码 tarball、`.deb` 与陈旧构建锁。
 
 ## 🧩 与 Fink 的关系
 
@@ -100,7 +100,7 @@ fink update-all         # 更新全部已安装包
 | 文档 | 分散，滞后于发布 | 统一到 `docs/` |
 | 安装器 | 只能源码自举 | 二进制种子安装器（开发中） |
 
-命令名仍是 `fink`，包名也未改动。改名会让现存的所有包描述失效，却换不来任何功能上的好处。
+命令名仍是 `finx`，包名也未改动。改名会让现存的所有包描述失效，却换不来任何功能上的好处。
 
 ## 🧩 面向开发者
 

@@ -3,7 +3,7 @@ use warnings;
 use strict;
 
 ### Please propagate changes made to lockwait.in ###
-### into fink-dpkg-status-cleanup.in             ###
+### into finx-dpkg-status-cleanup.in             ###
 
 use Fcntl qw(:DEFAULT :seek);
 use POSIX qw(:errno_h);
@@ -37,7 +37,7 @@ if ($> == 0) {
 	#   typedef __int32_t __darwin_pid_t;
 	# FIXME: add self-test for order & size of fields in struct.
 	# The "right way" is to use direct access, but compiled-C perl
-	# modules are problematic for runtime fink core.
+	# modules are problematic for runtime finx core.
 	my $struct_flock = pack(@PACKARGS@, 0, F_WRLCK, SEEK_SET);
 	my $lock_ok = fcntl(LOCK, F_SETLK, $struct_flock);
 	unless ($lock_ok || $! == EOPNOTSUPP || $! == ENOLCK) {

@@ -113,7 +113,7 @@ happen during package installation/removal.
 
 Get a new notifier object, optionally specifying the notification
 plugin to use.  If one is not specified, it will use the default
-plugin specified in the user's fink.conf.  The returned object is
+plugin specified in the user's finx.conf.  The returned object is
 that of the specific notifier itself, not the class of the new() here.
 
 Notifier modules must provide a new() method that returns a blessed
@@ -135,7 +135,7 @@ sub new {
 		my $package = $fixedcase{lc "Fink::Notify::$plugin"};
 		unless ($package) {
 			print STDERR "Could not find notifier '$plugin'! Please fix your "
-				. "fink.conf.\n";
+				. "finx.conf.\n";
 			next;
 		}
 
@@ -167,9 +167,9 @@ The default events are:
 
 =item * finkPackageRemovalFailed - deactivation phase has failed
 
-=item * finkDonePassed - fink is done running and is exiting
+=item * finkDonePassed - finx is done running and is exiting
 
-=item * finkDoneFailed - fink is done running and is exiting non-zero
+=item * finkDoneFailed - finx is done running and is exiting non-zero
 
 =back
 

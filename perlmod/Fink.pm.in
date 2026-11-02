@@ -73,7 +73,7 @@ This module allows other scripts to easily initialize Fink.
 		return if $inited++;
 		
 		# Setup the configuration
-		my $configpath = "$basepath/etc/fink.conf";
+		my $configpath = "$basepath/etc/finx.conf";
 		unless (-f $configpath) {
 			print "ERROR: Configuration file \"$configpath\" not found.\n";
 			exit 1;

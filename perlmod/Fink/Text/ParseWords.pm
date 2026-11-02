@@ -1,7 +1,7 @@
 # This file is based on Text::ParseWords v3.30 from CPAN.
 # It was converted to Fink::Text::ParseWords and further modified 
 # for use by Fink. You can read about these changes by browsing
-# the fink git repository.
+# the finx git repository.
 
 package Fink::Text::ParseWords;
 

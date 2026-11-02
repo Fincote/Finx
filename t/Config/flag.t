@@ -4,7 +4,7 @@ use strict;
 use Test::More 'no_plan';
 
 # Write a config file
-my $conffile = "fink.conf";
+my $conffile = "finx.conf";
 open CONF, ">$conffile" or die "Can't open: $!";
 print CONF <<'__HEADER';
 Basepath: basepath

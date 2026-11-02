@@ -359,7 +359,7 @@ sub download_cmd {
 
 	# check if we have curl
 	if (-x "$basepath/bin/curl" or -x "/usr/bin/curl") {
-		$cmd = "curl --connect-timeout 30 -f -L -A 'fink/". Fink::FinkVersion::fink_version() ."'";
+		$cmd = "curl --connect-timeout 30 -f -L -A 'finx/". Fink::FinkVersion::fink_version() ."'";
 		if ($config->verbosity_level() == 0) {
 			$cmd .= " -s -S";
 		}
@@ -385,7 +385,7 @@ sub download_cmd {
 	# if we would prefer wget (or didn't have curl available), check for wget
 	if (!$cmd or $download_method eq "wget") {
 		if (-x "$basepath/bin/wget") { # no /usr/bin/wget on any supported macOS
-			$cmd = "wget -U 'fink/". Fink::FinkVersion::fink_version() ."'";
+			$cmd = "wget -U 'finx/". Fink::FinkVersion::fink_version() ."'";
 			if ($config->verbosity_level() >= 1) {
 				$cmd .= " --verbose";
 			} else {
@@ -447,7 +447,7 @@ sub download_cmd {
 	# if we would prefer aria2 (or didn't have anything else available), check for aria2
 	if (!$cmd or $download_method eq "aria2") {
 		if (-x "$basepath/bin/aria2c") {
-			$cmd = "aria2c --connect-timeout 30 --allow-overwrite=true --auto-file-renaming=false -U 'fink/". Fink::FinkVersion::fink_version() ."'";
+			$cmd = "aria2c --connect-timeout 30 --allow-overwrite=true --auto-file-renaming=false -U 'finx/". Fink::FinkVersion::fink_version() ."'";
 			if ($config->verbosity_level() == 0) {
 				$cmd .= " -q";
 			}

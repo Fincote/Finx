@@ -892,7 +892,7 @@ sub _resolve_install_failure {
 	my ($self, $probs, $install_pvs) = @_;
 
 	print_breaking_stderr("Could not resolve inconsistent dependencies!");
-	my @bls = map { $_->{package} =~ /^fink-buildlock-(.*)/ ? $1 : () } @$probs;
+	my @bls = map { $_->{package} =~ /^finx-buildlock-(.*)/ ? $1 : () } @$probs;
 	if (@bls) {
 		print_breaking_stderr("It looks like some of the problems encountered"
 			. " involve buildlocks for the following packages:");
@@ -910,7 +910,7 @@ sub _resolve_install_failure {
 		} @$install_pvs );
 		print_breaking_stderr(<<FAIL);
 
-  fink scanpackages
+  finx scanpackages
   sudo apt-get update
   sudo apt-get install $aptpkgs
 

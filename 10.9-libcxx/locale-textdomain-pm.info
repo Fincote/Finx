@@ -21,7 +21,7 @@ This package is also called: libintl-perl.
 
 This package is a pure-perl implementation (gettext_pp). Fink scrapped
 the compiled C component (gettext_xs) as of 1.32-2 in order to avoid
-needing perl-versioning in fink core (newer dpkg, and texinfo).
+needing perl-versioning in finx core (newer dpkg, and texinfo).
 
 If anyone wants gettext_xs (libintl-perl-xs), let us know.
 <<

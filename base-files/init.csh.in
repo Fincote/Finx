@@ -32,7 +32,7 @@ alias append_path 'if ( $\!:1 !~ \!:2\:* && $\!:1 !~ *\:\!:2\:* && $\!:1 !~ *\:\
 # add to front of path
 alias prepend_path 'if ( $\!:1 !~ \!:2\:* && $\!:1 !~ *\:\!:2\:* && $\!:1 !~ *\:\!:2 && $\!:1 !~ \!:2 ) setenv \!:1 \!:2\:${\!:1}; if ( $\!:1 !~ \!:2\:* ) setenv \!:1 \!:2`echo \:${\!:1} | /usr/bin/sed -e s%^\!:2\:%% -e s%:\!:2\:%:%g -e s%:\!:2\$%%`'
 
-# setup fink related paths. we assume that the fink directories exist.
+# setup finx related paths. we assume that the finx directories exist.
 if ( $?PATH ) then
     prepend_path PATH BASEPATH/bin:BASEPATH/sbin
 else
@@ -90,18 +90,18 @@ endif
 
 if ($?version) then
   if ("$version" =~ tcsh*) then
-    complete fink 'n/fink/(install remove purge update selfupdate update-all configure list apropos describe index validate --help --version)/'
+    complete finx 'n/finx/(install remove purge update selfupdate update-all configure list apropos describe index validate --help --version)/'
   endif
 endif
 
-set PROXYHTTP=`grep ProxyHTTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+set PROXYHTTP=`grep ProxyHTTP BASEPATH/etc/finx.conf | grep -v "#" | cut -d " " -f2`
 
 if ( "$PROXYHTTP" != "" ) then
   setenv HTTP_PROXY $PROXYHTTP
   setenv http_proxy $PROXYHTTP
 endif
 
-set PROXYFTP=`grep ProxyFTP BASEPATH/etc/fink.conf | grep -v "#" | cut -d " " -f2`
+set PROXYFTP=`grep ProxyFTP BASEPATH/etc/finx.conf | grep -v "#" | cut -d " " -f2`
 
 if ( "$PROXYFTP" != "" ) then
   setenv FTP_PROXY $PROXYFTP

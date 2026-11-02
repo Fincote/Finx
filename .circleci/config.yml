@@ -169,8 +169,8 @@ jobs:
           command: |
             set -uo pipefail
             mkdir -p essential-debs
-            if [ -d /opt/finx/fink/debs ]; then
-                sudo find -L /opt/finx/fink/debs -maxdepth 1 -name '*.deb' \
+            if [ -d /opt/finx/finx/debs ]; then
+                sudo find -L /opt/finx/finx/debs -maxdepth 1 -name '*.deb' \
                     -exec cp {} essential-debs/ \; 2>/dev/null || true
                 sudo chown -R "$(id -u):$(id -g)" essential-debs || true
             fi

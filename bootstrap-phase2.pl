@@ -49,7 +49,7 @@ Fink::Services->import(qw(&read_config));
 
 ### bootstrap phase 2
 
-my $configpath = "$installto/etc/fink.conf";
+my $configpath = "$installto/etc/finx.conf";
 my $config = &read_config($configpath);
 # override path to data files (update, mirror)
 no warnings 'once';

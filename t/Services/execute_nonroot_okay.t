@@ -8,7 +8,7 @@ require_ok('Fink::Services');          # 1
 # exported functions
 use_ok('Fink::Services','execute');    # 2
 
-# needed for passing 'fink --build-as-nobody' flag to execute()
+# needed for passing 'finx --build-as-nobody' flag to execute()
 # (don't really care how it's implemented, but these tests are currently
 # written for it being implemented with Fink::Config options)
 require_ok('Fink::Config');            # 3
@@ -47,7 +47,7 @@ if (!defined $tmpdir or !length $tmpdir or !-d $tmpdir) {
 chmod 0755, $tmpdir;  # must have only root be able to write to dir but all read
 
 # Need a world-readable set of Fink perl modules, but local perlmod/
-# set might not be accessible (permissions) and fink might not be
+# set might not be accessible (permissions) and finx might not be
 # installed or in PERL5LIB.  Don't want to go changing perms on the
 # whole hierarchy leading to whereever user is running test, so make a
 # copy in a known place with good perms.
@@ -127,7 +127,7 @@ cmp_ok( &execute("/usr/bin/touch $tmpdir/f3", nonroot_okay=>0),
 					skip "You must be root for this test", 1 if $> != 0;
 
 					# this test should use the exact same perl binary as is running
-					# this test (which is the same as the one to be used to run fink)
+					# this test (which is the same as the one to be used to run finx)
 					Fink::Config::set_options( {'build_as_nobody' => 1} );
 					cmp_ok( &execute('/usr/bin/perl -e "1;"', nonroot_okay=>1),
 	     '==', 0,

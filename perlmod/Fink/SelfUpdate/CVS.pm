@@ -78,7 +78,7 @@ sub system_check {
 sub clear_metadata {
 	my $class = shift;  # class method for now
 
-	my $finkdir = "$basepath/fink";
+	my $finkdir = "$basepath/finx";
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
 			"move it out of the way before proceeding.\n";
@@ -95,7 +95,7 @@ Returns a null string.
 sub do_direct {
 	my $class = shift;  # class method for now
 
-	if (-d "$basepath/fink/dists/CVS") {
+	if (-d "$basepath/finx/dists/CVS") {
 		# already have a cvs checkout
 		$class->do_direct_cvs();
 	} else {
@@ -123,7 +123,7 @@ sub setup_direct_cvs {
 	# allows CVS proxies to function.
 	my $proxcmd=''; # default to null
 
-	my $http_proxy=$config->param_default("ProxyHTTP", ""); # get HTTP proxy information from fink.conf
+	my $http_proxy=$config->param_default("ProxyHTTP", ""); # get HTTP proxy information from finx.conf
 	if ($http_proxy) { # HTTP proxy has been set
 		my $proxy_port;
 		my @tokens;
@@ -172,9 +172,9 @@ sub setup_direct_cvs {
 	print "\n";
 
 	# start by creating a temporary directory with the right permissions
-	$finkdir = "$basepath/fink";
+	$finkdir = "$basepath/finx";
 	$tempdir = "$finkdir.tmp";
-	$tempfinkdir = "$tempdir/fink";
+	$tempfinkdir = "$tempdir/finx";
 
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
@@ -211,15 +211,15 @@ sub setup_direct_cvs {
 	if ($config->verbosity_level() > 1) {
 		$verbosity = "";
 	}
-	my $repository = "fink.cvs.sourceforge.net:/cvsroot/fink";
-	if (-f "$basepath/lib/fink/URL/cvs-repository") {
-		$repository = cat "$basepath/lib/fink/URL/cvs-repository";
+	my $repository = "finx.cvs.sourceforge.net:/cvsroot/finx";
+	if (-f "$basepath/lib/finx/URL/cvs-repository") {
+		$repository = cat "$basepath/lib/finx/URL/cvs-repository";
 		chomp($repository);
-		$repository .= ':/cvsroot/fink';
+		$repository .= ':/cvsroot/finx';
 	}
 	if ($vcsuser eq "anonymous") {
-		if (-f "$basepath/lib/fink/URL/anonymous-cvs") {
-			$repository = cat "$basepath/lib/fink/URL/anonymous-cvs";
+		if (-f "$basepath/lib/finx/URL/anonymous-cvs") {
+			$repository = cat "$basepath/lib/finx/URL/anonymous-cvs";
 			chomp($repository);
 		}
 		&print_breaking("Now logging into the $vcs server. When $vcs asks you ".
@@ -241,14 +241,14 @@ sub setup_direct_cvs {
 			}
 	}
 	} else {
-		if (-f "$basepath/lib/fink/URL/developer-cvs") {
-			$repository = cat "$basepath/lib/fink/URL/developer-cvs";
+		if (-f "$basepath/lib/finx/URL/developer-cvs") {
+			$repository = cat "$basepath/lib/finx/URL/developer-cvs";
 			chomp($repository);
 		}
 		$cmd = qq(cvs ${verbosity} -z3 "-d:ext:$vcsuser\@$repository");
 		$ENV{CVS_RSH} = "ssh";
 	}
-	$cmdd = "$cmd checkout -l -d fink dists";
+	$cmdd = "$cmd checkout -l -d finx dists";
 	if ($username ne "root") {
 		$cmdd = "/usr/bin/su $username -c '$cmdd'";
 	}
@@ -258,7 +258,7 @@ sub setup_direct_cvs {
 	}
 
 	my @trees = split(/\s+/, $config->param_default("SelfUpdateTrees", $distribution));
-	chdir "fink" or die "Can't cd to fink\n";
+	chdir "finx" or die "Can't cd to finx\n";
 
 	for my $tree (@trees) {
 		&print_breaking("Checking out $tree tree...");
@@ -354,7 +354,7 @@ sub do_direct_cvs {
 		$verbosity = "";
 	}
 
-	$descdir = "$basepath/fink";
+	$descdir = "$basepath/finx";
 	chdir $descdir or die "Can't cd to $descdir: $!\n";
 
 	@sb = stat("$descdir/CVS");
@@ -369,7 +369,7 @@ sub do_direct_cvs {
 
 	$msg .= "After that, the core packages will be updated right away; ".
 			"you should then update the other packages using commands like ".
-			"'fink update-all'.";
+			"'finx update-all'.";
 
 	print "\n";
 	&print_breaking($msg);

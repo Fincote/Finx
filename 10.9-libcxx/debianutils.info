@@ -4,7 +4,7 @@ Revision: 1
 Essential: true
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 ## Remove po4a
-BuildDepends: fink (>= 0.24.12-1)
+BuildDepends: finx (>= 0.24.12-1)
 Depends: base-files, sensible-utils
 CustomMirror: <<
 	Primary: http://ftp.debian.org/debian/pool/main/d/%n/

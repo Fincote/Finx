@@ -2,11 +2,11 @@
 .Dd July 2014
 .Dt FINK.CONF 5
 .Sh NAME
-.Nm fink.conf
+.Nm finx.conf
 .Nd configuration file for
-.Xr fink 8
+.Xr finx 8
 .Sh SYNOPSIS
-@PREFIX@/etc/fink.conf
+@PREFIX@/etc/finx.conf
 .\"
 .\"
 .\" DESCRIPTION
@@ -14,12 +14,12 @@
 .\"
 .Sh DESCRIPTION
 When
-.Xr fink 8
+.Xr finx 8
 is initially installed it prompts you for the answers to some questions to set
 up your configuration file, such as which mirrors you want to use for
 downloading files and how to acquire super-user rights. You can re-run this
 process by calling the
-.Cm fink configure
+.Cm finx configure
 command. In order to set some options, you may need to edit your
 .Nm
 by hand. In general, these options are meant for advanced users only.
@@ -50,16 +50,16 @@ For example:
 Some of the settings in
 .Nm
 are mandatory. Without them
-.Nm fink
+.Nm finx
 cannot
 function properly. The following settings belong to this category.
 .Bl -tag -width flag
 .It Cm Basepath: Ar path
 Tells
-.Nm fink
+.Nm finx
 where it was installed. You should not change this value after installation,
 it will confuse
-.Nm fink.
+.Nm finx.
 .El
 .\"
 .\"
@@ -69,11 +69,11 @@ it will confuse
 .Sh OPTIONAL USER SETTINGS
 There are various optional settings which users can customize to change the
 behaviour of
-.Nm fink.
+.Nm finx.
 .Bl -tag -width flag
 .It Cm RootMethod: Ar su or sudo or none
 For some operations,
-.Nm fink
+.Nm finx
 needs super user rights. Recognized values are
 .Nm sudo
 or
@@ -81,7 +81,7 @@ or
 You can also set this to
 .Nm none,
 in which case you must run
-.Nm fink
+.Nm finx
 as root yourself. The default value is
 .Nm sudo
 and in most cases it should not be changed.
@@ -89,12 +89,12 @@ and in most cases it should not be changed.
 Available trees are:
 .Bl -tag -width flag -offset indent -compact
 .It local/main      - any local packages you want to install
-.It local/bootstrap - packages used in the installation of fink
-.It stable/main     - stable packages from fink
-.It unstable/main   - unstable packages from fink
+.It local/bootstrap - packages used in the installation of finx
+.It stable/main     - stable packages from finx
+.It unstable/main   - unstable packages from finx
 .El
 You may also add your own trees in the
-.Pa @PREFIX@/fink/dists
+.Pa @PREFIX@/finx/dists
 directory for your own purposes,
 but this is not necessary in most circumstances. The default trees are
 "local/main local/bootstrap stable/main". This list should be kept in sync with
@@ -103,26 +103,26 @@ but this is not necessary in most circumstances. The default trees are
 The order of trees is meaningful, as packages from later trees may override
 packages from earlier ones.
 .It Cm Distribution: Ar 10.9, 10.10, 10.11, 10.12, 10.13, 10.14, 10.14.5, 10.15, 11.0, 11.3, 12.0 or 13.0.
-.Nm fink
+.Nm finx
 needs to know which version of macOS you are running. Mac OS X versions up to 10.8 are no longer supported by this version of
-.Nm fink.
+.Nm finx.
 This field is set by running the
-.Cm @PREFIX@/lib/fink/postinstall.pl
+.Cm @PREFIX@/lib/finx/postinstall.pl
 script. You should not need to alter this value manually.
 .It Cm FetchAltDir: Ar path
 Usually
-.Nm fink
+.Nm finx
 will store the sources it fetches in
 .Pa @PREFIX@/src.
 Using this option, you can specify an (absolute) alternate directory in which
-.Nm fink
+.Nm finx
 should look for downloaded source code. For example:
 .Bl -tag -width flag -offset indent -compact
 .It FetchAltDir: /usr/src
 .El
 .It Cm Verbose: Ar a number from 0 to 3
 This option sets how much information
-.Nm fink
+.Nm finx
 tells you about what it is doing. The
 values are:
 .Bl -tag -width flag -offset indent -compact
@@ -134,7 +134,7 @@ values are:
 The default value is 1.
 .It Cm SkipPrompts: Ar a comma-delimited list
 This option instructs
-.Nm fink
+.Nm finx
 to refrain from asking for input when the user does
 not want to be prompted. Each prompt belongs to a category. If a prompt's
 category is in the SkipPrompts list then the default option will be chosen
@@ -148,38 +148,38 @@ Currently, the following categories of prompts exist:
 By default, no prompts are skipped.
 .It Cm OldIndexes: Ar ignore, update or warn
 When installing packages,
-.Nm fink
+.Nm finx
 will check if your package index is over 2 weeks
 old.  If it is, you can have
-.Nm fink
+.Nm finx
 automatically warn you, or even download
 updates for you.
 The default value is "warn".
 .It Cm NoAutoIndex: Ar boolean
-.Nm fink
+.Nm finx
 caches its package descripition files to save it having to read
 and parse them all every time it runs.
-.Nm fink
+.Nm finx
 checks whether or not the package
 index needs to be updated unless this option is set to "True". It defaults to
 "False" and it is not recommended that you change it.
 If you do, you may need to manually run the
-.Nm fink index
+.Nm finx index
 command to update the index.
 .It Cm SelfUpdateNoCVS: Ar boolean
 The command
-.Cm fink selfupdate
+.Cm finx selfupdate
 upgrades the
-.Nm fink
+.Nm finx
 package manager to the latest release.
 This option makes sure that the Concurrent Version System (CVS) is not used to
 achieve this when set to True. It is set automatically by the
-.Cm fink selfupdate-cvs
+.Cm finx selfupdate-cvs
 command, so you should not need to change it manually.
 .It Cm Buildpath: Ar path
-.Nm fink
+.Nm finx
 needs to create several temporary directories for each package it compiles from source. They are placed in
-.Pa @PREFIX@/src/fink.build
+.Pa @PREFIX@/src/finx.build
 by default. If you want them to be somewhere else, specify the (absolute) path here.
 See the descriptions of the
 .Cm KeepRootDir
@@ -200,16 +200,16 @@ This option specifies how many concurrent build jobs should be spawned when
 building a package that has parallel build jobs enabled. Building in parallel
 speeds up the build process on multi-CPU or multi-core systems. Technically
 speaking,
-.Nm fink
+.Nm finx
 uses the value of this option in MAKEFLAGS=-j. Running
-.Cm fink configure
+.Cm finx configure
 will tell you how many active CPUs/cores are available on your system.
 .It Cm AutoUid: Ar boolean
-This option specifies whether fink should dynamically allocate the UID and GID
+This option specifies whether finx should dynamically allocate the UID and GID
 of its unprivileged fink-bld user if that user is absent.
 .It Cm FinkBldUid: Ar positive integer
 This item specifies the current UID for the fink-bld user. The new setting will 
-take effect when you run a fink operation that can
+take effect when you run a finx operation that can
 build a package, such as 
 .Cm selfupdate,
 .Cm build,
@@ -217,12 +217,12 @@ build a package, such as
 or
 .Cm install.
 .It Cm AutoUidMin: Ar positive integer
-Minimum value for the pool of values from which fink will attempt to find an
+Minimum value for the pool of values from which finx will attempt to find an
 unused UID or GID automatically if
 .Cm AutoUid: true 
 is set.
 .It Cm AutoUidMax: Ar positive integer
-Maximum value for the pool of values from from which fink will attempt to find an
+Maximum value for the pool of values from from which finx will attempt to find an
 unused UID or GID automatically if
 .Cm AutoUid: true 
 is set.
@@ -234,12 +234,12 @@ is set.
 .\"
 .Sh DOWNLOAD SETTINGS
 There are various settings which influence the way
-.Nm fink
+.Nm finx
 downloads package data.
 .Bl -tag -width flag
 .It Cm ProxyPassiveFTP: Ar boolean
 This option makes
-.Nm fink
+.Nm finx
 use "passive" mode for FTP downloads. Some FTP server or
 network configurations require this option to be set to True. It is recommended
 that you leave this option on at all times since active FTP is deprecated.
@@ -256,7 +256,7 @@ If you use a HTTP proxy then you should enter its address here, for example:
 .El
 Leave if blank if you do not use a HTTP proxy.
 .It Cm DownloadMethod: Ar wget or curl or axel or axelautomirror or aria2
-.Nm fink
+.Nm finx
 can use four different applications to download files from the Internet -
 .Nm wget,
 .Nm curl,
@@ -272,7 +272,7 @@ The use of axelautomirror is not recommended at this time. The default value is
 .Nm curl.
 The application you chose as DownloadMethod MUST be installed!
 .It Cm SelfUpdateMethod: Ar point, rsync or cvs
-.Xr fink 8
+.Xr finx 8
 can use some different methods to update the package info files.
 .Nm rsync
 is the recommended setting, it uses
@@ -296,28 +296,28 @@ entire path (e.g.,
 or similar).
 .It Cm UseBinaryDist: Ar boolean
 Causes
-.Nm fink
+.Nm finx
 to try to download pre-compiled binary packages from the binary
 distribution if available and if deb is not already on the system.
 Passing
-.Nm fink
+.Nm finx
 the
 .Cm -b
 flag has the same effect, but only operates on that single
-.Nm fink
+.Nm finx
 invocation.  Passing
-.Nm fink
+.Nm finx
 the
 .Cm --no-use-binary-dist
 flag overrides this, and compiles from source for that single
-.Nm fink
+.Nm finx
 invocation.
 .Pp
 Note that this mode instructs
-.Nm fink
+.Nm finx
 to download the version it wants if
 that version is available for download; it does not cause
-.Nm fink
+.Nm finx
 to
 choose a version based on its binary availability.
 .El
@@ -337,7 +337,7 @@ they provide an alternative should one
 server not be reachable.
 .Pp
 In order for
-.Nm fink
+.Nm finx
 to pick the best mirror for you, you must tell it which
 continent and which country you reside in. If downloads from one server fail, it
 will prompt you if you want to retry from the same mirror, a different mirror in
@@ -348,24 +348,24 @@ holds settings about which mirrors you would like to use.
 .Bl -tag -width flag
 .It Cm MirrorContinent: Ar three letter code
 You should change this value using the
-.Cm fink configure
+.Cm finx configure
 command. The three letter code is one found in
-.Pa @PREFIX@/lib/fink/mirror/_keys.
+.Pa @PREFIX@/lib/finx/mirror/_keys.
 For example, if you live in europe:
 .Bl -tag -width flag -offset indent -compact
 .It MirrorContinent: eur
 .El
 .It Cm MirrorCountry: Ar six letter code
 You should change this value using the
-.Cm fink configure
+.Cm finx configure
 command. The three letter code is one found in
-.Pa @PREFIX@/lib/fink/mirror/_keys.
+.Pa @PREFIX@/lib/finx/mirror/_keys.
 For example, if you live in Austria:
 .Bl -tag -width flag -offset indent -compact
 .It MirrorCountry: eur-AT
 .El
 .It Cm MirrorOrder: Ar MasterFirst or MasterLast or MasterNever or ClosestFirst
-.Nm fink
+.Nm finx
 supports 'Master' mirrors, which are mirrored repositories of the source
 tarballs for all Fink packages. The advantage of using the Master mirror set is that
 the source download URLs will never break. Users can choose to use
@@ -397,7 +397,7 @@ fall into this category.
 .Bl -tag -width flag
 .It Cm KeepRootDir: Ar boolean
 Causes
-.Nm fink
+.Nm finx
 not to delete the temporary installation directory
 .Pa root-[name]-[version]-[revision]
 in the
@@ -405,15 +405,15 @@ in the
 after building a package. Defaults to false.
 Be careful, this option can fill your hard-disk quickly!
 Passing
-.Nm fink
+.Nm finx
 the
 .Cm -K
 flag has the same effect, but only operates on that single
-.Nm fink
+.Nm finx
 invocation.
 .It Cm KeepBuildDir: Ar boolean
 Causes
-.Nm fink
+.Nm finx
 not to delete the package compile directory
 .Pa [name]-[version]-[revision]
 in the
@@ -421,11 +421,11 @@ in the
 after building a package. Defaults to false.
 Be careful, this option can fill your hard-disk quickly!
 Passing
-.Nm fink
+.Nm finx
 the
 .Cm -k
 flag has the same effect, but only operates on that single
-.Nm fink
+.Nm finx
 invocation.
 .El
 .\"
@@ -438,7 +438,7 @@ There are some other options which may be useful, but require some knowledge to 
 .Bl -tag -width flag
 .It Cm MatchPackageRegEx: Ar regex
 Causes
-.Nm fink
+.Nm finx
 not to ask which package to install if one (and only one) of the choices matches
 the perl Regular Expression given here.
 Example:
@@ -452,7 +452,7 @@ while building Fink packages will be placed here. Defaults to
 .Pa @PREFIX@/var/ccache.
 If set to
 .Nm none,
-.Nm fink
+.Nm finx
 will not set the
 .Ev CCACHE_DIR
 environment variable and ccache will use
@@ -463,27 +463,27 @@ Specify a space-separated list of notification plugins, to tell you when package
 Defaults to
 .Pa Growl
 (requires Mac::Growl to operate).  The available plugins are listed in the output of
-"fink plugins".
+"finx plugins".
 .nf
-See the wiki at https://github.com/fink/fink/wiki/Notification-plugins
+See the wiki at https://github.com/finx/finx/wiki/Notification-plugins
 for more information.
 .fi
 .It Cm AutoScanpackages: Ar boolean
 When
-.Nm fink
+.Nm finx
 builds new packages,
 .Xr apt-get 8
 does not yet know about them.
 Historically, the command
-.Cm fink scanpackages
+.Cm finx scanpackages
 had to be run for apt-get to notice the new packages, but now this happens
 automatically. If this option is present and false, then
-.Cm fink scanpackages
+.Cm finx scanpackages
 will no longer be run automatically after packages are built.
 .It Cm ScanRestrictivePackages: Ar boolean
 When scanning the packages for
 .Xr apt-get 8 ,
-.Nm fink
+.Nm finx
 normally scans all packages in the current trees. However, if the resuting
 apt repository will be made publically available, the administrator may be
 legally obligated not to include packages with
@@ -491,7 +491,7 @@ legally obligated not to include packages with
 or
 .Nm Commercial
 licenses. If this option is present and false, then
-.Nm fink
+.Nm finx
 will omit those
 packages when scanning.
 .It Cm GitPath: Ar the path to your git binary
@@ -518,7 +518,7 @@ This manpage is maintained by the Fink Core Group <fink-core@lists.sourceforge.n
 .\"
 .\"
 .Sh ACKNOWLEDGEMENTS
-.Nm fink
+.Nm finx
 is developed and maintained by The Fink Project (https://www.finkproject.org).
 .\"
 .\"
@@ -527,4 +527,4 @@ is developed and maintained by The Fink Project (https://www.finkproject.org).
 .\"
 .Sh "SEE ALSO"
 .Xr apt-get 8 ,
-.Xr fink 8
+.Xr finx 8

@@ -25,7 +25,7 @@ The `x` stands for **extension**. Dependency solving and side-effect control in 
 5. **Source and binary distribution.** Download a prebuilt `.deb` when one exists, compile when it does not; both take the same install path.
 6. **Perl and Shell only.** No compiled dependencies, so reading the code does not require a working toolchain first.
 7. **Real locking.** The `dpkg` database lock is taken before `exec`, so the child process inherits it and concurrent operations cannot trample each other.
-8. **Package operations run as root, like MacPorts.** `fink` invokes `sudo` itself; the prefix stays owned by root, and one system-wide binary distribution serves everyone.
+8. **Package operations run as root, like MacPorts.** `finx` invokes `sudo` itself; the prefix stays owned by root, and one system-wide binary distribution serves everyone.
 
 ## 🧩 Supported macOS Versions
 
@@ -67,7 +67,7 @@ After it finishes:
 . /opt/finx/bin/init.sh
 ```
 
-To make that permanent, let the installer edit your shell startup file:
+To make that permanent, let the bundled helper edit it (it asks first):
 
 ```bash
 /opt/finx/bin/pathsetup.sh
@@ -76,18 +76,18 @@ To make that permanent, let the installer edit your shell startup file:
 ## 🧩 Using Finx
 
 ```bash
-fink install wget       # install a package
-fink list               # list available packages
-fink describe wget      # show the package description
-fink remove wget        # remove it, keeping configuration files
-fink purge wget         # remove it, configuration files included
-fink selfupdate         # update the package manager itself
-fink update-all         # update every installed package
+finx install wget       # install a package
+finx list               # list available packages
+finx describe wget      # show the package description
+finx remove wget        # remove it, keeping configuration files
+finx purge wget         # remove it, configuration files included
+finx selfupdate         # update the package manager itself
+finx update-all         # update every installed package
 ```
 
-Package operations need root; `fink` runs `sudo` itself, so you do not add it by hand.
+Package operations need root; `finx` runs `sudo` itself, so you do not add it by hand.
 
-`USAGE` documents the full command set. Build artefacts are not cleaned up automatically — use `fink cleanup` to drop source tarballs, `.deb` files and stale build locks.
+`USAGE` documents the full command set. Build artefacts are not cleaned up automatically — use `finx cleanup` to drop source tarballs, `.deb` files and stale build locks.
 
 ## 🧩 Relationship to Fink
 
@@ -100,7 +100,7 @@ Package operations need root; `fink` runs `sudo` itself, so you do not add it by
 | Documentation | scattered, lagging behind releases | consolidated under `docs/` |
 | Installer | source bootstrap only | seed-based installer (in progress) |
 
-The command is still named `fink` and package names are unchanged. Renaming them would invalidate every package description in existence for no functional gain.
+The command is still named `finx` and package names are unchanged. Renaming them would invalidate every package description in existence for no functional gain.
 
 ## 🧩 For Developers
 

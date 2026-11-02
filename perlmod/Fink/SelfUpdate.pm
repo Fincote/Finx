@@ -64,7 +64,7 @@ Fink::SelfUpdate - download package descriptions from server
 	cmd_selfupdate(@ARGV);
 
 Main entry point for command-line interface to selfupdate. Pass the
-command-line parameter list after removing "fink selfupdate" or
+command-line parameter list after removing "finx selfupdate" or
 whatever moral equivalent.
 
 =cut
@@ -125,10 +125,10 @@ Use the "rsync" method
 =back
 
 The current method is specified by name in the SelfUpdateMethod field
-in the F<fink.conf> preference file. If there is no current method
+in the F<finx.conf> preference file. If there is no current method
 preference and a specific $method is not given, the user is prompted
 to select a method. If a $method is given that is not the same as the
-current method preference, fink.conf is updated according to $method.
+current method preference, finx.conf is updated according to $method.
 
 =cut
 
@@ -178,7 +178,7 @@ sub check {
 
 			my $subclass_choice = &prompt_selection(
 				'Choose an update method',
-				intro   => 'fink needs you to choose a SelfUpdateMethod.',
+				intro   => 'finx needs you to choose a SelfUpdateMethod.',
 				choices => \@choices,
 				default => \@default,
 			);
@@ -186,10 +186,10 @@ sub check {
 		}
 	} else {
 		# explicit method requested
-		&print_breaking("\nPlease note: the simple command 'fink selfupdate' "
+		&print_breaking("\nPlease note: the simple command 'finx selfupdate' "
 						. "should be used for routine updating; you only "
-						. "need to use a command like 'fink selfupdate-cvs' "
-						. "or 'fink selfupdate --method=rsync' if you are changing "
+						. "need to use a command like 'finx selfupdate-cvs' "
+						. "or 'finx selfupdate --method=rsync' if you are changing "
 						. "your update method. \n\n");
 
 		if (length $prev_method and $method ne $prev_method) {
@@ -230,7 +230,7 @@ sub check {
 		}
 
 		# save new selection (explicit change or being set for first time)
-		&print_breaking("fink is setting your default update method to $method\n");
+		&print_breaking("finx is setting your default update method to $method\n");
 		$config->set_param("SelfUpdateMethod", $method);
 		$config->save();
 	}
@@ -257,12 +257,12 @@ Reread package descriptions (update local package database)
 
 =item 3.
 
-If a new version of the "fink" package itself is available, install
+If a new version of the "finx" package itself is available, install
 that new version.
 
 =item 4.
 
-If a new fink was installed, relaunch this fink session using it.
+If a new finx was installed, relaunch this finx session using it.
 Otherwise, do some more end-of-selfupdate tasks (see L<finish>).
 
 =back
@@ -274,7 +274,7 @@ sub do_finish {
 
 	# update the apt-get database
 	Fink::Engine::aptget_update()
-		or &print_breaking("Running 'fink scanpackages' may fix indexing problems.");
+		or &print_breaking("Running 'finx scanpackages' may fix indexing problems.");
 
 	# forget the package info
 	Fink::Package->forget_packages();
@@ -284,16 +284,16 @@ sub do_finish {
 
 	# update the package manager itself first if necessary (that is, if a
 	# newer version is available).
-	$package = Fink::PkgVersion->match_package("fink");
+	$package = Fink::PkgVersion->match_package("finx");
 	if (not $package->is_installed()) {
-		Fink::Engine::cmd_install("fink");
+		Fink::Engine::cmd_install("finx");
 
 		# re-execute ourselves before we update the rest
-		print "Re-executing fink to use the new version...\n";
-		exec "$basepath/bin/fink selfupdate-finish";
+		print "Re-executing finx to use the new version...\n";
+		exec "$basepath/bin/finx selfupdate-finish";
 
 		# the exec doesn't return, but just in case...
-		die "re-executing fink failed, run 'fink selfupdate-finish' manually\n";
+		die "re-executing finx failed, run 'finx selfupdate-finish' manually\n";
 	} else {
 		# package manager was not updated, just finish selfupdate directly
 		&finish();
@@ -304,7 +304,7 @@ sub do_finish {
 
   Fink::SelfUpdate::finish;
 
-Update all the packages that are part of fink itself or that have an
+Update all the packages that are part of finx itself or that have an
 Essential or other high importance.
 
 =cut
@@ -316,7 +316,7 @@ sub finish {
 	# this now (and re-selfupdate using it) because other Essential
 	# packages may have been updated beyond that tree and don't want
 	# "newer" packages to leak back into it. We are currently running
-	# the "new" fink, but hopefully it will remain compatible with
+	# the "new" finx, but hopefully it will remain compatible with
 	# 10.4's dpkg and other core things and won't matter if user has
 	# the new one even if it's not in 10.4's distro.
 	if ($config->param('distribution') eq '10.4'
@@ -326,13 +326,13 @@ sub finish {
 	) {
 		print_breaking <<EOMSG;
 You appear to be on OS X 10.4. This version of the operating system is
-no longer supported by the fink project. To maintain usability, you
+no longer supported by the finx project. To maintain usability, you
 must use a special selfupdate method that contains the last collection
-of packges expected to work well on 10.4. Now running 'fink selfupdate
+of packges expected to work well on 10.4. Now running 'finx selfupdate
 --method=10.4' to try to do that for you...
 EOMSG
-		exec "$basepath/bin/fink selfupdate --method=10.4";
-		die "re-executing fink failed, run 'fink selfupdate --method=10.4' manually\n";
+		exec "$basepath/bin/finx selfupdate --method=10.4";
+		die "re-executing finx failed, run 'finx selfupdate --method=10.4' manually\n";
 	}
 
 	unless (is_perl_supported()) {
@@ -356,7 +356,7 @@ EOMSG
 
 	my $updatepackages = 0;
 
-# FIXME: What is UpdatePackages ? yet another undefined fink.conf entry?
+# FIXME: What is UpdatePackages ? yet another undefined finx.conf entry?
 # apparently meant to list packages that selfupdate should update, too.
 # Only thing using it seems to be postinstall.pl(.in) uses it for upgrades from 10.4 to 10.5 and 10.6.
 
@@ -381,7 +381,7 @@ EOMSG
 	print "\n";
 	&print_breaking("The core packages have been updated. ".
 					"You should now update the other packages ".
-					"using commands like 'fink update-all'.");
+					"using commands like 'finx update-all'.");
 	print "\n";
 }
 
@@ -401,7 +401,7 @@ selfupdate that was performed for the active distribution.
 =cut
 
 sub last_done {
-	my $file_old = "$basepath/fink/$distribution/VERSION";
+	my $file_old = "$basepath/finx/$distribution/VERSION";
 	my $filename = "$file_old.selfupdate";
 
 	if (open my $FH, '<', $filename) {

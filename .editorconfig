@@ -20,7 +20,7 @@ indent_style = tab
 indent_size = 4
 
 # Perl 的 .in 模板（按 shebang 判定，扩展名不可靠）
-[{postinstall.pl.in,fink-virtual-pkgs.in,fink-instscripts.in,fink-scanpackages.in,fink-dpkg-status-cleanup.in,lockwait.in,Fink.pm.in,FinkVersion.pm.in,fink.in}]
+[{postinstall.pl.in,finx-virtual-pkgs.in,finx-instscripts.in,finx-scanpackages.in,finx-dpkg-status-cleanup.in,lockwait.in,Fink.pm.in,FinkVersion.pm.in,finx.in}]
 indent_style = tab
 indent_size = 4
 

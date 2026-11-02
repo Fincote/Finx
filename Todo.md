@@ -13,12 +13,12 @@ Minor
 
 * Implement "alternative dependancy templates" for symbols file
 
-* Implement Symbols: field in fink info files to custom symbols templates
+* Implement Symbols: field in finx info files to custom symbols templates
 
 Medium
 ======
 
-* replace "`fink list --help`" by a general "`fink --help [command]`" similar to how CVS does it (e.g. try "`cvs -H update`")
+* replace "`finx list --help`" by a general "`finx --help [command]`" similar to how CVS does it (e.g. try "`cvs -H update`")
 
 * add a mirror check utility that given some testcases will verify that all mirrors do still work
   

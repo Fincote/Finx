@@ -14,7 +14,7 @@ Minor
 Medium
 ======
 
-* replace "fink list --help" by a general "fink --help [command]" similiar to 
+* replace "finx list --help" by a general "finx --help [command]" similiar to 
   how CVS does it (e.g. try "cvs -H update")
 
 * add a mirror check utillity that given some testcases will verify that all mirrors

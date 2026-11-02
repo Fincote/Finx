@@ -2,7 +2,7 @@
 .Dd August 2020
 .Dt FINK 8
 .Sh NAME
-.Nm fink
+.Nm finx
 .Nd a package management system
 .Sh SYNOPSIS
 .Nm
@@ -66,7 +66,7 @@ not to delete the temporary installation directory
 in the
 .Cm Buildpath
 (see the
-.Cm fink.conf
+.Cm finx.conf
 manpage) after building a package.
 .It Cm -k, --keep-build-dir
 Causes
@@ -76,7 +76,7 @@ not to delete the package compile directory
 in the
 .Cm Buildpath
 (see the
-.Cm fink.conf
+.Cm finx.conf
 manpage) after building a package.
 .It Cm -b, --use-binary-dist
 Download pre-compiled binary packages from the binary distribution
@@ -94,7 +94,7 @@ Don't use pre-compiled binary packages from the binary distribution,
 opposite of the
 .Cm --use-binary-dist
 flag. This is the default unless overridden by a setting in
-.Pa fink.conf
+.Pa finx.conf
 configuration file.
 .It Cm --build-as-nobody
 Drop to a non-root user when performing the unpack, patch, compile,
@@ -137,7 +137,7 @@ then failures will be treated as warnings.
 .It Cm -l, --log-output
 Save a copy of the terminal output during each package building
 process. By default, the file is stored in
-.Pa /tmp/fink-build-log_[name]-[version]-[revision]_[date]-[time]
+.Pa /tmp/finx-build-log_[name]-[version]-[revision]_[date]-[time]
 but one can use the
 .Cm --logfile
 flag to specify an alternate filename.
@@ -171,15 +171,15 @@ Consider only packages in trees matching
 The format of
 .Pa expr
 is a comma-delimited list of tree specifications. Trees listed in
-.Pa fink.conf
+.Pa finx.conf
 are compared against
 .Pa expr .
 Only those which match at least one tree specification are considered by
-.Nm fink,
+.Nm finx,
 in the order of the first specifications which they match. If no
 .Cm --trees
 option is used, all trees listed in
-.Pa fink.conf
+.Pa finx.conf
 are included in order.
 .Pp
 A tree specification
@@ -228,20 +228,20 @@ Examples of
 and
 .Cm --exclude-trees :
 .Bl -tag -width flag -offset indent
-.It Cm fink --trees=stable,virtual,status install foo
+.It Cm finx --trees=stable,virtual,status install foo
 Install
 .Cm foo
 as if
 .Nm
 was using the stable tree, even if unstable is enabled in
-.Pa fink.conf .
-.It Cm fink --exclude-trees=local install foo
+.Pa finx.conf .
+.It Cm finx --exclude-trees=local install foo
 Install the version of
 .Cm foo
 in
 .Nm
 , not the locally modified version.
-.It Cm fink --trees=local/main list -i
+.It Cm finx --trees=local/main list -i
 List the locally modified packages which are installed.
 .El
 .El
@@ -282,11 +282,11 @@ The remove command removes the actual package files (excluding configuration
 files), but leaves the .deb compressed package file intact. This means that you
 can re-install the package later without going through the compile process again.
 If you need the disk space, you can remove the .deb from the
-.Pa @PREFIX@/fink/dists
+.Pa @PREFIX@/finx/dists
 tree.
 .Pp
 These flags can be used with the
-.Cm fink remove
+.Cm finx remove
 command
 .Bl -tag -width flag -offset indent -compact
 .It Cm -h,--help
@@ -301,11 +301,11 @@ Aliases:
 .It Cm purge Ar package...
 The purge command purges packages from the system.
 This is the same as
-.Cm fink remove
+.Cm finx remove
 except that it removes configuration files as well.
 .Pp
 These flags can be used with the
-.Cm fink purge
+.Cm finx purge
 command
 .Bl -tag -width flag -offset indent -compact
 .It Cm -h,--help
@@ -317,7 +317,7 @@ Also purge packages that depend on the package(s) to be purged.
 .It Cm update-all
 This command updates all installed packages to the latest version. It does
 not need a package list, so you just type:
-.Dl Cm fink update-all
+.Dl Cm finx update-all
 .It Cm list Oo Ar list-options Oc Op Ar package...
 This command produces a list of available packages. If no packages are
 specified, it will list all available packages. If one or more package
@@ -351,7 +351,7 @@ The version column always lists the latest (highest) version known for
 the package, regardless of what version (if any) you have
 installed. To see all versions of a package available on your system
 along with more detailed status information about each, use
-.Cm fink dumpinfo -fallversions
+.Cm finx dumpinfo -fallversions
 .Pp
 The following
 .Cm list-options
@@ -373,7 +373,7 @@ mode, the output is tab delimited and fields are not truncated
 regardles of screen size. The tabbed mode is useful for running the
 output through additional scripts or parsers, and is the default
 format when
-.Cm fink list
+.Cm finx list
 is used as part of a pipeline rather than as a simple command.
 .It Cm --format=table
 Output results in the standard fixed-width or tab-delimited table
@@ -388,7 +388,7 @@ by
 and other
 .Cm graphviz
 tools (compare to the human-readable list format of the
-.Cm fink show-deps
+.Cm finx show-deps
 command). This output mode just gives runtime dependencies of each
 package. This format mode also supports the
 .Cm --recursive
@@ -396,7 +396,7 @@ list-option.
 .Pp
 You can parse the output to get reverse-depends
 information, for example:
-.Dl fink list --format=dotty | grep ' \*[q]libgettext8-shlibs\*[q]'
+.Dl finx list --format=dotty | grep ' \*[q]libgettext8-shlibs\*[q]'
 will list all packages that have a runtime dependency on the
 libgettext8-shlibs package. Technically, this example lists all
 packages' runtime dependency data, and then selects the lines that
@@ -410,7 +410,7 @@ by
 and other
 .Cm graphviz
 tools (compare to the human-readable list format of the
-.Cm fink show-deps
+.Cm finx show-deps
 command). This output mode gives compiletime dependencies of each
 package, which includes runtime and build dependencies of every
 package in a family (packages built together). This format mode also
@@ -423,7 +423,7 @@ self-testing (i.e., including TestDepends data).
 .Pp
 You can parse the
 output to get reverse-builddepends information, for example:
-.Dl fink -m list --format=dotty-build | grep ' \*[q]libgettext8-dev\*[q]'
+.Dl finx -m list --format=dotty-build | grep ' \*[q]libgettext8-dev\*[q]'
 will list all packages that have a compiletime dependency on the
 libgettext8-dev package. Technically, this example lists all
 packages' compiletime dependency data, and then selects the lines that
@@ -457,19 +457,19 @@ Show only packages with the maintainer matching expr.
 .Pp
 Some usage examples:
 .Bl -tag -width flag -offset indent
-.It Cm fink list
+.It Cm finx list
 list all packages.
-.It Cm fink list bash
+.It Cm finx list bash
 check if bash is available and what version.
-.It Cm fink list --tab --outdated | cut -f2
+.It Cm finx list --tab --outdated | cut -f2
 just list the names of the out of date packages.
-.It Cm fink list --section=kde
+.It Cm finx list --section=kde
 list the packages in the kde section.
-.It Cm fink list --maintainer=fink-devel
+.It Cm finx list --maintainer=finx-devel
 list the packages with no maintainer.
-.It Cm fink --trees=unstable list --maintainer=fink-devel
+.It Cm finx --trees=unstable list --maintainer=finx-devel
 list the packages with no maintainer, but only in the unstable tree.
-.It Cm fink list Qq "gnome*"
+.It Cm finx list Qq "gnome*"
 list all packages that start with 'gnome'.
 .El
 .Pp
@@ -478,7 +478,7 @@ interpreting the pattern itself.
 .Pp
 .It Cm apropos Ar package...
 This command behaves similarly to
-.Cm fink list
+.Cm finx list
 except that
 .Ar package...
 must be supplied and it searches package descriptions as well as package
@@ -502,7 +502,7 @@ Downloads the named packages, but does not install them. This command will
 download the tarballs even if they were downloaded before.
 .Pp
 These flags can be used with the
-.Cm fink fetch
+.Cm finx fetch
 command
 .Bl -tag -width flag -offset indent -compact
 .It Cm -h,--help
@@ -524,7 +524,7 @@ package source files. Like fetch, this downloads the
 tarballs even when they were downloaded before.
 .Pp
 These flags can be used with the
-.Cm fink fetch-all
+.Cm finx fetch-all
 command
 .Bl -tag -width flag -offset indent -compact
 .It Cm -h,--help
@@ -544,7 +544,7 @@ package source files. This command will only download files
 that are not present on the system.
 .Pp
 These flags can be used with the
-.Cm fink fetch-missing
+.Cm finx fetch-missing
 command
 .Bl -tag -width flag -offset indent -compact
 .It Cm -h,--help
@@ -595,7 +595,7 @@ descriptions and updates the core packages, including
 itself. This command can upgrade to major point releases (for example,
 the set of packages that comes with a Fink binary installer), but it can also
 set up your
-.Pa @PREFIX@/fink/dists
+.Pa @PREFIX@/finx/dists
 directory tree for
 .Xr cvs 1
 or
@@ -605,7 +605,7 @@ This means that you then will be able to access the very latest
 revisions of all packages instead of only the point-release snapshot. If no
 .Ar options
 are given, the existing default update method is used as given in the
-.Xr fink.conf 5
+.Xr finx.conf 5
 file. Several
 .Ar options
 can be used to control the update process:
@@ -619,7 +619,7 @@ using it.
 Do some standard actions after the actual MODE-specific updating of
 the package descriptions (update the binary-repository data, refresh
 some internal indices, make sure
-.Ar fink
+.Ar finx
 itself and some other critical packages are up-to-date).
 .El
 .It Cm selfupdate-rsync
@@ -727,9 +727,9 @@ package is compiled. Output is in a form suitable to be fed to 'eval'.
 .It Cm show-deps Ar package...
 Displays a human-readable list of the compile-time (build) and
 run-time (installation) dependencies of the listed package(s). See the
-.Cm fink list --format=dotty
+.Cm finx list --format=dotty
 and
-.Cm fink list --format=dotty-build
+.Cm finx list --format=dotty-build
 commands for other ways of obtaining dependency (and
 reverse-dependency) information.
 .El
@@ -739,16 +739,16 @@ reverse-dependency) information.
 .\"
 .\"
 .Sh FILES
-.Pa @PREFIX@/var/lib/fink
+.Pa @PREFIX@/var/lib/finx
 .Bd -filled -offset indent -compact
 Package cache databases. Don't try to edit them manually--instead update using
-.Cm fink index.
+.Cm finx index.
 .Ed
 .Pp
-.Pa @PREFIX@/etc/fink.conf
+.Pa @PREFIX@/etc/finx.conf
 .Bd -filled -offset indent -compact
 The system wide configuration file. See
-.Xr fink.conf 5
+.Xr finx.conf 5
 for more information.
 .Ed
 .\"
@@ -764,7 +764,7 @@ https://www.finkproject.org/
 .\"
 .\"
 .Sh BUGS
-Check out fink's bug tracker at
+Check out finx's bug tracker at
 http://sourceforge.net/tracker/?group_id=17203&atid=117203
 for a current list of known bugs.
 .\"
@@ -791,4 +791,4 @@ is developed and maintained by The Fink Project (https://www.finkproject.org).
 .Xr apt-get 8 ,
 .Xr dselect 8 ,
 .Xr dpkg 8 ,
-.Xr fink.conf 5
+.Xr finx.conf 5

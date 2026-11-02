@@ -1,6 +1,6 @@
 #!/bin/sh -e
 #
-# setup.sh - configure fink package
+# setup.sh - configure finx package
 #
 # Fink - a package manager that downloads source and installs it
 # Copyright (c) 2001 Christoph Pfisterer
@@ -54,10 +54,10 @@ elif [ $osMajorVer -ge 23 -a $osMajorVer -le 27 ]; then
 fi
 
 
-echo "Creating $fink..." 
-sed -e "s|@BASEPATH@|$basepath|g" -e "s|@PERLEXE@|$perlexe|g" < fink.in > fink
+echo "Creating $finx..." 
+sed -e "s|@BASEPATH@|$basepath|g" -e "s|@PERLEXE@|$perlexe|g" < finx.in > finx
 
-for bin in fink-{virtual-pkgs,instscripts,scanpackages}; do
+for bin in finx-{virtual-pkgs,instscripts,scanpackages}; do
     echo "Creating $bin..."
     /usr/bin/sed -e "s|@BASEPATH@|$basepath|g" -e "s|@LIBPATH@|\$basepath/lib/perl5|g" < "$bin.in" > "$bin"
 done
@@ -72,13 +72,13 @@ echo "Creating Fink.pm..."
 /usr/bin/sed -e "s|@BASEPATH@|$basepath|g" <perlmod/Fink.pm.in >perlmod/Fink.pm
 
 echo "Creating man pages..."
-/usr/bin/sed "s|@PREFIX@|$basepath|g" <fink.8.in \
+/usr/bin/sed "s|@PREFIX@|$basepath|g" <finx.8.in \
     | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
-    >fink.8
+    >finx.8
 
-/usr/bin/sed "s|@PREFIX@|$basepath|g" <fink.conf.5.in \
+/usr/bin/sed "s|@PREFIX@|$basepath|g" <finx.conf.5.in \
     | perl -MTime::Local -MPOSIX=strftime -p -e '$d="Date:";if (s/(\.Dd \$$d) (\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+) \$/\1/) {$epochtime = timegm($7,$6,$5,$4,$3-1,$2-1900);$datestr = strftime "%B %e, %Y", localtime($epochtime); s/(\.Dd )\$$d/$1$datestr/;}' \
-    >fink.conf.5
+    >finx.conf.5
 
 echo "Creating shlibs default file..."
 /usr/bin/sed "s|@PREFIX@|$basepath|g" <shlibs.default.in >shlibs.default
@@ -92,7 +92,7 @@ packargs='"qqiss", 0, 0'
 
 echo "Creating dpkg helper script..."
 /usr/bin/sed -e "s|@PREFIX@|$basepath|g" -e "s|@PACKARGS@|$packargs|" \
-    <fink-dpkg-status-cleanup.in >fink-dpkg-status-cleanup
+    <finx-dpkg-status-cleanup.in >finx-dpkg-status-cleanup
 
 # note: because they are used at different times during bootstrapping,
 # it is important to NOT use the full path to the dpkg executable in

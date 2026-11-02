@@ -72,7 +72,7 @@ sub system_check {
 	}
 
 	if (!(-x "$gitpath")) {
-		warn "Before changing your selfupdate method to '$vcs', you must install the git package with 'fink install git'.\n";
+		warn "Before changing your selfupdate method to '$vcs', you must install the git package with 'finx install git'.\n";
 		return 0;
 	}
 
@@ -86,7 +86,7 @@ sub system_check {
 sub clear_metadata {
 	my $class = shift;  # class method for now
 
-	my $finkdir = "$basepath/fink";
+	my $finkdir = "$basepath/finx";
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
 			"move it out of the way before proceeding.\n";
@@ -103,7 +103,7 @@ Returns a null string.
 sub do_direct {
 	my $class = shift;  # class method for now
 
-	if (-d "$basepath/fink/.git") {
+	if (-d "$basepath/finx/.git") {
 		# already have a git checkout
 		$class->do_direct_git();
 	} else {
@@ -163,9 +163,9 @@ sub setup_direct_git {
 	print "\n";
 
 	# start by creating a temporary directory with the right permissions
-	$finkdir = "$basepath/fink";
+	$finkdir = "$basepath/finx";
 	$tempdir = "$finkdir.tmp";
-	$tempfinkdir = "$tempdir/fink";
+	$tempfinkdir = "$tempdir/finx";
 
 	if (-d "$finkdir.old") {
 		die "There is a left-over \"$finkdir.old\" directory. You have to ".
@@ -203,25 +203,25 @@ sub setup_direct_git {
 		$verbosity = "";
 	}
 	my $gitpath = $config->param("GitPath");
-	my $repository = 'https://github.com/fink/fink-distributions.git';
-	if (-f "$basepath/lib/fink/URL/git-repository") {
-		$repository = cat "$basepath/lib/fink/URL/git-repository";
+	my $repository = 'https://github.com/finx/finx-distributions.git';
+	if (-f "$basepath/lib/finx/URL/git-repository") {
+		$repository = cat "$basepath/lib/finx/URL/git-repository";
 		chomp($repository);
 	}
 	if ($vcsuser eq "anonymous") {
-		if (-f "$basepath/lib/fink/URL/anonymous-git") {
-			$repository = cat "$basepath/lib/fink/URL/anonymous-git";
+		if (-f "$basepath/lib/finx/URL/anonymous-git") {
+			$repository = cat "$basepath/lib/finx/URL/anonymous-git";
 			chomp($repository);
 		}
 	} else {
-		$repository = 'ssh://git@github.com/fink/fink-distributions.git';
-		if (-f "$basepath/lib/fink/URL/developer-git") {
-			$repository = cat "$basepath/lib/fink/URL/developer-git";
+		$repository = 'ssh://git@github.com/finx/finx-distributions.git';
+		if (-f "$basepath/lib/finx/URL/developer-git") {
+			$repository = cat "$basepath/lib/finx/URL/developer-git";
 			chomp($repository);
 		}
 	}
 	$cmd ="$gitpath";
-	$cmdd = "$cmd clone $verbosity $repository fink";
+	$cmdd = "$cmd clone $verbosity $repository finx";
 	if ($username ne "root") {
 		$cmdd = "/usr/bin/su $username -c '$cmdd'";
 	}
@@ -231,7 +231,7 @@ sub setup_direct_git {
 	}
 
 	my @trees = split(/\s+/, $config->param_default("SelfUpdateTrees", $distribution));
-	chdir "fink" or die "Can't cd to fink\n";
+	chdir "finx" or die "Can't cd to finx\n";
 
 	# Add $distribution to files that git will ignore.
 	open EXCLUDE, ">>.git/info/exclude" or die "Unable to edit exclude file: $!";
@@ -318,7 +318,7 @@ sub do_direct_git {
 		$verbosity = "";
 	}
 
-	$descdir = "$basepath/fink";
+	$descdir = "$basepath/finx";
 	chdir $descdir or die "Can't cd to $descdir: $!\n";
 
 	@sb = stat("$descdir/.git");
@@ -333,7 +333,7 @@ sub do_direct_git {
 
 	$msg .= "After that, the core packages will be updated right away; ".
 			"you should then update the other packages using commands like ".
-			"'fink update-all'.";
+			"'finx update-all'.";
 
 	print "\n";
 	&print_breaking($msg);

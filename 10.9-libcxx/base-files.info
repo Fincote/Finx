@@ -2,9 +2,9 @@ Info4: <<
 Package: base-files
 Version: 1.9.19
 Revision: 1
-Source: mirror:custom:fink/%n-%v.tar.gz
+Source: mirror:custom:finx/%n-%v.tar.gz
 Essential: yes
-Source-MD5: bc049153708725e2b3f1c8c3161b92b7
+Source-MD5: f875fa3780ffaf805046d127b09f80d4
 CompileScript: ./setup.sh %p
 InstallScript: ./install.sh %i
 DocFiles: COPYING NEWS README

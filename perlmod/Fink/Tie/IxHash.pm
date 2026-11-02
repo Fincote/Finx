@@ -1,7 +1,7 @@
 # This file is based on Tie::IxHash v1.23 from CPAN.
 # It was converted to Fink::Tie::IxHash and further modified
 # for use by Fink. You can read about these changes by browsing
-# the fink git repository.
+# the finx git repository.
 
 #
 # Indexed hash implementation for Perl

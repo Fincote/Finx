@@ -4,7 +4,7 @@ use strict;
 use Test::More 'no_plan';
 
 use Fink::Config;
-my $config_obj = Fink::Config->new_with_path('basepath/etc/fink.conf');
+my $config_obj = Fink::Config->new_with_path('basepath/etc/finx.conf');
 
 
 {
@@ -29,10 +29,10 @@ my $config_obj = Fink::Config->new_with_path('basepath/etc/fink.conf');
 	::is( $basepath, $config->param('basepath') );
 
 	# need a libpath() method
-	::is( $libpath,  $basepath."/lib/fink" );
+	::is( $libpath,  $basepath."/lib/finx" );
 
 	# need a buildpath() method
-	::is( $buildpath, $config->param_default("Buildpath", "$basepath/src/fink.build") );
+	::is( $buildpath, $config->param_default("Buildpath", "$basepath/src/finx.build") );
           
 	::is( $distribution, $config->param('Distribution') );
 }

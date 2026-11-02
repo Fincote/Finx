@@ -11,7 +11,7 @@ CustomMirror: <<
 Source: mirror:custom:%n60.tgz
 Source-MD5: 62b490407489521db863b523a7f86375
 SourceDirectory: %n60
-BuildDepends: fink (>= 0.30.0)
+BuildDepends: finx (>= 0.30.0)
 InfoTest: TestScript: make -k check || exit 2
 DocFiles: BUGS INSTALL LICENSE README ToDo WHERE
 Homepage: http://infozip.sourceforge.net/UnZip.html

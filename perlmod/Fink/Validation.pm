@@ -111,7 +111,7 @@ our %name_version_fields = map {$_, 1}
 		 patch
 		);
 
-# Free-form text fields which display in 'fink describe'
+# Free-form text fields which display in 'finx describe'
 our %text_describe_fields = map {$_, 1}
 	qw(
 		 descdetail descusage
@@ -383,7 +383,7 @@ END { }				# module clean-up code here (global destructor)
 #		checksum (vs PatchFile-MD5), make sure Patch is not present,
 #		that %a is not used in PatchScript but that %{patchfile} or
 #		{%default_script} is, and that pkg declares BuildDepends on a
-#		version of fink that supports this field.
+#		version of finx that supports this field.
 #	+ all required fields are present
 #	+ warn if obsolete fields are encountered
 #	+ warn about missing Description/Maintainer/License fields
@@ -399,7 +399,7 @@ END { }				# module clean-up code here (global destructor)
 #		(from Patch and PatchScript)
 #	+ correspondence between source* and source*-md5 fields
 #	+ if type is bundle/nosource - warn about usage of "Source" etc.
-#	+ if 'fink describe' output will display poorly on vt100
+#	+ if 'finx describe' output will display poorly on vt100
 #	+ Check Package/Version/Revision for disallowed characters
 #	+ Check if have sufficient InfoN if using their features
 #	+ Warn if shbang in dpkg install-time scripts
@@ -475,15 +475,15 @@ sub validate_info_file {
 	# determine the base path
 	if (defined $val_prefix) {
 		$basepath = $val_prefix;
-		$buildpath = "$basepath/src/fink.build";
+		$buildpath = "$basepath/src/finx.build";
 	} else {
 		$basepath = $config->param_default("basepath", "/opt/finx");
-		$buildpath = $config->param_default("buildpath", "$basepath/src/fink.build");
+		$buildpath = $config->param_default("buildpath", "$basepath/src/finx.build");
 	}
 
 	# make sure have InfoN (N>=2) if use Info2 features
 	if ($info_level < 2) {
-		# fink-0.16.1 can't even index if unknown %-exp in *any* field!
+		# finx-0.16.1 can't even index if unknown %-exp in *any* field!
 		foreach (sort keys %$properties) {
 			next if /^splitoff\d*$/;  # SplitOffs checked later
 			if ($properties->{$_} =~ /\%type_(raw|pkg)\[.*?\]/) {
@@ -495,7 +495,7 @@ sub validate_info_file {
 
 	# make sure have InfoN (N>=4) if using Info4 features
 	if ($info_level < 4) {
-		# fink-0.26.1 can't even index if unknown %-exp in ConfigureParams field!
+		# finx-0.26.1 can't even index if unknown %-exp in ConfigureParams field!
 		if (exists $properties->{configureparams}) {
 			if ($properties->{configureparams} =~ /\%lib/) {
 				print "Error: Use of %lib expansion in ConfigureParams field requires InfoN level 4 or higher. ($filename)\n";
@@ -706,10 +706,10 @@ sub validate_info_file {
 				print "Error: \"$_\" does not have a corresponding \"$md5_field\" or \"$checksum_field\" field. ($filename)\n";
 				$looks_good = 0;
 			}
-			# fink recently changed .tar.xz source handling (now
+			# finx recently changed .tar.xz source handling (now
 			# auto-extracts) and maybe other .xz effects as well
 			if (exists $source_props->{$_} and $source_props->{$_} =~ /\.xz$/ ) {
-				$looks_good=0 unless _require_dep($properties, {build => {'fink' => '0.32'} }, 'use of a .xz source archive', $filename);
+				$looks_good=0 unless _require_dep($properties, {build => {'finx' => '0.32'} }, 'use of a .xz source archive', $filename);
 			}
 		}
 	}
@@ -844,7 +844,7 @@ sub validate_info_file {
 
 			# make sure have InfoN (N>=2) if use Info2 features
 			if ($info_level < 2) {
-				# fink-0.16.1 can't even index if unknown %-exp in *any* field!
+				# finx-0.16.1 can't even index if unknown %-exp in *any* field!
 				foreach (sort keys %$splitoff_properties) {
 					if ($splitoff_properties->{$_} =~ /\%type_(raw|pkg)\[.*?\]/) {
 						print "Error: Use of %type_ expansions (field \"$_\" of \"$field\") requires InfoN level 2 or higher. ($filename)\n";
@@ -1003,13 +1003,13 @@ sub validate_info_file {
 			$looks_good = 0;
 		}
 
-		# must declare BuildDepends on a fink that supports it
+		# must declare BuildDepends on a finx that supports it
 		if ($field eq "patchfile") {
 # 0.24.12 came out many years ago and nothing that old likely even
 # boots on any currently supported OSX
-#			$looks_good = 0 unless _require_dep($properties, {build => {'fink' => '0.24.12'} }, 'use of PatchFile', $filename);
+#			$looks_good = 0 unless _require_dep($properties, {build => {'finx' => '0.24.12'} }, 'use of PatchFile', $filename);
 		} else {
-			$looks_good = 0 unless _require_dep($properties, {build => {'fink' => '0.30.0'} }, 'use of PatchFileN', $filename);
+			$looks_good = 0 unless _require_dep($properties, {build => {'finx' => '0.30.0'} }, 'use of PatchFileN', $filename);
 		}
 
 		# can't mix old and new patching styles
@@ -1401,7 +1401,7 @@ sub validate_info_component {
 		next if $field =~ /^splitoff/;   # we don't do recursive stuff here
 		$value = $properties->{$field};
 
-		# Check for a hardcoded installation prefix (fink can be installed at
+		# Check for a hardcoded installation prefix (finx can be installed at
 		# other prefixes). 规范前缀 /opt/finx 与旧 Fink 的 /sw、/opt/sw 都算。
 		if ($check_hardcode_fields{$field} and $value =~ $hardcoded_prefix_re) {
 			print "Warning: Field \"$field\"$splitoff_field appears to contain a hardcoded installation prefix. ($filename)\n";
@@ -1523,10 +1523,10 @@ sub validate_info_component {
 		}
 	}
 
-	# Packages using RuntimeDepends must BuildDepends on a fink that supports it
+	# Packages using RuntimeDepends must BuildDepends on a finx that supports it
 	$value = $properties->{runtimedepends};
 	if (defined $value) {
-		$looks_good = 0 unless _require_dep(\%options, { build => {'fink' => '0.32'} }, 'use of RuntimeDepends', $filename);
+		$looks_good = 0 unless _require_dep(\%options, { build => {'finx' => '0.32'} }, 'use of RuntimeDepends', $filename);
 	}
 
 	# A bug related to RuntimeVars ordering was fixed; it could
@@ -1535,7 +1535,7 @@ sub validate_info_component {
 	$value = $properties->{runtimevars};
 	if (defined $value and $value =~ /\$/) {
 		warn "  heuristic match\n";
-		$looks_good = 0 unless _require_dep(\%options, { build => {'fink' => '0.39.4'} }, 'use of shell variables in RuntimeVars variable values', $filename);
+		$looks_good = 0 unless _require_dep(\%options, { build => {'finx' => '0.39.4'} }, 'use of shell variables in RuntimeVars variable values', $filename);
 	}
 
 	# check syntax of each line of Shlibs field
@@ -1548,11 +1548,11 @@ sub validate_info_component {
 			next unless /\S/;
 
 			if (s/^\(.*?\)\s*//) {
-				$looks_good = 0 unless _require_dep(\%options, { build => {'fink' => '0.27.2'} }, 'use of conditionals in Shlibs', $filename);
+				$looks_good = 0 unless _require_dep(\%options, { build => {'finx' => '0.27.2'} }, 'use of conditionals in Shlibs', $filename);
 		}
 
 			if (/^\!\s*(.*)/) {
-				$looks_good = 0 unless _require_dep(\%options, { build => {'fink' => '0.28'} }, 'private-library entry in Shlibs', $filename);
+				$looks_good = 0 unless _require_dep(\%options, { build => {'finx' => '0.28'} }, 'private-library entry in Shlibs', $filename);
 				if ($1 =~ /\s/) {
 					print "Warning: Malformed line in field \"shlibs\"$splitoff_field.\n  $_\n";
 					$looks_good = 0;
@@ -1620,20 +1620,20 @@ sub validate_info_component {
 
 	$value = $properties->{conffiles};
 	if (defined $value and $value =~ /\(.*?\)/) {
-		$looks_good = 0 unless _require_dep(\%options, { build => {'fink' => '0.27.2'} }, 'use of conditionals in ConfFiles', $filename);
+		$looks_good = 0 unless _require_dep(\%options, { build => {'finx' => '0.27.2'} }, 'use of conditionals in ConfFiles', $filename);
 	}
 
 	if (defined $properties->{triggers}) {
-		# Packages using Triggers must BuildDepends on a fink that
+		# Packages using Triggers must BuildDepends on a finx that
 		# supports it
-		$looks_good = 0 unless _require_dep(\%options, {build => {'fink' => '0.45.99.git'} }, 'use of Triggers', $filename);
+		$looks_good = 0 unless _require_dep(\%options, {build => {'finx' => '0.45.99.git'} }, 'use of Triggers', $filename);
 	}
 
 	# Debconf
 	if (defined $properties->{debconf}) {
-		# Packages using Debconf requires bdep on fink that supports it
+		# Packages using Debconf requires bdep on finx that supports it
 		# and dep on debconf
-		$looks_good = 0 unless _require_dep(\%options, {build => {'fink' => '0.45.99.git'} }, 'use of Triggers', $filename);
+		$looks_good = 0 unless _require_dep(\%options, {build => {'finx' => '0.45.99.git'} }, 'use of Triggers', $filename);
 		my $ckdepends = &pkglist2lol($properties->{depends});
 
 		my $has_debconf_dep = 0;
@@ -1715,7 +1715,7 @@ sub validate_info_component {
 			'debhelper'   => '0.45.99.git',
 		}->{$value};
 		if (defined $ds_min) {
-			$looks_good = 0 unless _require_dep($properties, { build => {'fink' => $ds_min} }, "use of DefaultScript:$value", $filename);
+			$looks_good = 0 unless _require_dep($properties, { build => {'finx' => $ds_min} }, "use of DefaultScript:$value", $filename);
 		} else {
 			print "Warning: unknown DefaultScript type \"$value\". ($filename)\n";
 			$looks_good = 0;
@@ -1752,7 +1752,7 @@ sub validate_dpkg_file {
 
 	# create a dummy packaging directory (%d)
 	# NB: File::Temp::tempdir CLEANUP breaks if we fork!
-	my $destdir = tempdir('fink-validate-deb-unpack.XXXXXXXXXX', DIR => File::Spec->tmpdir );
+	my $destdir = tempdir('finx-validate-deb-unpack.XXXXXXXXXX', DIR => File::Spec->tmpdir );
 
 	print "Validating .deb file $dpkg_filename...\n";
 
@@ -1836,14 +1836,14 @@ sub _validate_dpkg {
 	chomp(my $otool64 = `which otool64 2>/dev/null`); # older OSX has separate tool for 64-bit
 	undef $otool64 unless -x $otool64;				  # binaries (otool itself cannot handle them)
 	my $basepath;   # %p
-	my $buildpath;  # BuildPath from fink.conf
+	my $buildpath;  # BuildPath from finx.conf
 	# determine the base path
 	if (defined $val_prefix) {
 		$basepath = $val_prefix;
-		$buildpath = "$basepath/src/fink.build";
+		$buildpath = "$basepath/src/finx.build";
 	} else {
 		$basepath = $config->param_default("basepath", "/opt/finx");
-		$buildpath = $config->param_default("buildpath", "$basepath/src/fink.build");
+		$buildpath = $config->param_default("buildpath", "$basepath/src/finx.build");
 	}
 
 	# these are used in a regex and are automatically prepended with ^
@@ -2111,7 +2111,7 @@ sub _validate_dpkg {
 			foreach (qw/ postinst postrm /) {
 				next if $_ eq "postrm" && $deb_control->{package} eq "scrollkeeper"; # circular dep
 				if (not grep { /^\s*scrollkeeper-update/ } @{$dpkg_script->{$_}}) {
-					&stack_msg($msgs, "Scrollkeeper source file found, but scrollkeeper-update not called in $_. See rarian-compat package docs, starting with 'fink info rarian-compat', for information.", $filename);
+					&stack_msg($msgs, "Scrollkeeper source file found, but scrollkeeper-update not called in $_. See rarian-compat package docs, starting with 'finx info rarian-compat', for information.", $filename);
 				}
 			}
 		}
@@ -2123,7 +2123,7 @@ sub _validate_dpkg {
 
 		# check for presence of compiled scrollkeeper
 		if ($filename =~ /^$basepath\/var\/scrollkeeper\/.+/) {
-			&stack_msg($msgs, "Runtime scrollkeeper file installed, which usually results from calling scrollkeeper-update during CompileScript or InstallScript. See the\nscrollkeeper package docs, starting with 'fink info scrollkeeper', for information on the correct use of that utility.", $filename);
+			&stack_msg($msgs, "Runtime scrollkeeper file installed, which usually results from calling scrollkeeper-update during CompileScript or InstallScript. See the\nscrollkeeper package docs, starting with 'finx info scrollkeeper', for information on the correct use of that utility.", $filename);
 		}
 
 		# special checks for daemonic files
@@ -2166,10 +2166,10 @@ sub _validate_dpkg {
 				while (<$datafile>) {
 					chomp;
 					if (/$pkgbuilddir/) {
-						&stack_msg($msgs, "Published $filetype compiler information points to fink build dir.", $filename);
+						&stack_msg($msgs, "Published $filetype compiler information points to finx build dir.", $filename);
 						last;
 					} elsif (/$pkginstdirs/) {
-						&stack_msg($msgs, "Published $filetype compiler information points to fink install dir.", $filename);
+						&stack_msg($msgs, "Published $filetype compiler information points to finx install dir.", $filename);
 						last;
 					}
 				}
@@ -2184,10 +2184,10 @@ sub _validate_dpkg {
 			if (!-l $File::Find::name and open my $py_file, '-|', 'strings', $File::Find::name) {
 				while (<$py_file>) {
 					if (/$pkgbuilddir/) {
-						&stack_msg($msgs, "Compiled python module points to fink build dir.", $filename);
+						&stack_msg($msgs, "Compiled python module points to finx build dir.", $filename);
 						last;
 					} elsif (/$pkginstdirs/) {
-						&stack_msg($msgs, "Compiled python module points to fink install dir.", $filename);
+						&stack_msg($msgs, "Compiled python module points to finx install dir.", $filename);
 						last;
 					}
 				}
@@ -2270,8 +2270,8 @@ sub _validate_dpkg {
 				while (<$gtkdocfile>) {
 					chomp;
 					if (/href\s*=\s*"(\/[^"]+)"/) { # extract target of HREF attribute
-						if ($1 !~ /^$basepath\/.*/ and !$seen_lines{$_}++) { # see if it begins with fink prefix
-							&stack_msg($msgs, "Bad local URL (\"$1\" does not look like a fink location).", $filename, $_);
+						if ($1 !~ /^$basepath\/.*/ and !$seen_lines{$_}++) { # see if it begins with finx prefix
+							&stack_msg($msgs, "Bad local URL (\"$1\" does not look like a finx location).", $filename, $_);
 						}
 					}
 				}
@@ -2310,7 +2310,7 @@ sub _validate_dpkg {
 	}
 
 	# handle BuildDependsOnly flags set during file-by-file checks
-	# Note that if the .deb was compiled with an old version of fink which
+	# Note that if the .deb was compiled with an old version of finx which
 	# does not record the BuildDependsOnly field, or with an old version
 	# which did not use the "Undefined" value for the BuildDependsOnly field,
 	# the warning is not issued
@@ -2336,7 +2336,7 @@ sub _validate_dpkg {
 	# scrollkeeper-update should be called from PostInstScript and PostRmScript
 	foreach (qw/ preinst prerm /) {
 		if (grep { /^\s*scrollkeeper-update/ } @{$dpkg_script->{$_}}) {
-			print "Warning: scrollkeeper-update in $_ is a no-op\nSee scrollkeeper package docs, starting with 'fink info scrollkeeper', for information.\n";
+			print "Warning: scrollkeeper-update in $_ is a no-op\nSee scrollkeeper package docs, starting with 'finx info scrollkeeper', for information.\n";
 			$looks_good = 0;
 		}
 	}
@@ -2365,8 +2365,8 @@ sub _validate_dpkg {
 			$file = resolve_rooted_symlink($destdir, $shlibs_file);
 		}
 		if (not defined $file) {
-			if ($deb_control->{'package'} eq 'fink') {
-				# fink is a special case, it has a shlibs field that provides system-shlibs
+			if ($deb_control->{'package'} eq 'finx') {
+				# finx is a special case, it has a shlibs field that provides system-shlibs
 			} elsif ($deb_shlibs->{$shlibs_file}->{'is_private'}) {
 				# AKH: it appears that we've been allowing @rpath and friends for private libraries?
 				if ($shlibs_file !~ /^\@/) {

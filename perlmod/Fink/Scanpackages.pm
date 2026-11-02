@@ -305,7 +305,7 @@ sub scan_fink {
 	my @dists = map { "dists/$_/binary-".$config->param('Debarch') } @trees;
 
 	# Get some more params
-	my $basedir = $Fink::Config::basepath . "/fink";
+	my $basedir = $Fink::Config::basepath . "/finx";
 	my %release = (
 		Origin	=> 'Fink',
 		Label	=> 'Fink',
@@ -313,7 +313,7 @@ sub scan_fink {
 	);
 
 	# Always use a DB
-	$self->{db} = $Fink::Config::basepath . "/var/lib/fink/scanpackages.db"
+	$self->{db} = $Fink::Config::basepath . "/var/lib/finx/scanpackages.db"
 		unless defined $self->{db};
 
 	$self->scan_dists({%$options, basedir => $basedir, release => \%release},
@@ -333,7 +333,7 @@ sub default_cache {
 	my ($self) = @_;
 
 	$self->_ensure_fink;
-	return $Fink::Config::basepath . "/var/lib/fink/scanpackages.db";
+	return $Fink::Config::basepath . "/var/lib/finx/scanpackages.db";
 }
 
 # Initialize the object
@@ -389,7 +389,7 @@ sub _ensure_fink {
 	unless (ref($self) && $self->{_fink_loaded}) {
 		require Fink::Config;
 
-		# Make sure fink has a config
+		# Make sure finx has a config
 		&_use_fink() unless defined $Fink::Config::config;
 		$self->{_fink_loaded} = 1 if ref($self);
 	}
@@ -612,9 +612,9 @@ if (eval { require Fink }) {
 } else {
 	# Not so safe :-(
 	*_use_fink = sub {
-		(my $basepath = `which fink`) =~ s,/bin/fink\n$,,
-			or die "ERROR: Can't find fink!\n";
-		Fink::Config->new_with_path("$basepath/etc/fink.conf");
+		(my $basepath = `which finx`) =~ s,/bin/finx\n$,,
+			or die "ERROR: Can't find finx!\n";
+		Fink::Config->new_with_path("$basepath/etc/finx.conf");
 	};
 }
 

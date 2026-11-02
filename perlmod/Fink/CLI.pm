@@ -259,7 +259,7 @@ If the option 'default' is given, then its value will be
 returned if no input is detected.
 
 This can occur if the user enters a null string, or if Fink
-is configured to automatically accept defaults (i.e., bin/fink
+is configured to automatically accept defaults (i.e., bin/finx
 was invoked with the -y or --yes option).
 
 Default value: null string
@@ -311,7 +311,7 @@ If the option 'default' is given, then its B<truth>-value will be
 returned if no input is detected.
 
 This can occur if the user enters a null string, or if Fink
-is configured to automatically accept defaults (i.e., bin/fink
+is configured to automatically accept defaults (i.e., bin/finx
 was invoked with the -y or --yes option).
 
 Default value: true
@@ -391,7 +391,7 @@ If the option 'default' is given, then it determines which choice
 will be returned if no input is detected.
 
 This can occur if the user enters a null string, or if Fink
-is configured to automatically accept defaults (i.e., bin/fink
+is configured to automatically accept defaults (i.e., bin/finx
 was invoked with the -y or --yes option).
 
 The following formats are recognized for the 'default' option:
@@ -531,7 +531,7 @@ STDIN.
 
 Returns the entered string
 (including the trailing newline), or a null string if the timeout
-expires or immediately (without waiting for input) if fink is suppressing
+expires or immediately (without waiting for input) if finx is suppressing
 the prompt (run with the -y option or with an appropriate SuppressPrompts).
 If not suppressing a prompt, this function destroys any pre-existing alarm().
 STDIN is flushed before accepting input, so stray keystrokes prior to
@@ -550,7 +550,7 @@ many seconds for input before giving up.
 =item category => $category (optional)
 
 Categorizes this prompt. If $category is listed in the comma-delimited
-SuppressPrompts in fink.conf, will use the default value and not prompt the
+SuppressPrompts in finx.conf, will use the default value and not prompt the
 user.
 
 =back

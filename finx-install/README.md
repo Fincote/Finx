@@ -2,8 +2,8 @@
 
 面向用户的 Finx 安装器。
 
-**这不是 `fink` 包的安装阶段脚本。** 那个是仓库根的 [`install.sh`](../install.sh)，
-由 [`fink.info.in`](../fink.info.in) 的 `InstallScript` 调用。两者的命名冲突与取舍见
+**这不是 `finx` 包的安装阶段脚本。** 那个是仓库根的 [`install.sh`](../install.sh)，
+由 [`finx.info.in`](../finx.info.in) 的 `InstallScript` 调用。两者的命名冲突与取舍见
 [`docs/TECHNICAL-GUIDE.md`](../docs/TECHNICAL-GUIDE.md) 8.7。
 
 ## 一、一条命令
@@ -101,8 +101,8 @@ finx-install/
 4. 取产物    本地拷贝，或按清单里的 url 逐个尝试（.part 续传）
 5. 校验      体积 + SHA256，任一不符即中止
 6. 落盘      mkdir 前缀 → tar 解到前缀
-7. 收尾      权限归一、Mach-O ad-hoc 重签名、写 fink.conf
-8. 收束      fink scanpackages，提示 source <prefix>/bin/init.sh
+7. 收尾      权限归一、Mach-O ad-hoc 重签名、写 finx.conf
+8. 收束      finx scanpackages，提示 source <prefix>/bin/init.sh
 ```
 
 **校验在落盘之前**：失败时不会留下一个空壳目录。
@@ -127,7 +127,7 @@ bootstrap 自己会建前缀、写配置、建索引，所以源码模式没有�
 | `standalone.sh` 提交进仓库 | 见第三节；用 `--check` 防漂移 |
 | `--seed-dir` 一等公民 | 让整个安装器可以完全离线自测，CI 不需要网络 |
 | 不做「警告后继续」 | 校验失败即中止，与 `docs/TECHNICAL-GUIDE.md` 8.1 的强校验要求一致 |
-| 前缀归 root，不 chown 给调用者 | 见 TECHNICAL-GUIDE 8.6：chown 既免不了 `fink install` 的密码，又会让 `$prefix/bin/dpkg` 变成 root 的可控输入。这里采纳 MacPorts 模型 —— 每次装包都要 sudo，但只需要一份系统级二进制分发 |
+| 前缀归 root，不 chown 给调用者 | 见 TECHNICAL-GUIDE 8.6：chown 既免不了 `finx install` 的密码，又会让 `$prefix/bin/dpkg` 变成 root 的可控输入。这里采纳 MacPorts 模型 —— 每次装包都要 sudo，但只需要一份系统级二进制分发 |
 
 ## 六、还没做的（按优先级）
 
@@ -210,7 +210,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
 FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 ```
 
-覆盖的场景：dry-run 不留痕、默认前缀落在测试根内、种子解包正确、`fink.conf` 记录沙箱前缀、
+覆盖的场景：dry-run 不留痕、默认前缀落在测试根内、种子解包正确、`finx.conf` 记录沙箱前缀、
 重复安装被拒、越界前缀被拒（含 `..` 与符号链接两种逃逸）、sha256 不符被拒且不留目录、
 管道模式可装、`standalone.sh` 与源同步、多镜像回退、清单不可达被拒。
 
@@ -219,7 +219,13 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 - **一个真的 Mach-O**（用 `cc` 现场编）。否则 `resign_macho` 只会打印 `re-signed 0`，
   签名分支等于从没执行过。断言要求它确实被重签，且 `codesign -v` 通过。
   机器上没有 `cc` 时明说跳过，不假装通过。
-- **`init.sh`**。安装器的收尾提示会让用户 `source` 它，假种子缺了这条提示就是空话。
+- **`init.sh` 与 `pathsetup.sh`**。收尾提示会让用户 `source` 前者，并指向后者
+  做持久化；假种子缺了它们，那条提示就是空话。
+
+收尾**不自动改用户 shell 的启动文件**。这个安装器的典型用法是 `curl ... | bash`，
+在用户没看清的情况下动 `.zprofile` 是坏做法，改错了也很难发现。所以它按 `$SHELL`
+给出精确到目标文件的那一行，用户复制粘贴即可；想让它代劳的，指向随包安装的
+`pathsetup.sh`（那个会先问）。
 
 下载路径也真的走了一遍：多镜像那组用 `file://` URL 模拟，第一个地址指向不存在的文件，
 断言安装仍然成功、且日志里报告了那次镜像失败。
@@ -228,9 +234,9 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 
 ```
 BASE=$(mktemp -d)
-mkdir -p "$BASE/seed/bin" "$BASE/seed/lib/fink" "$BASE/seed/etc"
-printf '#!/bin/sh\necho "stub fink $*"\n' > "$BASE/seed/bin/fink"
-chmod 755 "$BASE/seed/bin/fink"
+mkdir -p "$BASE/seed/bin" "$BASE/seed/lib/finx" "$BASE/seed/etc"
+printf '#!/bin/sh\necho "stub finx $*"\n' > "$BASE/seed/bin/finx"
+chmod 755 "$BASE/seed/bin/finx"
 tar -czf "$BASE/seed.tar.gz" -C "$BASE/seed" .
 
 SIZE=$(wc -c < "$BASE/seed.tar.gz" | tr -d ' ')
@@ -240,7 +246,7 @@ printf 'schema 1\nrelease 0.46.0\narch %s\nseed seed.tar.gz\nsize %s\nsha256 %s\
 
 FINX_TEST="$BASE" ./finx-install/install.sh --seed-dir="$BASE" --dry-run
 FINX_TEST="$BASE" ./finx-install/install.sh --seed-dir="$BASE"
-cat "$BASE/opt/finx/etc/fink.conf"
+cat "$BASE/opt/finx/etc/finx.conf"
 
 # 管道模式
 cat finx-install/standalone.sh | FINX_TEST="$BASE" /bin/bash -s -- --seed-dir="$BASE" --prefix="$BASE/piped"

@@ -90,7 +90,7 @@ sub do_notify {
 		$self->initialized(1);
 	}
 
-	my $image = $basepath . '/share/fink/images/' . $args{'event'} . '.png';
+	my $image = $basepath . '/share/finx/images/' . $args{'event'} . '.png';
 	$image = undef unless -r $image;
 
 	my $sticky = ($args{'event'} =~ /Failed$/);

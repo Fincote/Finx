@@ -1,4 +1,4 @@
-Package: fink
+Package: finx
 Version: @VERSION@
 Revision: @REVISION@
 Distribution: @DISTRIBUTION@
@@ -23,25 +23,25 @@ make test PREFIX=%p ARCHITECTURE=%m DISTRIBUTION=@DISTRIBUTION@
 <<
 InstallScript: <<
 ./install.sh %i %m
-install -c -p -m 644 fink.shlibs "%d/DEBIAN/shlibs"
+install -c -p -m 644 finx.shlibs "%d/DEBIAN/shlibs"
 <<
 PostInstScript: <<
-%p/lib/fink/postinstall.pl %m
-%p/bin/fink --no-use-binary-dist index
+%p/lib/finx/postinstall.pl %m
+%p/bin/finx --no-use-binary-dist index
 
 # try to clean up left-overs from previous versions (old location)
-rm -f %p/var/db/fink.db
+rm -f %p/var/db/finx.db
 rm -f %p/var/db/shlibs.db
-rm -f %p/var/lib/fink/fink.db
+rm -f %p/var/lib/finx/finx.db
 <<
 PreRmScript: <<
 # clean up package indexes
-[ \! -d %p/var/lib/fink/finkinfodb ] || /usr/bin/touch %p/var/lib/fink/finkinfodb/invalidate
-rm -f %p/var/lib/fink/index.db
-rm -f %p/var/lib/fink/index.db.lock
-rm -f %p/var/lib/fink/infolist
-rm -f %p/var/lib/fink/shlibs.db
-rm -f %p/var/lib/fink/shlibs.db.lock
+[ \! -d %p/var/lib/finx/finkinfodb ] || /usr/bin/touch %p/var/lib/finx/finkinfodb/invalidate
+rm -f %p/var/lib/finx/index.db
+rm -f %p/var/lib/finx/index.db.lock
+rm -f %p/var/lib/finx/infolist
+rm -f %p/var/lib/finx/shlibs.db
+rm -f %p/var/lib/finx/shlibs.db.lock
 <<
 #
 Description: Open-source software package manager
@@ -51,7 +51,7 @@ which do not know that mirror can still selfupdate.
 
 Must put "make test" before "./setup.sh %p %m", because make test runs
 the setup script itself, but pointed at the testing directory.
-The second run of setup.sh properly points fink at the installed
+The second run of setup.sh properly points finx at the installed
 configuration file.
 
 We are using Conflicts/Replaces against gcc3.1 so that the Fink gcc3.1 
@@ -59,7 +59,7 @@ package is removed (in favor of an Apple-supplied gcc 3.1, represented
 by a virtual package).
 <<
 DescDetail: <<
-fink is the Fink project's package manager. It is responsible for
+finx is the Fink project's package manager. It is responsible for
 downloading and compiling source and building binary packages from
 it. Binary package handling is then delegated to dpkg.
 <<

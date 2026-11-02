@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 #
-# fink-virtual-pkgs
+# finx-virtual-pkgs
 # Copyright (c) 2001 Christoph Pfisterer
 # Copyright (c) 2001-2023 The Fink Package Manager Team
 # Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
@@ -132,7 +132,7 @@ if ($standalone == 0) {
 }
 else
 {
-# We are running without fink modules, so just kernel and macOS pkgs
+# We are running without finx modules, so just kernel and macOS pkgs
 	my $macosx_version = 0;
 	if (-x "/usr/bin/sw_vers") {
 		open my $sw_vers, '-|', '/usr/bin/sw_vers' or die "Couldn't determine system version: $!\n";
@@ -204,7 +204,7 @@ END
 }
 
 sub UseFinkModules {
-	# Be careful about using fink modules
+	# Be careful about using finx modules
 	eval { 
 		die unless -d "$libpath";
 		require lib;
@@ -221,7 +221,7 @@ sub UseFinkModules {
 	# read the configuration file
 	if ($standalone != 1)
 	{
-		my $configpath = "$basepath/etc/fink.conf";
+		my $configpath = "$basepath/etc/finx.conf";
 		if (-f $configpath) {
 			$config = read_config($configpath,
 															{ Basepath => "$basepath" }

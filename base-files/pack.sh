@@ -18,9 +18,9 @@
 #
 # pack.sh - 打 base-files 的载荷 tar
 #
-# base-files 的源码原先只在 SourceForge 上（`mirror:custom:fink/%n-%v.tar.gz`），
+# base-files 的源码原先只在 SourceForge 上（`mirror:custom:finx/%n-%v.tar.gz`），
 # 而这台机器上那个地址已经 404。源码现由本仓库维护，`bootstrap` 在装包之前
-# 就地打出 tar 放进 <prefix>/src，`fink install base-files` 便不再需要联网
+# 就地打出 tar 放进 <prefix>/src，`finx install base-files` 便不再需要联网
 # —— Fink 的 find_tarball 会先搜 $basepath/src，找到就不下载。
 #
 # 用法：
@@ -50,7 +50,7 @@ set -u
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 PACKCONF="$REPO_ROOT/base-files/pack.conf"
 # 这份 .info 只在仓库里存在。载荷 tar 解出来的树没有 10.9-libcxx/，
-# 而 fink 包的 CompileScript 会跑 make test —— 所以它是可选的交叉校验对象。
+# 而 finx 包的 CompileScript 会跑 make test —— 所以它是可选的交叉校验对象。
 INFO="$REPO_ROOT/10.9-libcxx/base-files.info"
 
 # 归档成员：与上游 base-files/inject.pl 的 $packagefiles 一致。

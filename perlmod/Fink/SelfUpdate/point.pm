@@ -89,8 +89,8 @@ sub do_direct {
 	my $currentfink;
 	$currentfink = "CURRENT-FINK-$distribution";
 	my $website = "https://www.finkproject.org";
-	if (-f "$basepath/lib/fink/URL/website") {
-		$website = cat "$basepath/lib/fink/URL/website";
+	if (-f "$basepath/lib/finx/URL/website") {
+		$website = cat "$basepath/lib/finx/URL/website";
 		chomp($website);
 	}
 	my $srcdir = "$basepath/src";
@@ -125,7 +125,7 @@ sub do_direct {
 						"available:$latest_fink)\n\n" .
 						"If you wish to change your update method to ".
 						"one which updates more frequently, run ".
-						"the command 'fink selfupdate-rsync'.");
+						"the command 'finx selfupdate-rsync'.");
 		return;
 	}
 
@@ -137,7 +137,7 @@ sub do_direct {
 	&print_breaking("I will now download the package descriptions for ".
 					"Fink $newversion and update the core packages. ".
 					"After that, you should update the other packages ".
-					"using commands like 'fink update-all'.");
+					"using commands like 'finx update-all'.");
 	print "\n";
 
 	$downloaddir = "$basepath/src";
@@ -148,7 +148,7 @@ sub do_direct {
 	$dir = "dists-$newversion";
 
 	$pkgtarball = "$dir.tar.gz";
-	$url = "mirror:sourceforge:fink/$pkgtarball";
+	$url = "mirror:sourceforge:finx/$pkgtarball";
 
 	if (not -f $pkgtarball) {
 		if (&fetch_url($url, $downloaddir)) {

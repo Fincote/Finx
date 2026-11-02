@@ -33,7 +33,7 @@ ConfigureParams: <<
 	FORCE_UNSAFE_CONFIGURE=1
 <<
 CompileScript: <<
-	%p/bin/fink -y install libgettext8-dev libiconv-dev
+	%p/bin/finx -y install libgettext8-dev libiconv-dev
 	./configure %c gl_cv_func_getcwd_abort_bug=no
 	make
 <<
@@ -61,15 +61,15 @@ InfoDocs: tar.info
 #
 Description: Archiving program for files and tape
 DescPackaging: <<
- With the current fink dependency engine, essential packages may neither
+ With the current finx dependency engine, essential packages may neither
  depend nor builddepend on non-essential packages.  Thus, to make sure
  that non-essential splitoffs of essential packages (like gettext-bin
- and *-dev) are present at build time, we call 'fink install' during
+ and *-dev) are present at build time, we call 'finx install' during
  the compile script.  Note that since the corresponding essential packages
  are dependencies of this one, they should already have been built, so
- 'fink install' should merely make sure they are in place.
+ 'finx install' should merely make sure they are in place.
  
- Due to the need to run 'fink install' within CompileScript, tar can't
+ Due to the need to run 'finx install' within CompileScript, tar can't
  be built with --build-as-nobody.
 
  One of the ./configure checks doesn't work when done as root;

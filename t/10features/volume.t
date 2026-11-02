@@ -3,7 +3,7 @@
 use strict;
 use Test::More tests => 2;
 
-unlike( $ENV{PREFIX}, qr/\s/, "Whitespace prohibited in fink prefix ($ENV{PREFIX})" );  # 1
+unlike( $ENV{PREFIX}, qr/\s/, "Whitespace prohibited in finx prefix ($ENV{PREFIX})" );  # 1
 
 SKIP: {
 	my $skips = 1;

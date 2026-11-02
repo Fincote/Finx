@@ -28,11 +28,11 @@ Fink::VirtPackage - Provide "virtual" packages for Fink and related tools
 =head1 SYNOPSIS
 
 Fink::VirtPackage is generally not used directly, but is instead used by
-the fink-virtual-pkgs tool.
+the finx-virtual-pkgs tool.
 
 =head1 DESCRIPTION
 
-Fink::VirtPackage is used to inject "fake" package data into the fink
+Fink::VirtPackage is used to inject "fake" package data into the finx
 database, as well as to generate a list of dpkg- and apt-get-compatible
 packages to satisfy dependencies outside of Fink.
 
@@ -428,7 +428,7 @@ directories exist.
 	# create dummy object for java
 	print STDERR "- checking Java versions:\n" if ($options{debug});
 	# check all Javas on system so that we can generate virtual packages
-	# for each version (even those new at the time of this fink release) and
+	# for each version (even those new at the time of this finx release) and
 	# add hardcoded patterns for Javas which are known to be available 
 	# on supported macOS so that their system-* packages will show up as
 	# potentially installable.
@@ -1732,7 +1732,7 @@ END
 			}
 			my $xver = 0;
 			if ($found_pc_x11) {
-				# First item is for 10.8+ only, unless someone backporting fink on 10.6-7
+				# First item is for 10.8+ only, unless someone backporting finx on 10.6-7
 				# wants to switch to supporting Xquartz rather than Apple's X11.
 				# Fall back to legacy "7.2" version if something goes wrong.
 				#
@@ -1855,7 +1855,7 @@ a B<Provide> for major version 1 of the
 libXft.[version].dylib library if it is found.
 
 Major version 2 is no longer checked or provided as an x11 virtual
-package (long masked by a real package suite in fink of the same
+package (long masked by a real package suite in finx of the same
 name).
 
 =cut
@@ -1901,7 +1901,7 @@ These packages represent components of the font configuration API for
 X11. Version 1 was checked.
 
 They are no longer checked or provided as an x11 virtual package (long
-masked by the real fontconfig2* package suite in fink).
+masked by the real fontconfig2* package suite in finx).
 
 =cut
 
@@ -2150,7 +2150,7 @@ sub list {
 			}
 		}
 		if (!exists $newhash->{maintainer}) {
-			# assume fink itself if not previously claimed by someone else
+			# assume finx itself if not previously claimed by someone else
 			$newhash->{maintainer} = 'Fink Core Group <fink-core@lists.sourceforge.net>';
 		}
 		$newhash->{status} = STATUS_ABSENT if $config->mixed_arch();

@@ -11,7 +11,7 @@ CustomMirror: <<
 Source: mirror:custom:ncurses-%v.tgz
 Source-MD5: 49dc7136424f2bdd653439eda63a2375
 SourceDirectory: ncurses-5.9
-BuildDepends: fink (>= 0.13.0)
+BuildDepends: finx (>= 0.13.0)
 Depends: libncurses5-shlibs (>= %v-%r)
 Replaces: libncurses5 (<< 5.4-20041023-4)
 Essential: true

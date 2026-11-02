@@ -5,8 +5,8 @@ use Test::More 'no_plan';
 use File::Copy;
 
 # We're going to make changes to this config, so use a scratch copy.
-my $Config_File = 'basepath/etc/fink.conf.copy';
-copy('basepath/etc/fink.conf', $Config_File);
+my $Config_File = 'basepath/etc/finx.conf.copy';
+copy('basepath/etc/finx.conf', $Config_File);
 END { unlink $Config_File }
 
 

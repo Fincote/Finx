@@ -65,7 +65,7 @@ if ($> != 0) {
 					choices => [
 					  "Use sudo" => "sudo",
 					  "Use su" => "su",
-					  "None, fink must be run as root" => "none" ] );
+					  "None, finx must be run as root" => "none" ] );
 	my $cmd = "'$homebase/bootstrap' .$answer";
 	if ($#ARGV >= 0) {
 		$cmd .= " '".join("' '", @ARGV)."'";
@@ -133,7 +133,7 @@ if ($arch eq "i386") {
 		}
 		if (!$is64bit && $vers > 10) {
 			# 10.7+ 32bit: non-supported configuration!
-			print "ERROR: fink requires a 64-bit-capable CPU for your version of macOS\n";
+			print "ERROR: finx requires a 64-bit-capable CPU for your version of macOS\n";
 			exit 1;
 		} elsif ($vers >= 11) {
 			# on 10.7+ we support only 64-bit
@@ -148,7 +148,7 @@ if ($arch eq "i386") {
 						"https://www.oracle.com/technetwork/java/javase/downloads/index.html\n" .
 						"or the Apple Legacy Java package (macOS 10.7-10.13) from\n" .
 						"https://support.apple.com/kb/DL1572\n" .
-						"before re-attempting the fink bootstrap.\n";
+						"before re-attempting the finx bootstrap.\n";
 				}
 			}
 		} elsif ($is64bit) {
@@ -184,7 +184,7 @@ if ($arch eq "i386") {
 								     "not allow you to build perl ".
 								     "modules that work with the ".
 								     "built-in /usr/bin/perl.  (They ".
-								     "will work with fink's perl ".
+								     "will work with finx's perl ".
 								     "however.)  Are you sure you ".
 								     "want to do this?", default => 0);
 					&print_breaking("\n");
@@ -229,7 +229,7 @@ Fink::FinkVersion->import(qw(&fink_version &default_binary_version &get_arch));
 if( check_files() == 1 ) {
 	exit 1;
 }
-printf " looks good (fink-%s).\n", fink_version();
+printf " looks good (finx-%s).\n", fink_version();
 
 ### load some modules
 
@@ -283,7 +283,7 @@ my ($rootmethod);
 						choices => [
 						  "Use sudo" => "sudo",
 						  "Use su" => "su",
-						  "None, fink must be run as root" => "none" ] );
+						  "None, finx must be run as root" => "none" ] );
 	}
 
 umask oct("022");
@@ -461,11 +461,11 @@ my $xcode_version;
 	} else {
 		print "Found Xcode version: $xcode_version";
 		if (&version_cmp ("$xcode_version", "<<", "$min_xcode")) {
-			& print_breaking (  "\nERROR:  This version of fink needs at least ".
+			& print_breaking (  "\nERROR:  This version of finx needs at least ".
 								"Xcode ".$min_xcode." on this OS X version.\n");
 			exit 1;
 		} elsif (&version_cmp ("$xcode_version", ">>", "$max_xcode")) {
-			& print_breaking (	"\nERROR:  This version of fink needs at most ".
+			& print_breaking (	"\nERROR:  This version of finx needs at most ".
 								"Xcode ".$max_xcode." on this OS X version.\n");
 			exit 1;
 		} else {
@@ -477,7 +477,7 @@ my $xcode_version;
 ## Check for required features which are normally installed.
 
 ## Currently quit if pod2man isn't available and executable, 
-## to avoid folks nearly building fink and then having it crap out.
+## to avoid folks nearly building finx and then having it crap out.
 system "./pre-build-test.sh" and exit 1;
 
 ### setup the correct packages directory
@@ -568,11 +568,11 @@ foreach my $forbidden (
 			&print_breaking(
 				 "/usr/local is a common place that other third-party software ".
 				 "uses, so installing in that area often leads to conflicts ".
-				 "between them and breakage of fink and/or other things there. ".
+				 "between them and breakage of finx and/or other things there. ".
 				 "In addition, this hierarchy is automatically used by Xcode and ".
 				 "other compilers, which often leads to unexpected and sometimes ".
-				 "unpredictable results for when fink-supplied files are installed ".
-				 "there and for fink itself.");
+				 "unpredictable results for when finx-supplied files are installed ".
+				 "there and for finx itself.");
 		}
 		if ($installto =~ /^\/opt\/local/) {
 			&print_breaking(
@@ -658,11 +658,11 @@ if (not -d $installto) {
 my $selfupdatetrees = get_selfupdatetrees($distribution);
 my $fink_trees = &Fink::Config::fink_tree_default($distribution);
 
-my @dirlist = qw(etc etc/alternatives etc/apt src fink fink/debs var var/lib var/lib/fink);
-push @dirlist, "fink/$selfupdatetrees", "fink/$selfupdatetrees/stable", "fink/$selfupdatetrees/local";
+my @dirlist = qw(etc etc/alternatives etc/apt src finx finx/debs var var/lib var/lib/finx);
+push @dirlist, "finx/$selfupdatetrees", "finx/$selfupdatetrees/stable", "finx/$selfupdatetrees/local";
 foreach my $dir (split(/ /,$fink_trees)) {
-	push @dirlist, "fink/$selfupdatetrees/$dir", "fink/$selfupdatetrees/$dir/finkinfo",
-		"fink/$selfupdatetrees/$dir/binary-darwin-$arch";
+	push @dirlist, "finx/$selfupdatetrees/$dir", "finx/$selfupdatetrees/$dir/finkinfo",
+		"finx/$selfupdatetrees/$dir/binary-darwin-$arch";
 }
 foreach my $dir (@dirlist) {
 	if (not -d "$installto/$dir") {
@@ -677,41 +677,41 @@ foreach my $dir (@dirlist) {
 my ($dr,$arv,$comp);
 foreach $dr (split(/ /,$fink_trees)) {
 ($arv,$comp) = split(/\//, $dr);
-&execute("/usr/bin/sed -e \"s,\@ARV\@,$arv,\" -e \"s,\@COMP\@,$comp,\" -e \"s,\@ARCH\@,$arch,\" < Release > $installto/fink/$selfupdatetrees/$dr/binary-darwin-$arch/Release; /usr/bin/touch $installto/fink/$selfupdatetrees/$dr/binary-darwin-$arch/Packages; /usr/bin/gzip $installto/fink/$selfupdatetrees/$dr/binary-darwin-$arch/Packages");
+&execute("/usr/bin/sed -e \"s,\@ARV\@,$arv,\" -e \"s,\@COMP\@,$comp,\" -e \"s,\@ARCH\@,$arch,\" < Release > $installto/finx/$selfupdatetrees/$dr/binary-darwin-$arch/Release; /usr/bin/touch $installto/finx/$selfupdatetrees/$dr/binary-darwin-$arch/Packages; /usr/bin/gzip $installto/finx/$selfupdatetrees/$dr/binary-darwin-$arch/Packages");
 }
 
-unlink "$installto/fink/dists";
+unlink "$installto/finx/dists";
 
-symlink "$distribution", "$installto/fink/dists" or die "ERROR: Can't create symlink $installto/fink/dists\n";
+symlink "$distribution", "$installto/finx/dists" or die "ERROR: Can't create symlink $installto/finx/dists\n";
 
 ### for now, we simply symlink $distribution to $selfupdatetrees, but eventually we may need to do something more complicated
 
 if (not $selfupdatetrees eq $distribution) {
-	symlink "$selfupdatetrees", "$installto/fink/$distribution" or die "ERROR: Can't create symlink $installto/fink/$distribution\n";
+	symlink "$selfupdatetrees", "$installto/finx/$distribution" or die "ERROR: Can't create symlink $installto/finx/$distribution\n";
 }
 
-### create fink tarball for bootstrap
+### create finx tarball for bootstrap
 
 my $packagefiles = &fink_packagefiles();
 
-if ( &create_tarball($installto, "fink", $packageversion, $packagefiles) == 1 ) {
+if ( &create_tarball($installto, "finx", $packageversion, $packagefiles) == 1 ) {
 	exit 1;
 }
 
 ### copy package info needed for bootstrap
 
 {
-my $script = "/bin/mkdir -p $installto/fink/dists/stable/main/finkinfo/base\n";
-$script .= "/bin/cp $selfupdatetrees/*.info $selfupdatetrees/*.patch $installto/fink/dists/stable/main/finkinfo/base/\n";
-$script .= "echo \"bootstrap\" > $installto/fink/dists/VERSION\n";
-$script .= "/bin/chmod 644 $installto/fink/dists/VERSION\n";
+my $script = "/bin/mkdir -p $installto/finx/dists/stable/main/finkinfo/base\n";
+$script .= "/bin/cp $selfupdatetrees/*.info $selfupdatetrees/*.patch $installto/finx/dists/stable/main/finkinfo/base/\n";
+$script .= "echo \"bootstrap\" > $installto/finx/dists/VERSION\n";
+$script .= "/bin/chmod 644 $installto/finx/dists/VERSION\n";
 
 if (($arch eq "x86_64") and ($distribution eq "10.5")) {
-	if ( &copy_description($script,$installto, "fink", $packageversion, $packagerevision, "stable/main/finkinfo/base", "fink-x86_64.info", "fink-x86_64.info.in" ) == 1 ) {
+	if ( &copy_description($script,$installto, "finx", $packageversion, $packagerevision, "stable/main/finkinfo/base", "finx-x86_64.info", "finx-x86_64.info.in" ) == 1 ) {
 		exit 1;
 	}
 } else {
-	if ( &copy_description($script,$installto, "fink", $packageversion, $packagerevision, "stable/main/finkinfo/base", "fink-$distribution.info", "fink.info.in" ) == 1 ) {
+	if ( &copy_description($script,$installto, "finx", $packageversion, $packagerevision, "stable/main/finkinfo/base", "finx-$distribution.info", "finx.info.in" ) == 1 ) {
 		exit 1;
 	}
 }
@@ -722,8 +722,8 @@ if (($arch eq "x86_64") and ($distribution eq "10.5")) {
 {
 print "Creating f-v-p bootstrap configuration...\n";
 
-my $cmd = 'sed -e "s|@BASEPATH@|' . $installto . '|g" -e "s|@LIBPATH@|' . $homebase . '/perlmod|g" < "fink-virtual-pkgs.in" > "fink-virtual-pkgs-bootstrap";';
-	$cmd .= "chmod +x fink-virtual-pkgs-bootstrap;";
+my $cmd = 'sed -e "s|@BASEPATH@|' . $installto . '|g" -e "s|@LIBPATH@|' . $homebase . '/perlmod|g" < "finx-virtual-pkgs.in" > "finx-virtual-pkgs-bootstrap";';
+	$cmd .= "chmod +x finx-virtual-pkgs-bootstrap;";
 
 if (&execute($cmd, quiet=>0)) {
 	exit 1;
@@ -742,7 +742,7 @@ require Fink::Bootstrap;
 print "Creating initial configuration...\n";
 my ($configpath, $config);
 
-$configpath = "$installto/etc/fink.conf";
+$configpath = "$installto/etc/finx.conf";
 open(CONFIG, '>', $configpath) or die "can't create configuration $configpath: $!\n";
 print CONFIG <<"EOF";
 # Fink configuration, initially created by bootstrap
@@ -801,7 +801,7 @@ Fink::Bootstrap::bootstrap3();
 
 ### remove tar-bootstrap.info, tar-bootstrap.patch, dpkg-bootstrap.info, dpkg-bootstrap.patch, and perl588-bootstrap.info to avoid later confusion
 
-&execute("/bin/rm -f $installto/fink/dists/stable/main/finkinfo/base/tar-bootstrap.info $installto/fink/dists/stable/main/finkinfo/base/tar-bootstrap.patch $installto/fink/dists/stable/main/finkinfo/base/dpkg-bootstrap.info $installto/fink/dists/stable/main/finkinfo/base/dpkg-bootstrap.patch $installto/fink/dists/stable/main/finkinfo/base/perl588-bootstrap.info");
+&execute("/bin/rm -f $installto/finx/dists/stable/main/finkinfo/base/tar-bootstrap.info $installto/finx/dists/stable/main/finkinfo/base/tar-bootstrap.patch $installto/finx/dists/stable/main/finkinfo/base/dpkg-bootstrap.info $installto/finx/dists/stable/main/finkinfo/base/dpkg-bootstrap.patch $installto/finx/dists/stable/main/finkinfo/base/perl588-bootstrap.info");
 
 ### copy included package info tree if present
 
@@ -824,9 +824,9 @@ compile packages yourself.
 You can get them
 EOF
 		$endmsg .= " by running either of the commands:  
-'fink selfupdate-rsync', to update via rsync (generally preferred); 
+'finx selfupdate-rsync', to update via rsync (generally preferred); 
 or  
-'fink selfupdate-svn', to update via svn (more likely to work through a firewall)."	;
+'finx selfupdate-svn', to update via svn (more likely to work through a firewall)."	;
 	} else {
 		# inject worked
 		$endmsg = <<"EOF";
@@ -845,18 +845,18 @@ EOF
 tarball, or";
 	}
 	$endmsg .= " by running either of the commands:  
-'fink selfupdate-rsync', to update via rsync (generally preferred); 
+'finx selfupdate-rsync', to update via rsync (generally preferred); 
 or  
-'fink selfupdate-svn', to update via svn (more likely to work through a firewall).";
+'finx selfupdate-svn', to update via svn (more likely to work through a firewall).";
 }
 
 ### create Packages.gz files for apt
 
-### we use the just-installed fink rather than directly calling
+### we use the just-installed finx rather than directly calling
 ### Fink::Engine::cmd_scanpackages() because we might be running
 ### under the wrong perl
 
-&execute("$installto/bin/fink scanpackages");
+&execute("$installto/bin/finx scanpackages");
 
 ### the final words...
 

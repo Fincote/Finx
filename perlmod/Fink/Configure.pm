@@ -27,7 +27,7 @@ package Fink::Configure;
 
 ###
 # Remember to up the $conf_file_compat_version constant below if you add
-# a field to the $basepath/etc/fink.conf file.
+# a field to the $basepath/etc/finx.conf file.
 ###
 
 use Fink::Config qw($config $basepath $libpath $distribution);
@@ -59,21 +59,21 @@ Fink::Configure - handle versioned Fink configuration files
 
 =head1 DESCRIPTION
 
-These functions handle managing changes in the fink.conf file.
+These functions handle managing changes in the finx.conf file.
 
 =cut
 
-# Compatibility version of the $basepath/etc/fink.conf file.
+# Compatibility version of the $basepath/etc/finx.conf file.
 # Needs to be updated whenever a new field is added to the
 # configuration file by code here. This will tell users to
-# rerun fink configure after installing the new fink version.
+# rerun finx configure after installing the new finx version.
 # (during postinstall.pl)
 #
 # History:
-#  0: Default value, fink < 0.24.0
-#  1: Added ConfFileCompatVersion, UseBinaryDist, fink 0.24.0
-#  2: Added MaxBuildJobs, fink 0.30.1 (belated bump)
-#  3: Added AutoUid, AutoUidMin, AutoUidMax, FinkBldUid, fink 0.33.0
+#  0: Default value, finx < 0.24.0
+#  1: Added ConfFileCompatVersion, UseBinaryDist, finx 0.24.0
+#  2: Added MaxBuildJobs, finx 0.30.1 (belated bump)
+#  3: Added AutoUid, AutoUidMin, AutoUidMax, FinkBldUid, finx 0.33.0
 #
 our $conf_file_compat_version  = 3;
 
@@ -86,10 +86,10 @@ a Fink::Configure object.
 
 =item $conf_file_compat_version
 
-Compatibility version of the F<$basepath/etc/fink.conf> file.
+Compatibility version of the F<$basepath/etc/finx.conf> file.
 Needs to be updated whenever a new field is added to the
 configuration file by code here. This will tell users to
-rerun fink configure after installing the new fink version.
+rerun finx configure after installing the new finx version.
 
 For example, C<1>.
 
@@ -171,7 +171,7 @@ sub choose_misc {
 	} else {
 
 		# New users should use the binary dist, but an existing user who
-		# is running "fink configure" should see a default answer of "no"
+		# is running "finx configure" should see a default answer of "no"
 		# for this question... To tell these two classes of users apart,
 		# we check to see if the "Verbose" parameter has been set yet.
 
@@ -194,7 +194,7 @@ sub choose_misc {
 	my $v_distribution = version->parse('v'.$config->param("Distribution"));
 	if ($v_distribution >= version->parse("v10.7")) {
 		print_breaking(
-			"Note: As of the Mac OS X 10.7 distribution, fink no longer ".
+			"Note: As of the Mac OS X 10.7 distribution, finx no longer ".
 			"has a separate \"unstable\" tree. All development and ".
 			"releases happen in the \"stable\" tree, the only public ".
 			"tree that exists."
@@ -219,7 +219,7 @@ sub choose_misc {
 			if ($use_unstable) {
 				$use_unstable = &prompt_boolean(
 					"At least some of the \"unstable\" tree appears to ".
-					"be activated in your fink now. Do you want to ".
+					"be activated in your finx now. Do you want to ".
 					"keep it activated?",
 					default => 1
 					);
@@ -230,7 +230,7 @@ sub choose_misc {
 			} else {
 				$use_unstable = &prompt_boolean(
 					"The \"unstable\" tree does not appear to be ".
-					"activated in your fink now. Do you want to ".
+					"activated in your finx now. Do you want to ".
 					"activate it?",
 					default => 0
 					);
@@ -240,8 +240,8 @@ sub choose_misc {
 					push @trees, @trees_add;  # add them
 					$config->set_param('Trees', join(' ', @trees) );
 					print_breaking("New trees have been added. You ".
-								   "should run \"fink selfupdate-rsync\" ".
-								   "or \"fink selfupdate-cvs\" in order to ".
+								   "should run \"finx selfupdate-rsync\" ".
+								   "or \"finx selfupdate-cvs\" in order to ".
 								   "download the latest list of packages ".
 								   "in the trees.");
 				}
@@ -249,9 +249,9 @@ sub choose_misc {
 		}
 	} else {
 print_breaking("The selfupdate method has not been set yet, so you ".
-"are not yet being asked whether to include the \"unstable\" fink tree. ".
-"If you are interested in the \"unstable\" tree, first run \"fink ".
-			   "selfupdate\" and then run \"fink configure\" again.");
+"are not yet being asked whether to include the \"unstable\" finx tree. ".
+"If you are interested in the \"unstable\" tree, first run \"finx ".
+			   "selfupdate\" and then run \"finx configure\" again.");
 	}
 
 	# build user settings
@@ -282,8 +282,8 @@ print_breaking("The selfupdate method has not been set yet, so you ".
 	if ($do_uid) {
 		my $id;
 		my $fail_msg =	"WARNING: No UID/GID set for Fink's build user. ".
-						"fink can still build as the 'nobody' user, but ".
-						"we recommend running 'fink configure' again or ".
+						"finx can still build as the 'nobody' user, but ".
+						"we recommend running 'finx configure' again or ".
 						"otherwise installing the build user.";
 		$auto_uid = &prompt_boolean("Fink can set the UID and GID of its build user ".
 									"dynamically to find unused values in a safe ".
@@ -328,7 +328,7 @@ print_breaking("The selfupdate method has not been set yet, so you ".
 						redo IDRANGE;
 					} else {
 						&print_breaking($fail_msg);
-						# unset values to keep them from getting entered in fink.conf
+						# unset values to keep them from getting entered in finx.conf
 						undef $uid_min;
 						undef $uid_max;
 						undef $auto_uid;
@@ -355,7 +355,7 @@ print_breaking("The selfupdate method has not been set yet, so you ".
 				&print_breaking ("Using $id");
 			} else {
 				&print_breaking($fail_msg);
-				# unset values to keep them from getting entered in fink.conf
+				# unset values to keep them from getting entered in finx.conf
 				undef $auto_uid;
 				undef $uid_min;
 				undef $uid_max;
@@ -437,7 +437,7 @@ print_breaking("The selfupdate method has not been set yet, so you ".
 The NoAutoIndex feature is currently activated. This feature should
 only be used in special circumstances because it can interfere with
 updating the lists of available packages. It is recommended that this
-feature be deactivated for normal fink use. Do you want to leave it
+feature be deactivated for normal finx use. Do you want to leave it
 active?
 EOMSG
 			$n_a_i = &prompt_boolean($proxy_prompt, default => 0);
@@ -482,7 +482,7 @@ which will need to be saved.
 
 sub spotlight_warning {
 	my $builddir = $config->param_default("Buildpath",
-										  "$basepath/src/fink.build");
+										  "$basepath/src/finx.build");
 	if ( $> == 0
 			&& !$config->has_flag('SpotlightWarning')
 			&& $builddir !~ /\.build$/) {
@@ -605,7 +605,7 @@ sub choose_mirrors {
 		if ($mirrors_postinstall) {
 			# called from dpkg postinst script of fink-mirrors pkg
 			print "\n";
-			$answer = &prompt_boolean("The list of possible mirrors in fink has" .
+			$answer = &prompt_boolean("The list of possible mirrors in finx has" .
 				" been updated.  Do you want to review and change your choices?",
 				default => 0, timeout => 60);
 		} else {
@@ -630,9 +630,9 @@ sub choose_mirrors {
 
 	if ((!$obsolete_only) or (!$config->has_param("MirrorOrder"))) {
 		$mirror_order = &prompt_selection(
-			"What mirror order should fink use when downloading sources?",
+			"What mirror order should finx use when downloading sources?",
 			intro   => "The Fink team maintains mirrors known as \"Master\" mirrors, which contain ".
-					   "the sources for all fink packages. You can choose to use these mirrors first, ".
+					   "the sources for all finx packages. You can choose to use these mirrors first, ".
 					   "last, never, or mixed in with regular mirrors. If you don't care, just select the default.",
 			default => [ value => $config->param_default("MirrorOrder", "MasterFirst") ],
 			choices => [

@@ -57,14 +57,14 @@
         },
         {
             "label": "Make: test_setup",
-            "detail": "生成 fink / postinstall.pl / lockwait / FinkVersion.pm 等运行时文件",
+            "detail": "生成 finx / postinstall.pl / lockwait / FinkVersion.pm 等运行时文件",
             "type": "shell",
             "command": "make test_setup",
             "problemMatcher": []
         },
         {
             "label": "Test: payload tree",
-            "detail": "在只有 MANIFEST 文件的树里跑 make test —— fink 包 CompileScript 的真实环境",
+            "detail": "在只有 MANIFEST 文件的树里跑 make test —— finx 包 CompileScript 的真实环境",
             "type": "shell",
             "command": "make payload_test",
             "problemMatcher": []

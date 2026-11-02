@@ -49,7 +49,7 @@ my %options = ();
 
 =head1 NAME
 
-Fink::Config - Read/write the fink configuration
+Fink::Config - Read/write the finx configuration
 
 =head1 SYNOPSIS
 
@@ -86,11 +86,11 @@ Fink::Config - Read/write the fink configuration
 
 =head1 DESCRIPTION
 
-A class representing the fink configuration file as well as any command
+A class representing the finx configuration file as well as any command
 line options.  Fink::Config inherits from Fink::Base.
 
 Fink::Config will not work without a Fink::Config object having been made
-that contains a basepath.  The fink program typically does this for you.
+that contains a basepath.  The finx program typically does this for you.
 Since the variables Fink::Config exports use data from the last initialized
 Fink::Config object, creating a second object is not recommended.
 
@@ -110,7 +110,7 @@ Inherited from Fink::Base.
   my $config = Fink::Config->new_with_path($config_file);
   my $config = Fink::Config->new_with_path($config_file, \%defaults);
 
-Reads a fink.conf file into a new Fink::Config object and initializes
+Reads a finx.conf file into a new Fink::Config object and initializes
 Fink::Config globals from it.
 
 If %defaults is given they will be used as defaults for any keys not in the
@@ -173,10 +173,10 @@ sub initialize {
 		die $error;
 	}
 
-	$buildpath = $self->param_default("Buildpath", "$basepath/src/fink.build");
+	$buildpath = $self->param_default("Buildpath", "$basepath/src/finx.build");
 
-	$libpath = "$basepath/lib/fink";
-	$dbpath = "$basepath/var/lib/fink";  # must sync with fink.info.in!
+	$libpath = "$basepath/lib/finx";
+	$dbpath = "$basepath/var/lib/finx";  # must sync with finx.info.in!
 	$distribution = $self->param("Distribution");
 	if (not defined $distribution or ($distribution =~ /^\s*$/)) {
 		my $error = 'Distribution not set';
@@ -238,9 +238,9 @@ sub set_checking_opts {
 		if ($val ne "on" and $val ne "warn" and $val ne "off") {
 			# We didn't really get an argument.
 			# Because our argument is optional, if we are
-			# the last option specified, the fink subcommand
+			# the last option specified, the finx subcommand
 			# is misinterpreted as our argument.  So, if you do:
-			#	fink --tests dumpinfo foo.info
+			#	finx --tests dumpinfo foo.info
 			# it will think that dumpinfo is the argument to
 			# tests.  So, if we get an argument that isn't one
 			# of our valid argument values, punt it back to @ARGV.
@@ -264,9 +264,9 @@ sub parse_options {
 		[ 'yes|y'              => \$opts{dontask},
 			'assume default answer for all interactive questions'			],
 		[ 'quiet|q'            => sub { $opts{verbosity} = -1	},
-			'causes fink to be less verbose, opposite of --verbose'			],
+			'causes finx to be less verbose, opposite of --verbose'			],
 		[ 'verbose|v'          => sub { $opts{verbosity} = 3	},
-			'causes fink to be more verbose, opposite of --quiet'			],
+			'causes finx to be more verbose, opposite of --quiet'			],
 		[ 'keep-build-dir|k'   => \$opts{keep_build}, 		'see man page'	],
 		[ 'keep-root-dir|K'    => \$opts{keep_root}, 		'see man page'	],
 		[ 'use-binary-dist|b!' => \$opts{use_binary},
@@ -291,10 +291,10 @@ Common commands:
 %align{remove,remove the named packages,$comlen}
 %align{purge,same as remove but also removes all configuration files,$comlen}
 %align{update,update the named packages,$comlen}
-%align{selfupdate,upgrade fink to the lastest release,$comlen}
+%align{selfupdate,upgrade finx to the lastest release,$comlen}
 %align{update-all,update all installed packages,$comlen}
 %align{configure,rerun the configuration process,$comlen}
-%align{list,list available packages%, optionally filtering by name%, see 'fink list --help' for more options,$comlen}
+%align{list,list available packages%, optionally filtering by name%, see 'finx list --help' for more options,$comlen}
 %align{apropos,list packages matching a search keyword,$comlen}
 %align{describe,display a detailed description of the named packages,$comlen}
 %align{index,force rebuild of package cache,$comlen}
@@ -306,8 +306,9 @@ Common commands:
 Common options:
 %opts{help,quiet,version,verbose,yes,use-binary-dist,prefix}
 
-See the fink(8) manual page for a complete list of commands and options.
-Visit https://www.finkproject.org for further information.
+See the finx(8) manual page for a complete list of commands and options.
+Visit https://finx.sh for further information.
+Upstream Fink documentation: https://www.finkproject.org
 
 HELPFORMAT
 		# Err if no command
@@ -329,6 +330,10 @@ HELPFORMAT
 		$dv .= " ($misc)" if length $misc;
 		$dv .= ' '.localtime($timestamp) if $timestamp;
 
+		# 第一行必须是名字。原来只有 "Package manager version:"，
+		# 于是在一台同时装着 Fink（/sw）与 Finx（/opt/finx）的机器上，
+		# 敲完 --version 完全看不出手里是哪一个。
+		print "Finx " . Fink::FinkVersion::fink_version() . "\n";
 		print "Package manager version: "
 			. Fink::FinkVersion::fink_version() . "\n";
 		print "Distribution version: "
@@ -369,7 +374,7 @@ EOF
   my $apt_trees = apt_tree_default($distribution);
 
 Returns a space-delimited list of the trees used by apt when accessing a
-binary distribution supplied by fink.  Prior to 10.6, the list was
+binary distribution supplied by finx.  Prior to 10.6, the list was
 "main crypto"; in 10.6 and later, it is "main".
 
 =cut
@@ -391,7 +396,7 @@ sub apt_tree_default {
   my $fink_trees = fink_tree_default($distribution);
 
 Returns a space-delimited list of the trees used by default when configuring
-fink.  This list is derived from apt_tree_default($distribution), so only
+finx.  This list is derived from apt_tree_default($distribution), so only
 the latter needs to be changed if things change in the future.  Prior to 10.6,
 the list was "local/main stable/main stable/crypto";
 in 10.6 and later, it is "local/main stable/main".
@@ -508,7 +513,7 @@ However, certain commands know to ignore them if they're 'excluded'.
   my @trees = $config->get_treelist;
 
 Returns the trees which should be currently used. This depends on the
-value of Trees in fink.conf, as well as any trees specified at the command
+value of Trees in finx.conf, as well as any trees specified at the command
 line.
 
 =cut
@@ -687,7 +692,7 @@ sub write_sources_list {
 	my $path = "$basepath/etc/apt/sources.list";
 
 # We copy any existing sources.list file to sources.list.finkbak, unless
-# a fink backup already exists.  (So effectively, this is done only once.)
+# a finx backup already exists.  (So effectively, this is done only once.)
 
 	if ((not -f "$path.finkbak") and (-f "$path")) {
 		cp "$path", "$path.finkbak";
@@ -706,16 +711,16 @@ sub write_sources_list {
 	my $body = "$topline\n";
 	$body .= <<EOF;
 #
-# Default APT sources configuration for Fink, written by the fink program
+# Default APT sources configuration for Fink, written by the finx program
 
 # Local package trees - packages built from source locally
 # NOTE: this is automatically kept in sync with the Trees: line in
-# $basepath/etc/fink.conf
-# NOTE: run 'fink scanpackages' to update the corresponding Packages.gz files
+# $basepath/etc/finx.conf
+# NOTE: run 'finx scanpackages' to update the corresponding Packages.gz files
 EOF
 
 # We write a separate line for each entry in Trees, in order, so that
-# apt-get searches for packages in the same order as fink does.  However,
+# apt-get searches for packages in the same order as finx does.  However,
 # we do combine lines if the distribution is the same in two consecutive
 # ones.
 
@@ -729,14 +734,14 @@ EOF
 			push @prevcomp, $2;
 		} else {
 			if ($prevdist) {
-				$body .= "deb file:$basepath/fink $prevdist @prevcomp\n";
+				$body .= "deb file:$basepath/finx $prevdist @prevcomp\n";
 			}
 			$prevdist = $1;
 			@prevcomp = ($2);
 		}
 	}
 	if ($prevdist) {
-		$body .= "deb file:$basepath/fink $prevdist @prevcomp\n";
+		$body .= "deb file:$basepath/finx $prevdist @prevcomp\n";
 	}
 
 	$body .= "\n";
@@ -933,8 +938,8 @@ sub get_option {
 
 Return the current verbosity level as a value 0-3, where 0 is the
 quietest. This is affected by the --verbose and --quiet command line
-options as well as by the "Verbose" setting in fink.conf. A --quiet
-always takes precedence; otherwise the more verbose of the fink.conf
+options as well as by the "Verbose" setting in finx.conf. A --quiet
+always takes precedence; otherwise the more verbose of the finx.conf
 and cmdline values is used. The general sense of each level is:
 
 =over 4
@@ -971,10 +976,10 @@ my %verb_names = (
 sub verbosity_level {
 	my $self = shift;
 
-	# fink.conf field (see Configure.pm)
+	# finx.conf field (see Configure.pm)
 	my $verbosity = $self->param_default("Verbose", 1);
 
-	# cmdline flags (see fink.in)
+	# cmdline flags (see finx.in)
 	my $runtime = get_option("verbosity");
 
 	return 0 if $runtime == -1;
@@ -984,7 +989,7 @@ sub verbosity_level {
 		$verbosity = exists $verb_names{lc $verbosity} ? $verb_names{lc $verbosity} : 0;
 	}
 
-	# take higher value (== more verbose) of fink.conf and cmdline
+	# take higher value (== more verbose) of finx.conf and cmdline
 	$verbosity = $runtime if $runtime > $verbosity;
 
 	# sanity check: don't exceed maximum known value
@@ -1000,8 +1005,8 @@ sub verbosity_level {
 
 Determine whether the binary distribution or compilation has been requested.
 This is affected by the --use-binary-dist and --compile-from-source
-command line options as well as by the "UseBinaryDist" setting in fink.conf.
-A command-line flag takes precedence over a fink.conf setting.
+command line options as well as by the "UseBinaryDist" setting in finx.conf.
+A command-line flag takes precedence over a finx.conf setting.
 Returns 1 for binary distribution, 0 for compile-from-source.
 
 =cut
@@ -1040,7 +1045,7 @@ sub build_as_user_group {
 	my( $user, $group );
 	if (get_option("build_as_nobody")) {
 		if (!getpwnam('fink-bld') or !getgrnam('fink-bld')) {
-			print "WARNING: User and/or group 'fink-bld' not found! Falling back to user/group 'nobody'. Please run 'fink configure' to set up user 'fink-bld'.\n";
+			print "WARNING: User and/or group 'fink-bld' not found! Falling back to user/group 'nobody'. Please run 'finx configure' to set up user 'fink-bld'.\n";
 			($user, $group) = qw/ nobody nobody /;
 		} else {
 			($user, $group) = qw/ fink-bld fink-bld /;
@@ -1108,7 +1113,7 @@ sub clear_flag {
 
 	my $not_mixed = $config->mixed_arch(%opts);
 
-Make sure that the local architecture matches the one for which fink
+Make sure that the local architecture matches the one for which finx
 is configured. If not a message can be printed on stderr, a fatal
 error can be generated, and/or a boolean value can be returned. The
 following %opts are known:
@@ -1151,7 +1156,7 @@ sub mixed_arch {
 # determine the dpkg Architecture string for the local machine
 #
 # We can't use `dpkg --print-installation-architecture` (although we
-# have to match it) because dpkg runs fink-virtual-pkgs, which loads
+# have to match it) because dpkg runs finx-virtual-pkgs, which loads
 # Config.pm.
 {
 	my $_native_debarch;		# cache to avoid repeated FV::get_arch
@@ -1184,7 +1189,7 @@ Typically F</opt/finx>.
 
 =item $buildpath
 
-Directory where fink packages will be built.
+Directory where finx packages will be built.
 
 Typically F<$basepath/src>
 
@@ -1200,7 +1205,7 @@ For example, C<10.2>.
 
 =item $dbpath
 
-Where fink stores it's database files.
+Where finx stores it's database files.
 
 =item $libpath
 

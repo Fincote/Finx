@@ -217,7 +217,7 @@ TMPFILE=`/usr/bin/mktemp /tmp/resu.XXXXXX`
 # Are we logged in at the console?
 do_isconsole
 
-# Run a login shell to see whether the fink paths are already set up.
+# Run a login shell to see whether the finx paths are already set up.
 do_login_test
 
 # Look whether @PREFIX@/sbin was in the PATH. 

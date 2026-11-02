@@ -8,6 +8,6 @@ commands should suffice:
 sudo dscl . -delete /Users/fink-bld
 sudo dscl . -delete /Groups/fink-bld
 
-Then, if you want to switch to a dynamic value, run "fink configure" and choose that
+Then, if you want to switch to a dynamic value, run "finx configure" and choose that
 option, and then run an operation which _could potentially_ install a package, like
-"fink selfupdate".
+"finx selfupdate".

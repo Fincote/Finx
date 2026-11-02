@@ -1,7 +1,7 @@
 #!/bin/sh -e
 #
 # pre-build-test.sh - check for missing system-provided items 
-# 					  necessary to build fink.
+# 					  necessary to build finx.
 #
 # Fink - a package manager that downloads source and installs it
 # Copyright (c) 2001 Christoph Pfisterer
@@ -44,7 +44,7 @@ elif [ ! -x /usr/bin/pod2man ] ; then
             if [ -z "`chmod a+x /usr/bin/pod2man 2>&1`" ] ; then
                 printf "SUCCESS\n"
                 printf "\n/usr/bin/pod2man is now executable.\n"
-                printf "After installing fink, open Disk Utility and run\n"
+                printf "After installing finx, open Disk Utility and run\n"
                 printf "'Repair Disk Permissions' on your system hard drive\n"
                 printf "in case there are other permissions problems.\n"
                 sleep 5
@@ -62,7 +62,7 @@ elif [ ! -x /usr/bin/pod2man ] ; then
             fi
         else
                 printf "\nYou will need to change the permissions of\n"
-                printf "/usr/bin/pod2man before you can install fink.\n"
+                printf "/usr/bin/pod2man before you can install finx.\n"
                 printf "Open Disk Utility and run\n"
                 printf "'Repair Disk Permissions' on your system hard drive.\n"
                 printf "If that doesn't work, then run\n\n"

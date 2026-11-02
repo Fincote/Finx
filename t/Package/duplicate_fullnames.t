@@ -4,7 +4,7 @@ use strict;
 use Test::More 'no_plan';
 use Fink::Config qw($basepath);
 
-my $config = Fink::Config->new_with_path('basepath/etc/fink.conf');
+my $config = Fink::Config->new_with_path('basepath/etc/finx.conf');
 
 require_ok('Fink::Package');
 require_ok('Fink::PkgVersion');

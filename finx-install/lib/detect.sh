@@ -48,7 +48,7 @@ target_state() {
         printf 'absent\n'
     elif [ ! -d "$target" ]; then
         printf 'nonempty\n'
-    elif [ -e "$target/bin/fink" ]; then
+    elif [ -e "$target/bin/finx" ]; then
         printf 'existing\n'
     elif [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
         printf 'nonempty\n'

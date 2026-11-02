@@ -6,7 +6,7 @@ use Test::More tests => 32;
 use Fink::Services qw(read_properties);
 use Fink::Config;
 
-my $config = Fink::Config->new_with_path('basepath/etc/fink.conf');
+my $config = Fink::Config->new_with_path('basepath/etc/finx.conf');
 
 require_ok('Fink::Package'); # 1
 can_ok('Fink::Package', qw/

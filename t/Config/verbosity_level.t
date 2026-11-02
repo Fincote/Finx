@@ -5,7 +5,7 @@ use Test::More 'no_plan';
 
 use Fink::Config qw(set_options);
 
-my $config = Fink::Config->new_with_path("basepath/etc/fink.conf");
+my $config = Fink::Config->new_with_path("basepath/etc/finx.conf");
 
 is( $config->verbosity_level(), 0 );
 

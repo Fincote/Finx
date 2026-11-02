@@ -6,7 +6,7 @@ License: LGPL
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 Depends: base-files
 BuildDepends: <<
-	fink (>= 0.30.0),
+	finx (>= 0.30.0),
 	gperf (>= 3.1-1)
 <<
 Essential: yes
@@ -16,7 +16,7 @@ CustomMirror: <<
 <<
 Source: mirror:custom:libiconv-%v.tar.gz
 Source-MD5: c04d0fa4cae4e9a4febc457fc00ee519
-Source2: mirror:sourceforge:fink/gettext-0.22.5.tar.gz
+Source2: mirror:sourceforge:finx/gettext-0.22.5.tar.gz
 #Source2: mirror:gnu:gettext/gettext-0.22.5.tar.gz
 Source2-MD5: 1245c87cfa0b123f55540681af396880
 PatchFile: %n.patch
@@ -118,7 +118,7 @@ DescPackaging: <<
  In order to guarantee that the gettext header files are present when 
  libiconv is built, we now compile gettext during the building of this
  package.  (Previously, the complicated interaction between gettext and
- libiconv was handled during fink's bootstrap process, but not afterwards.)
+ libiconv was handled during finx's bootstrap process, but not afterwards.)
 
  Previous versions by Christoph Pfisterer.
 <<
@@ -129,7 +129,7 @@ causes unnecessary conflicts between packages.
 We patch around a recent change in the upstream Makefile which defeats
 our build system.
 
-2007-02-01 Benjamin Reed <rangerrick@fink.sourceforge.net>
+2007-02-01 Benjamin Reed <rangerrick@finx.sourceforge.net>
 * updated to 1.11
 * included apple's patches to add UTF-8-MAC charset support
 
@@ -163,7 +163,7 @@ our build system.
 2023-01-08 Daniel Macks
 * Patching iconv.1.html as well as iconv.1 so we don't need to run
   groff for .1 -> .1.html regeneration. Apple seems to be dropping
-  /usr/bin/groff and fink's groff is heavy and gives circular dep.
+  /usr/bin/groff and finx's groff is heavy and gives circular dep.
 * Externalize gperf
 
 2024-07-22 Derek Homeier

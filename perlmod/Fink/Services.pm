@@ -110,7 +110,7 @@ need with things like:
     my $config = read_config $filename;
     my $config = read_config $filename, \%defaults;
 
-Reads a fink.conf file given by $filename into a new Fink::Config
+Reads a finx.conf file given by $filename into a new Fink::Config
 object and initializes Fink::Config globals from it. If %defaults is
 given they will be used as defaults for any keys not in the config
 file. The new object is returned.
@@ -212,7 +212,7 @@ The following situations are checked:
   still open.
 
 Note that no check is made for the validity of the fields being in the
-file in which they were encountered. The filetype (fink.conf, *.info,
+file in which they were encountered. The filetype (finx.conf, *.info,
 etc.) is not necessarily known and this routine is used for many
 different filetypes.
 
@@ -513,7 +513,7 @@ command failed, a message including the return code is sent to STDOUT.
 
 =item nonroot_okay
 
-If the value of the option 'nonroot_okay' is true, fink was run with
+If the value of the option 'nonroot_okay' is true, finx was run with
 the --build-as-nobody flag, drop to user=nobody when running the
 actual commands.
 
@@ -611,7 +611,7 @@ EOSCRIPT
 		my ($commandname) = split(/\s+/, $cmd);
 		print "$wrap_token$cmd\n" unless $options{'quiet'};
 		{
-			# system("no_such_command") emits a warning involving fink
+			# system("no_such_command") emits a warning involving finx
 			# itself (it's the system() that fails)
 			local $SIG{__WARN__} = sub {};
 			my $rc = system(@wrap, $cmd);
@@ -688,7 +688,7 @@ sub prepare_script {
 		my $tempdir = File::Spec->tmpdir;
 		my $mode = (stat($tempdir))[2] & 07777;
 		$tempdir = "/tmp" if $drop_root and $mode != 1023;
-		my ($fh, $tempfile) = tempfile("fink.XXXXX", DIR => $tempdir) or die "unable to get temporary file: $!";
+		my ($fh, $tempfile) = tempfile("finx.XXXXX", DIR => $tempdir) or die "unable to get temporary file: $!";
 		print $fh $$script;
 		close ($fh) or die "an unexpected error occurred closing $tempfile: $!";
 		chmod(0755, $tempfile);
@@ -946,7 +946,7 @@ either direction.
 =cut
 
 {
-	# Caching the results makes fink much faster.
+	# Caching the results makes finx much faster.
 	my %Version_Cmp_Cache = ();
 
 sub version_cmp {
@@ -1345,7 +1345,7 @@ If it is, or if $gcc_abi is not supplied, then we check to see if the
 gcc version obtained from /usr/sbin/gcc_select agrees with the expected
 (default) gcc version corresponding to the installed version of
 macOS or Darwin.  If the versions agree, the common value is returned.
-If they do not agree, we print $message and exit fink.
+If they do not agree, we print $message and exit finx.
 
 The strings CURRENT_SYSTEM, INSTALLED_GCC, and EXPECTED_GCC,
 within $message are converted to appropriate values.
@@ -1364,7 +1364,7 @@ sub enforce_gcc {
 	my ($gcc, $gcc_select, $current_system);
 
 	my %system_gcc_default = (
-		# Note: fink no longer supports OS X 10.1 or gcc3.1 for 10.2,
+		# Note: finx no longer supports OS X 10.1 or gcc3.1 for 10.2,
 		# so we don't specify default values for these
 		'10.2' => '3.3',
 		'10.3' => '3.3',
@@ -1485,7 +1485,7 @@ sub get_osx_vers {
 			'15.7' => 15.6,
 			'15.8' => 15.6,
 			'26.7' => 26.6);
-		die "$sw_vers does not match the expected value of $darwin_osx. Please run `fink selfupdate` to download a newer version of fink"
+		die "$sw_vers does not match the expected value of $darwin_osx. Please run `finx selfupdate` to download a newer version of finx"
 			unless $sw_to_darwin{$sw_vers} == $darwin_osx;
 	}
 	return $sw_vers;
@@ -1535,7 +1535,7 @@ command did not succeed, a null string is returned.
 # FIXME: the cache cannot distinguish a failed command from a
 # never-run command, so if the command fails it will run again each
 # time. Is it possible that the command could start to succeed (or be
-# runnable after being not-runnable) in the middle of a long fink
+# runnable after being not-runnable) in the middle of a long finx
 # session?
 
 sub get_host_multiarch {
@@ -1648,7 +1648,7 @@ sub get_system_version {
 Returns the version of perl in that is /usr/bin/perl by running a
 program with it to return its $^V variable. The value is cached, so
 multiple calls to this function do not result in repeated spawning of
-perl processes. System perl would not be changing during a fink run.
+perl processes. System perl would not be changing during a finx run.
 
 =cut
 
@@ -1674,7 +1674,7 @@ On darwin>=18 (macOS >= 10.14), returns the path to the active macOS
 SDK. On lower kernels, or if `xcrun` could not determine the SDK path,
 a null string is returned. The value is cached, so multiple calls to
 this function do not result in repeated spawning of xcrun processes.
-The macosx sdk is unlikely to change during a fink run.
+The macosx sdk is unlikely to change during a finx run.
 
 =cut
 
@@ -2390,8 +2390,8 @@ sub _expand_help {
 			my $first = shift;
 			require Fink::FinkVersion;
 			"Fink " . Fink::FinkVersion::fink_version() . "\n\n" .
-				"Usage: fink$command $first\n" .
-				join '', map { "       fink$command $_\n" } @_;
+				"Usage: finx$command $first\n" .
+				join '', map { "       finx$command $_\n" } @_;
 		},
 	);
 
@@ -2445,8 +2445,8 @@ sub get_options {
 
 	# Call GetOptions. Switch args into @ARGV so GetOptions can work
 	my $die = <<DIE;
-fink$command: unknown option
-Type 'fink$command --help' for more information.
+finx$command: unknown option
+Type 'finx$command --help' for more information.
 DIE
 	{
 		local @ARGV = @$args;
@@ -2548,7 +2548,7 @@ sub ensure_fink_bld {
 	chomp ($_ = `/usr/bin/id -P fink-bld 2>&1`);
 	my ($real_uid, $real_gid) = /.*:.*:(\d+):(\d+):.*:.*:.*:.*:.*/ ;
 	if ($fink_conf_uid)	{
-		# do nothing if fink.conf UID and real UID are the same.
+		# do nothing if finx.conf UID and real UID are the same.
 		if ($real_uid) {
 			return 1 if $fink_conf_uid == $real_uid;
 		}
@@ -2556,7 +2556,7 @@ sub ensure_fink_bld {
 		if (!$real_uid) {
 			print "Adding user and group fink-bld for building packages unprivileged.\n";
 			if (!add_user('fink-bld', 'fink-bld', 'Fink Build System', '/var/empty', $fink_conf_uid)) {
-				print "WARNING: Could not add fink-bld user.  Try running 'fink configure'.\n";
+				print "WARNING: Could not add fink-bld user.  Try running 'finx configure'.\n";
 				return -1;
 			}
 			return 1; # success
@@ -2573,7 +2573,7 @@ sub ensure_fink_bld {
 			}
 		}
 	} else {
-		# OK if we've got fink-bld but not a fink.conf UID setting yet.
+		# OK if we've got fink-bld but not a finx.conf UID setting yet.
 		if ($real_uid) {
 			return 1;
 		} else {
@@ -2705,7 +2705,7 @@ sub check_id_unused {
 
 Example:
 
-  my ($status,$dir) = is_accessible("/opt/finx/src/fink.build", "05");
+  my ($status,$dir) = is_accessible("/opt/finx/src/finx.build", "05");
 
 Check whether a path is accessible via the octal mode in $octmode (not limited to just
 that mode, so "05" will satisfy e.g. 555, 755, 777, etc.).
@@ -2824,7 +2824,7 @@ sub select_legal_path {
 		if (!File::Spec->file_name_is_absolute($dir_selection)) {
 			unless ($interactive) {
 				&print_breaking_stderr ("ERROR: '$dir_selection' is not an absolute directory path. ".
-										"Run 'fink configure' and fix the item (use a space if ".
+										"Run 'finx configure' and fix the item (use a space if ".
 										"you want to clear it)." );
 				return '';
 			}

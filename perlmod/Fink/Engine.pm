@@ -68,7 +68,7 @@ our @EXPORT_OK;
 
 =head1 NAME
 
-Fink::Engine - high-level actions for fink to perform
+Fink::Engine - high-level actions for finx to perform
 
 =head1 DESCRIPTION
 
@@ -184,7 +184,7 @@ sub process {
 	}
 
 	# Pop up help text when arbitrary verbs are used.
-	exit &execute("fink --help", quiet=>1) if (not exists $commands{$cmd});
+	exit &execute("finx --help", quiet=>1) if (not exists $commands{$cmd});
 
 	# Store original @ARGV in case we want to know how we were called.
 	# This is a stack (a ref to a list of refs to @ARGV) in case we
@@ -213,7 +213,7 @@ sub process {
 			if (!apt_available) {
 				&print_breaking("ERROR: You have the 'UseBinaryDist' option enabled ".
 				    "but apt-get could not be run. Try to install the 'apt' Fink package ".
-				    "(with e.g. 'fink install apt').");
+				    "(with e.g. 'finx install apt').");
 				$apt_problem = 1;
 			}
 		}
@@ -223,7 +223,7 @@ sub process {
 			if (&execute("$basepath/bin/apt-get --ignore-breakage --print-uris install 1>/dev/null 2>/dev/null", quiet=>1)) {
 				&print_breaking("ERROR: You have the 'UseBinaryDist' option enabled but the ".
 				   "'apt-get' tool installed on this system doesn't support it. Please ".
-				   "update your Fink installation (with e.g. 'fink selfupdate').");
+				   "update your Fink installation (with e.g. 'finx selfupdate').");
 				$apt_problem = 1;
 			}
 		}
@@ -242,7 +242,7 @@ sub process {
 	}
 
 	if ($cmd =~ /build|update|install|activate|use/) {
-		# Check if the Distribution encoded in fink.conf matches the current OS version
+		# Check if the Distribution encoded in finx.conf matches the current OS version
 		# or if there is a permitted upgrade path.  This needs to be evaluated before
 		# the .info collection is selected.
 		# Use version objects in case we have an extended series of OS versions with 
@@ -269,13 +269,13 @@ sub process {
 			$new_distribution = "10.14.5" if ($raw_osversion eq "10.14" and $raw_osversion_long ge '10.14.5');
 			if ($valid_upgrade) {
 				# allow reinstalls to proceed otherwise block the operation.
-				warn "Use 'fink reinstall fink' to switch distributions\n" .
+				warn "Use 'finx reinstall finx' to switch distributions\n" .
 					 "from $raw_distribution to $new_distribution.\n";
 				die "'$cmd' operation not permitted.\n" if $cmd ne "reinstall";
 			} else {
 				die "\nWe don't support updates from $raw_distribution to $new_distribution.\n" .
-					"Check the 'Clean Upgrade' section of $basepath/share/doc/fink/INSTALL\n" .
-					"or $basepath/share/doc/fink/INSTALL.html for information about \n" .
+					"Check the 'Clean Upgrade' section of $basepath/share/doc/finx/INSTALL\n" .
+					"or $basepath/share/doc/finx/INSTALL.html for information about \n" .
 					"how to proceed.\n\n".
 					"'$cmd' operation not permitted.\n"
 			}
@@ -309,7 +309,7 @@ sub process {
 	Fink::PkgVersion::scanpackages();
 
 	# Rebuild the command line, for user viewing
-	my $commandline = join ' ', 'fink', @$orig_ARGV;
+	my $commandline = join ' ', 'finx', @$orig_ARGV;
 	my $notifier = Fink::Notify->new();
 	if ($proc_rc->{'$@'}) {                    # now deal with eval results
 		my $msg = $proc_rc->{'$@'};
@@ -347,7 +347,7 @@ sub process {
 sub restart_as_root {
 	return if $> == 0;
 
-	my $cmd = "$basepath/bin/fink";
+	my $cmd = "$basepath/bin/finx";
 
 	if (my @argv = @{Fink::Config::get_option('_ARGV_stack', [])}) {
 		# there is an ARGV in the stack
@@ -394,7 +394,7 @@ sub cmd_index {
 		[ 'full|f' => \$full, 'Do a full reindex, discarding even valid caches.' ],
 	], \@_);
 
-	# Need to auto-index if specifically running 'fink index'!
+	# Need to auto-index if specifically running 'finx index'!
 	$config->set_param("NoAutoIndex", 0);
 	if ($full) {
 		Fink::Package->forget_packages({ disk => 1 });
@@ -537,16 +537,16 @@ sub do_real_list {
 			[ 'newer|N'			=>
 				sub {$sel_opts{installedstate} |= $ISTATE_TOONEW   ;},
 				'Only list packages whose installed version is newer than '
-				. 'anything fink knows about, including packages which '
+				. 'anything finx knows about, including packages which '
 				. 'have been removed from the distribution.' ],
 			[ 'buildonly|b'		=> \$sel_opts{'buildonly'},
 				'Only list packages which are Build Depends Only' ],
 			[ 'section|s=s'		=> \$sel_opts{'section'},
 				"Only list packages in the section(s) matching EXPR\n" .
-				"(example: fink list --section=x11).", 'EXPR'],
+				"(example: finx list --section=x11).", 'EXPR'],
 			[ 'maintainer|m=s'	=> \$sel_opts{'maintainer'},
 				"Only list packages with the maintainer(s) matching EXPR\n" .
-				"(example: fink list --maintainer=beren12).", 'EXPR'],
+				"(example: finx list --maintainer=beren12).", 'EXPR'],
 			[ 'recursive|r'  => \$sel_opts{'recursive'},
 				"List recursively (dotty and dotty-build formats only)." ],
 		);
@@ -650,7 +650,7 @@ sub do_real_list {
 			unless ($list_always{$pname}) {
 				if ($vo && $vo->is_installed()) {
 					if ($vo->is_type('dummy') && $vo->get_subtype('dummy') eq 'status') {
-						# Newer version than fink knows about
+						# Newer version than finx knows about
 						next unless $sel_opts{installedstate} & $ISTATE_TOONEW;
 						$iflag = "*i*";
 					} else {
@@ -777,7 +777,7 @@ sub cmd_listpackages {
   my $success = aptget_update $quiet;
 
 Update the apt-get package database. Returns boolean indicating
-whether the update worked within the limits of fink's configs.
+whether the update worked within the limits of finx's configs.
 
 =cut
 
@@ -813,7 +813,7 @@ sub aptget_update {
 
 =item cmd_scanpackages
 
-  $ fink scanpackages [ TREE1 ... ]
+  $ finx scanpackages [ TREE1 ... ]
 
 Command to update the packages in the given trees.
 
@@ -1034,7 +1034,7 @@ sub cmd_remove {
 		if (&execute("$basepath/bin/apt-get 1>/dev/null 2>/dev/null", quiet=>1)) {
 			&print_breaking("ERROR: Couldn't call apt-get, which is needed for ".
 			    "the recursive option. Try to install the 'apt' Fink package ".
-			    "(with e.g. 'fink install apt').");
+			    "(with e.g. 'finx install apt').");
 			die "Purge not performed!\n";
 		}
 		my @packages = get_pkglist("remove --recursive", @_);
@@ -1051,7 +1051,7 @@ sub cmd_remove {
 	@packages = get_pkglist $cmd;
 	@packages = get_pkglist $cmd, @selected;
 
-The $cmd is the fink command-line mode (and optional mode-specific
+The $cmd is the finx command-line mode (and optional mode-specific
 flags), such as "remove" or "purge --recursive".  Given a list of
 @selected packages, return a list from which those than cannot be
 removed have been elided. Default is all known packages, but this is
@@ -1065,8 +1065,8 @@ sub get_pkglist {
 	my (@plist, @selected, @packages);
 	my ($buildonly);
 
-	### is this usable? 'fink remove --help' doesn't display it
-	### and 'fink remove -b' reports "Known option: b"
+	### is this usable? 'finx remove --help' doesn't display it
+	### and 'finx remove -b' reports "Known option: b"
 	get_options($cmd, [
 		[ 'buildonly|b'	=> \$buildonly, "Only packages which are Build Depends Only" ],
 	], \@_, helpformat => "%intro{[options] [string]}\n%all{}\n");
@@ -1165,7 +1165,7 @@ sub cmd_purge {
 		if (&execute("$basepath/bin/apt-get 1>/dev/null 2>/dev/null", quiet=>1)) {
 			&print_breaking("ERROR: Couldn't call apt-get, which is needed for ".
 			    "the recursive option. Try to install the 'apt' Fink package ".
-			    "(with e.g. 'fink install apt').");
+			    "(with e.g. 'finx install apt').");
 			die "Purge not performed!\n";
 		}
 		my @packages = get_pkglist("purge --recursive", @_);
@@ -1194,7 +1194,7 @@ sub cmd_validate {
 
 	@flist = @_;
 	if ($#flist < 0) {
-		die "fink validate: no input file specified\nType 'fink validate --help' for more information.\n";
+		die "finx validate: no input file specified\nType 'finx validate --help' for more information.\n";
 	}
 
 	foreach $filename (@flist) {
@@ -1366,7 +1366,7 @@ sub cleanup_sources {
 
 Remove .deb from the Distribution that are not associated with package
 descriptions in the active Trees of the current Distribution. Also
-remove the symlinks from %p/fink/debs to these files, and any other
+remove the symlinks from %p/finx/debs to these files, and any other
 dangling symlinks that may be present. If we are in UsebinaryDist
 mode, also remove .deb from apt's download cache. The following option
 is known:
@@ -1430,17 +1430,17 @@ EOFUNC
 		print "Scanning deb collection...\n";
 	}
 	$file_count = 0;
-	find ({'wanted' => $kill_obsolete_debs, 'follow' => 1}, "$basepath/fink/dists");
+	find ({'wanted' => $kill_obsolete_debs, 'follow' => 1}, "$basepath/finx/dists");
 	if (!$opts{dryrun}) {
 		print "Obsolete deb packages ",
 			  ($opts{dryrun} ? "found in" : "deleted from"),
-			  " fink trees: $file_count\n\n";
+			  " finx trees: $file_count\n\n";
 	}
 
 	if ($opts{dryrun}) {
 		print "Skipping symlink cleanup in dryrun mode\n";
 	} else {
-		# Remove broken symlinks in %p/fink/debs, such as ones pointing to
+		# Remove broken symlinks in %p/finx/debs, such as ones pointing to
 		# the to the .deb files we just deleted
 		my $kill_broken_links = sub {
 			if (-l && !-e) {
@@ -1448,7 +1448,7 @@ EOFUNC
 			}
 		};
 		$file_count = 0;
-		find ($kill_broken_links, "$basepath/fink/debs");
+		find ($kill_broken_links, "$basepath/finx/debs");
 		print "Obsolete symlinks deleted: $file_count\n\n";
 	};
 
@@ -1505,7 +1505,7 @@ If true, don't actually remove things.
 
 Set to true if being called implicitly or for automatic cleanup. Set
 to false (or omit) if being called explicitly by the user (for
-example, by 'fink cleanup').
+example, by 'finx cleanup').
 
 =back
 
@@ -1517,7 +1517,7 @@ sub cleanup_buildlocks {
 	return 1 if Fink::Config::get_option("no_buildlock");
 
 	print "Reading buildlock packages...\n";
-	my $lockdir = "$basepath/var/run/fink/buildlock";
+	my $lockdir = "$basepath/var/run/finx/buildlock";
 	my @files;
 	if (opendir my $dirhandle, $lockdir) {
 		@files = readdir $dirhandle;
@@ -1531,12 +1531,12 @@ sub cleanup_buildlocks {
 	my ($LOCKS_NONE, $LOCKS_PRESENT, $LOCKS_IN_USE) = 0..2;
 	my $locks_left = $LOCKS_NONE;
 	for my $file (@files) {
-		# lock packages are named fink-buildlock-%n-%v-%r. They install
+		# lock packages are named finx-buildlock-%n-%v-%r. They install
 		# %n-%v-%r.pid and have a lockfile %n-%v-%r_$timestamp.lock
 		my ($fullv) = ($file =~ /(.+)_.+\.lock$/) or next;
 		my $lockfile = "$lockdir/$file";
 		my $pidfile = "$lockdir/$fullv.pid";
-		my $lockpkg = "fink-buildlock-$fullv";
+		my $lockpkg = "finx-buildlock-$fullv";
 		next unless -f $pidfile;
 
 		# We have a lock, and the package seems to be installed
@@ -1679,7 +1679,7 @@ If true, don't actually remove them.
 sub cleanup_dpkg_status {
 	my %opts = (dryrun => 0, @_);
 
-	my $cmd = $basepath . '/sbin/fink-dpkg-status-cleanup';
+	my $cmd = $basepath . '/sbin/finx-dpkg-status-cleanup';
 	$cmd .= ' --dry-run' if $opts{dryrun};
 
 	return &execute($cmd, ignore_INT=>1);
@@ -1792,11 +1792,11 @@ sub real_install {
 			my $oldindexes = lc(Fink::Config::get_option("OldIndexes", "warn"));
 			if ($oldindexes !~ /^(ignore|update|warn)$/) {
 				$oldindexes = 'warn';
-				print_breaking_stderr "WARNING: unknown value for 'OldIndexes' in fink.conf: $oldindexes";
+				print_breaking_stderr "WARNING: unknown value for 'OldIndexes' in finx.conf: $oldindexes";
 			}
 
 			if ($oldindexes eq "warn") {
-				print_breaking_stderr "WARNING: $up_to_date_text You should run 'fink selfupdate' to get the latest package descriptions.\n";
+				print_breaking_stderr "WARNING: $up_to_date_text You should run 'finx selfupdate' to get the latest package descriptions.\n";
 			} elsif ($oldindexes eq "update") {
 				print_breaking_stderr "WARNING: $up_to_date_text Fink will now update it automatically.";
 				require Fink::SelfUpdate;
@@ -2210,7 +2210,7 @@ sub real_install {
 				# So far, it seems the package doesn't have to be rebuilt. However,
 				# it has splitoff relatives. If any of those is going to be rebuilt,
 				# then rebuild the package, too!
-				# Reasoning: If any splitoff is rebuilt, then fink automatically
+				# Reasoning: If any splitoff is rebuilt, then finx automatically
 				# will rebuild all others splitoffs (including master), too. This
 				# check here essential is there to make the dependency engine
 				# properly aware of that fact. Without it, odd things can happen
@@ -2463,7 +2463,7 @@ HELPFORMAT
 
 	my @pkglist = &expand_packages(@_);
 	if (! @pkglist) {
-		die "fink dumpinfo: no package(s) specified\nType 'fink dumpinfo --help' for more information.\n";
+		die "finx dumpinfo: no package(s) specified\nType 'finx dumpinfo --help' for more information.\n";
 	}
 
 	foreach my $pkg (@pkglist) {
@@ -2635,7 +2635,7 @@ HELPFORMAT
 			} elsif ($_ eq 'configureparams') {
 				my $cparams = &expand_percent(
 					$pkg->prepare_percent_c,
-					$pkg->{_expand}, "fink dumpinfo " . $pkg->get_name . '-' . $pkg->get_fullversion
+					$pkg->{_expand}, "finx dumpinfo " . $pkg->get_name . '-' . $pkg->get_fullversion
 				);
 				$cparams =~ s/\n//g;
 				printf "%s: %s\n", $_, $cparams if length $cparams;
@@ -2707,7 +2707,7 @@ HELPFORMAT
 
 		foreach (@percents) {
 			s/^%(.+)/$1/;  # remove optional leading % (but allow '%')
-			printf "%%%s: %s\n", $_, &expand_percent("\%{$_}", $pkg->{_expand}, "fink dumpinfo " . $pkg->get_name . '-' . $pkg->get_fullversion);
+			printf "%%%s: %s\n", $_, &expand_percent("\%{$_}", $pkg->{_expand}, "finx dumpinfo " . $pkg->get_name . '-' . $pkg->get_fullversion);
 		}
 
 
@@ -2843,7 +2843,7 @@ sub choose_package_ask {
 		: [];
 
 	return prompt_selection("Pick one:",
-		intro	=> "fink needs help picking an alternative to satisfy a "
+		intro	=> "finx needs help picking an alternative to satisfy a "
 			. "virtual dependency. The candidates:",
 		choices	=> \@choices,
 		default	=> $default,
@@ -2999,7 +2999,7 @@ sub choose_package {
 	$found = choose_package_from_relatives($candidates,
 		$will_install) if not $found;
 
-	# Now see if the user has set a regexp to match in fink.conf.
+	# Now see if the user has set a regexp to match in finx.conf.
 	$found = choose_package_conf($candidates) if not $found;
 
 	# As a last resort, ask the user!

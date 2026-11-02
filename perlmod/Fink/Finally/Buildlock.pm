@@ -42,11 +42,11 @@ Fink::Finally::Buildlock - Ensure that builds don't interfere.
 
 =head1 DESCRIPTION
 
-Buildlocks are designed to prevent concurrent fink processes from interfering with each other's dependencies.
+Buildlocks are designed to prevent concurrent finx processes from interfering with each other's dependencies.
 
-For example, if one fink process is compiling a package "foo" that has a build-time dependency on the package "bar-dev", that fink process will set a build-lock that prevents another fink (or dpkg or apt or...) from removing the bar-dev package until the first fink process finishes building the package foo. In addition, buildlocks prevent concurrent builds of any given package (name-version-revision) to prevent the build processes from over-writing each other's files.
+For example, if one finx process is compiling a package "foo" that has a build-time dependency on the package "bar-dev", that finx process will set a build-lock that prevents another finx (or dpkg or apt or...) from removing the bar-dev package until the first finx process finishes building the package foo. In addition, buildlocks prevent concurrent builds of any given package (name-version-revision) to prevent the build processes from over-writing each other's files.
 
-See L<https://github.com/fink/fink/wiki/Buildlocks> for more
+See L<https://github.com/finx/finx/wiki/Buildlocks> for more
 information.
 
 =head1 CLASS METHODS
@@ -75,12 +75,12 @@ sub initialize {
 
 	# bootstrapping occurs before we have package-management tools
 	# needed for buildlocking. If you're bootstrapping into a location
-	# that already has a running fink, you already know you're gonne
-	# hose whatever may be running under that fink...
+	# that already has a running finx, you already know you're gonne
+	# hose whatever may be running under that finx...
 	return if $pv->is_bootstrapping;
 
 	# The plan: get an exlusive lock for %n-%v-%r_$timestamp that
-	# automatically goes away when this fink process quit. Install a
+	# automatically goes away when this finx process quit. Install a
 	# %n-%v-%r package that prohibits removal of itself if that lock
 	# is present.  It's always safe to attempt to remove all installed
 	# buildlock pkgs since they can each determine if these locks are
@@ -92,7 +92,7 @@ sub initialize {
 
 	print "Setting runtime build-lock...\n";
 
-	my $lockdir = "$basepath/var/run/fink/buildlock";
+	my $lockdir = "$basepath/var/run/finx/buildlock";
 	mkdir_p $lockdir or
 		die "can't create $lockdir directory for buildlocks\n";
 
@@ -103,7 +103,7 @@ sub initialize {
 
 	my $pkgname = $pv->get_name();
 	my $pkgvers = $pv->get_fullversion();
-	my $lockpkg = $self->{_lockpkg} = 'fink-buildlock-' . $pv->get_fullname();
+	my $lockpkg = $self->{_lockpkg} = 'finx-buildlock-' . $pv->get_fullname();
 
 	my $destdir = Fink::PkgVersion->get_install_directory($lockpkg);
 
@@ -117,22 +117,22 @@ sub initialize {
 	my $debarch = $config->param('Debarch');
 	my $control = <<EOF;
 Package: $lockpkg
-Source: fink
+Source: finx
 Version: $timestamp
 Section: unknown
 Installed-Size: 0
 Architecture: $debarch
 Description: Package compile-time lockfile
  This package represents the compile-time dependencies of a
- package being compiled by fink. The package being compiled is:
+ package being compiled by finx. The package being compiled is:
    $pkgname ($pkgvers)
  and the build process begun at $timestamp
  .
- Web site: https://github.com/fink/fink/wiki/Buildlocks
+ Web site: https://github.com/finx/finx/wiki/Buildlocks
  .
  Maintainer: Fink Core Group <fink-core\@lists.sourceforge.net>
 Maintainer: Fink Core Group <fink-core\@lists.sourceforge.net>
-Provides: fink-buildlock
+Provides: finx-buildlock
 EOF
 
 	# buildtime (anti)dependencies of pkg are runtime (anti)dependencies of lockpkg
@@ -172,7 +172,7 @@ else
   cat <<EOMSG
 There is currently an active buildlock for the package
      $pkgname ($pkgvers)
-meaning some other fink process is currently building it.
+meaning some other finx process is currently building it.
 EOMSG
   exit 1
 fi
@@ -223,17 +223,17 @@ Can't set build lock for $pkgname ($pkgvers)
 
 If any of the above dpkg error messages mention conflicting packages or
 missing dependencies -- for example, telling you that the package
-fink-buildlock-$pkgname-$pkgvers
-conflicts with something else -- fink has probably gotten confused by trying
+finx-buildlock-$pkgname-$pkgvers
+conflicts with something else -- finx has probably gotten confused by trying
 to build many packages at once. Try building just this current package
-$pkgname (i.e, "fink build $pkgname"). When that has completed successfully,
+$pkgname (i.e, "finx build $pkgname"). When that has completed successfully,
 you could retry whatever you did that led to the present error.
 
 Regardless of the cause of the lock failure, don't worry: you have not
 wasted compiling time! Packages that had been completely built before
 this error occurred will not have to be recompiled.
 
-See https://github.com/fink/fink/wiki/Buildlocks for more information.
+See https://github.com/finx/finx/wiki/Buildlocks for more information.
 EOMSG
 
 		# Failure due to dependency problems leaves lockpkg in an
@@ -274,7 +274,7 @@ sub finalize {
 						"$lockpkg. ".
 						"This is not fatal, but you may want to remove ".
 						"the package manually as it may interfere with ".
-						"further fink operations. ".
+						"further finx operations. ".
 						"Continuing with normal procedure.");
 	}
 	Fink::PkgVersion->dpkg_changed;

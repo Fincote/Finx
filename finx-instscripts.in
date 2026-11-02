@@ -33,8 +33,8 @@ print "dpkg script: $dpkg_script\n";
 print "dpkg mode  : $dpkg_mode\n";
 print "dpkg args  : @dpkg_args\n";
 
-print "fink script: $fink_type\n";
-print "fink args  : @ARGV\n";
+print "finx script: $fink_type\n";
+print "finx args  : @ARGV\n";
 
 }
 

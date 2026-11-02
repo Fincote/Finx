@@ -6,7 +6,7 @@ Source: gnu
 Source-Checksum: SHA256(8e09cf753ad1833695d2bac0f57dc3bd6bcbbfbf279450e1ba3bc2d7fb297d08)
 SourceDirectory: %n-%v
 BuildDepends: <<
-	fink (>= 0.32),
+	finx (>= 0.32),
 	libiconv-dev,
 	libncurses5,
 	libgettext8-dev,
@@ -32,9 +32,9 @@ PatchScript: <<
 
 	sed -e 's,@FINKPREFIX@,%p,g' %{PatchFile} | patch -p1
 
-	patch -p1 < fink/patches/warn_missing_tex
-	patch -p1 < fink/patches/numerical-signal-names
-	patch -p1 < fink/patches/dont_build_info
+	patch -p1 < finx/patches/warn_missing_tex
+	patch -p1 < finx/patches/numerical-signal-names
+	patch -p1 < finx/patches/dont_build_info
 
 	# help2man isn't present in bootstrap so patch it out
 	perl -pi -e 's,help2man,true,g' configure
@@ -59,9 +59,9 @@ CompileScript: <<
 #!/bin/sh -ev
 	./configure %c
 	echo '#define DEFAULT_INFOPATH "%p/share/info:%p/info:/usr/local/share/info:/usr/local/lib/info:/usr/local/info:/usr/share/info:."' >>config.h
-	cp man/texi2dvi.1 fink
+	cp man/texi2dvi.1 finx
 	make
-	mv fink/texi2dvi.1 man/
+	mv finx/texi2dvi.1 man/
 	touch man/texi2dvi.1
 	pushd doc
 		make info-stnd.info 
@@ -94,27 +94,27 @@ InstallScript: <<
 	# install additional files that are not installed by default
 	install -m 0755 util/txixml2texi %i/bin/txixml2texi
 
-	# work on fink install-info
+	# work on finx install-info
 	mv %i/bin/install-info %i/bin/ginstall-info
 	sed -e "s/install-info/g&/g" \
 		< %i/share/man/man1/install-info.1 \
 		> %i/share/man/man1/ginstall-info.1
 	rm -f %i/share/man/man1/install-info.1
-	install -m 0755 fink/install-info.sh %i/bin/install-info
-	install -m 0644 fink/install-info.1 %i/share/man/man1/install-info.1
+	install -m 0755 finx/install-info.sh %i/bin/install-info
+	install -m 0644 finx/install-info.1 %i/share/man/man1/install-info.1
 	install -d -m 0755 %i/sbin
-	install -m 0755 fink/update-info-dir %i/sbin/update-info-dir
+	install -m 0755 finx/update-info-dir %i/sbin/update-info-dir
 	install -d -m 0755 %i/share/man/man8
-	install -m 0644 fink/update-info-dir.8 %i/share/man/man8/update-info-dir.8
+	install -m 0644 finx/update-info-dir.8 %i/share/man/man8/update-info-dir.8
 
 	install -d -m 0755 %i/share/menu
-	install -m 0644 fink/info.menu %i/share/menu/info
+	install -m 0644 finx/info.menu %i/share/menu/info
 
 	# charset.alias supplied from gettext
 	rm -rf %i/lib
 
 	install -d -m 0755 %i/lib/mime/packages
-	install -m 0644 fink/info.mime %i/lib/mime/packages/info
+	install -m 0644 finx/info.mime %i/lib/mime/packages/info
 	install -d -m 0755 %i/share/info
 	install -m 0644 doc/info-stnd.info %i/share/info
 	install -m 0644 doc/texinfo.info %i/share/info
@@ -122,7 +122,7 @@ InstallScript: <<
 	install -m 0644 doc/texinfo.info-2 %i/share/info
 	install -m 0644 doc/texinfo.info-3 %i/share/info
 <<
-DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi fink/transition-plan.txt doc/refcard/txirefcard*.pdf
+DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi finx/transition-plan.txt doc/refcard/txirefcard*.pdf
 # Remove with dpkg > 1.16
 #InfoDocs: texinfo.info info-stnd.info
 #
@@ -300,7 +300,7 @@ case "$1" in
 esac
 <<
 License: GPL/GFDL
-Maintainer: None <fink-devel@lists.sourceforge.net>
+Maintainer: None <finx-devel@lists.sourceforge.net>
 Homepage: https://www.gnu.org/software/texinfo/
 
 SplitOff: <<
@@ -321,7 +321,7 @@ SplitOff: <<
 		share/man/man5/info.*
 		share/menu
 	<<
-	DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi fink/transition-plan.txt
+	DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi finx/transition-plan.txt
 	Description: Standalone GNU documentation browser
 	DescDetail: <<
 The Info file format is an easily-parsable representation for online
@@ -355,9 +355,9 @@ SplitOff2: <<
 		share/man/man8
 	<<
 	InstallScript: <<
-		cp fink/%n.triggers %d/DEBIAN/triggers
+		cp finx/%n.triggers %d/DEBIAN/triggers
 	<<
-	DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi fink/transition-plan.txt
+	DocFiles: README COPYING AUTHORS NEWS TODO doc/*.texi finx/transition-plan.txt
 	Description: Manage installed documentation in info format
 	DescDetail: <<
 The install-info utility creates the index of all installed documentation

@@ -104,7 +104,7 @@ jobs:
         run: make test ARCHITECTURE="$FINX_ARCH"
 
       - name: "Test: payload tree"
-        # fink 包的 CompileScript（fink.info.in）里跑的就是 `make test`，而那时
+        # finx 包的 CompileScript（finx.info.in）里跑的就是 `make test`，而那时
         # 的工作目录是载荷 tar 解出来的树 —— 只有 MANIFEST 里的文件，没有
         # 10.9-libcxx/、没有 .git。这一步重现那棵树并在里面跑一遍，
         # 挡住「只在仓库里成立」的假设。真实事故见 base-files/pack.conf 的注释。

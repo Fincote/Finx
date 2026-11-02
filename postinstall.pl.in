@@ -48,7 +48,7 @@ $basepath = "@PREFIX@";
 
 # read the configuration file
 my $config;
-my $configpath = "@PREFIX@/etc/fink.conf";
+my $configpath = "@PREFIX@/etc/finx.conf";
 my $configNeedsUpdate = 0;
 
 if (-f $configpath) {
@@ -61,7 +61,7 @@ if (-f $configpath) {
 }
 
 
-### check if we need to rerun configure since the fink.conf file
+### check if we need to rerun configure since the finx.conf file
 ### compatibility version has changed.
 my $expectedConfFileCompatVersion = $Fink::Configure::conf_file_compat_version;
 my $actualConfFileCompatVersion = $config->param_default("ConfFileCompatVersion", "0");
@@ -70,9 +70,9 @@ if ($expectedConfFileCompatVersion > $actualConfFileCompatVersion) {
 	$configNeedsUpdate = 1;
 }
 elsif ($expectedConfFileCompatVersion < $actualConfFileCompatVersion) {
-	&print_breaking("\nWARNING: Your fink configuration file \"$configpath\" " .
-				"was created from a fink version newer than this one! Try to run " .
-				"'fink configure' or reinstall the latest fink to correct this.\n\n");
+	&print_breaking("\nWARNING: Your finx configuration file \"$configpath\" " .
+				"was created from a finx version newer than this one! Try to run " .
+				"'finx configure' or reinstall the latest finx to correct this.\n\n");
 }
 
 
@@ -83,7 +83,7 @@ my ($host);
 
 my ($distribution);
 
-$host = `$basepath/lib/fink/update/config.guess`;
+$host = `$basepath/lib/finx/update/config.guess`;
 chomp($host);
 if ($host =~ /^\s*$/) {
 	print " ERROR: Can't determine host type.\n";
@@ -125,7 +125,7 @@ if ( not ($distold eq $distribution)) {
 
 my ($username, @sb, $distdir);
 
-$distdir = "$basepath/fink/dists" ;
+$distdir = "$basepath/finx/dists" ;
 $username = "root" ;
 
 if (-d "$distdir/CVS") {
@@ -142,7 +142,7 @@ if (($distribution eq "10.1") or
 		($distribution eq "10.2") or
 		($distribution eq "10.3") or
 		($distribution eq "10.4-transitional")) {
-	print "ERROR: The current version of fink cannot be used with the $distribution distribution.\nPlease use an appropriate earlier version of fink.\n";
+	print "ERROR: The current version of finx cannot be used with the $distribution distribution.\nPlease use an appropriate earlier version of finx.\n";
 	exit 1;
 }
 
@@ -155,8 +155,8 @@ my $selfupdatetree = $distroot;
 ### FIXME: of course, we are not checking on other bad conditions which may
 ### exist if this symlink is still pointing to 10.4-transitional
 
-if (-l "$basepath/fink/10.4") {
-	unlink "$basepath/fink/10.4";
+if (-l "$basepath/finx/10.4") {
+	unlink "$basepath/finx/10.4";
 }
 
 # If $distroot is different from $distribution, we need a symlink between them.
@@ -165,50 +165,50 @@ my $notlink;
 
 if (not ($distribution eq $distroot)) {
 	$notlink = "1";
-### we want $basepath/fink/$distribution to be a symlink, but if it already exists
+### we want $basepath/finx/$distribution to be a symlink, but if it already exists
 ### and is *not* a symlink (or not the correct symlink), we move it out of
 ### the way first
-	if (-l "$basepath/fink/$distribution") {
-		if (readlink("$basepath/fink/$distribution") eq "$distroot") {
+	if (-l "$basepath/finx/$distribution") {
+		if (readlink("$basepath/finx/$distribution") eq "$distroot") {
 			$notlink = "0";
 		}
 	}
-	if (-e "$basepath/fink/$distribution") {
-		if (-e "$basepath/fink/$distribution.old") {
-			my $aanswer = &prompt_boolean("\nWARNING: you have an obsolete file or directory $basepath/fink/$distribution.old which must be removed before the installation can continue; do you want to remove it now?\n", default => 1, timeout => 60);
+	if (-e "$basepath/finx/$distribution") {
+		if (-e "$basepath/finx/$distribution.old") {
+			my $aanswer = &prompt_boolean("\nWARNING: you have an obsolete file or directory $basepath/finx/$distribution.old which must be removed before the installation can continue; do you want to remove it now?\n", default => 1, timeout => 60);
 			if ($aanswer) {
-				if (&execute("/bin/rm -rf $basepath/fink/$distribution.old")) {
-					print "ERROR: Cannot remove $basepath/fink/$distribution.old\n";
+				if (&execute("/bin/rm -rf $basepath/finx/$distribution.old")) {
+					print "ERROR: Cannot remove $basepath/finx/$distribution.old\n";
 					exit 1;
 				}
 			} else {
-				print "\nOK: please run 'fink reinstall fink' when you are ready to have this file or directory deleted.\n\n";
+				print "\nOK: please run 'finx reinstall finx' when you are ready to have this file or directory deleted.\n\n";
 				exit 1;
 			}
 		}
 		if ($notlink) {
-			if (&execute("/bin/mv $basepath/fink/$distribution $basepath/fink/$distribution.old")) {
-				print "ERROR: Can't move $basepath/fink/$distribution to $basepath/fink/$distribution.old\n";
+			if (&execute("/bin/mv $basepath/finx/$distribution $basepath/finx/$distribution.old")) {
+				print "ERROR: Can't move $basepath/finx/$distribution to $basepath/finx/$distribution.old\n";
 				exit 1;
 			}
-			print "\nWARNING: An unexpected file or directory $basepath/fink/$distribution was found,\nand was moved to $basepath/fink/$distribution.old .	It will be deleted the next time\nfink is updated, unless you have deleted it yourself before then.\n\n";
+			print "\nWARNING: An unexpected file or directory $basepath/finx/$distribution was found,\nand was moved to $basepath/finx/$distribution.old .	It will be deleted the next time\nfink is updated, unless you have deleted it yourself before then.\n\n";
 		}
 	}
 	if ($notlink) {
-		if (&execute("/bin/ln -s $distroot $basepath/fink/$distribution")) {
-			print "ERROR: Can't create link from $distroot to $basepath/fink/$distribution\n";
+		if (&execute("/bin/ln -s $distroot $basepath/finx/$distribution")) {
+			print "ERROR: Can't create link from $distroot to $basepath/finx/$distribution\n";
 			exit 1;
 		}
 	}
 }
 
-if (not -d $basepath."/fink/".$distroot) {
-	if(&execute("/bin/mkdir -p $basepath/fink/$distroot/local/main/finkinfo")) {
-		print "ERROR: couldn't create directory $basepath/fink/$distroot/local/main/finkinfo\n";
+if (not -d $basepath."/finx/".$distroot) {
+	if(&execute("/bin/mkdir -p $basepath/finx/$distroot/local/main/finkinfo")) {
+		print "ERROR: couldn't create directory $basepath/finx/$distroot/local/main/finkinfo\n";
 		exit 1;
 	}
-	if (&execute("/usr/sbin/chown -R $username $basepath/fink/$distroot")) {
-		print "ERROR: couldn't change ownership of $basepath/fink/$distroot to $username\n";
+	if (&execute("/usr/sbin/chown -R $username $basepath/finx/$distroot")) {
+		print "ERROR: couldn't change ownership of $basepath/finx/$distroot to $username\n";
 		exit 1;
 	}
 }
@@ -244,13 +244,13 @@ $config->save();
 # update packages if we are updating.
 
 if ($updating) {
-	if(&execute("/bin/mkdir -p $basepath/fink/dists/local/injected/finkinfo/update-packages")) {
-		print "ERROR: couldn't create directory $basepath/fink/dists/local/injected/finkinfo/update-packages\n";
+	if(&execute("/bin/mkdir -p $basepath/finx/dists/local/injected/finkinfo/update-packages")) {
+		print "ERROR: couldn't create directory $basepath/finx/dists/local/injected/finkinfo/update-packages\n";
 		exit 1;
 	}
 # just in case we need to overwrite something, use cp -f
-	if (&execute("/bin/cp -f $basepath/lib/fink/update-packages/* $basepath/fink/dists/local/injected/finkinfo/update-packages")) {
-		print "ERROR: couldn't copy package desriptions to $basepath/fink/dists/local/injected/finkinfo/update-packages\n";
+	if (&execute("/bin/cp -f $basepath/lib/finx/update-packages/* $basepath/finx/dists/local/injected/finkinfo/update-packages")) {
+		print "ERROR: couldn't copy package desriptions to $basepath/finx/dists/local/injected/finkinfo/update-packages\n";
 		exit 1;
 	}
 }
@@ -261,8 +261,8 @@ if ($updating) {
 # Currently applies to 10.9-10.15 platforms coming from a
 # dist that used the "10.7" subdir (regardless of actual platform)
 if ( $distribution eq "10.9" or $distribution eq "10.10" or $distribution eq "10.11" or $distribution eq "10.12" or $distribution eq "10.13" or $distribution eq "10.14" or $distribution eq "10.14.5" or $distribution eq "10.15"
-		and -d "$basepath/fink/10.7" ) {
-	my @deb_list = glob "$basepath/fink/debs/*.deb";
+		and -d "$basepath/finx/10.7" ) {
+	my @deb_list = glob "$basepath/finx/debs/*.deb";
 	my $copy_debs = 1;
 	foreach my $file ( @deb_list ) {
 		# Assume that we don't need to proceed if a single symlink resolves properly.
@@ -275,7 +275,7 @@ if ( $distribution eq "10.9" or $distribution eq "10.10" or $distribution eq "10
 	if ( $copy_debs ) {
 		print "Copying .debs...\n";
 		foreach my $file ( @deb_list ) {
-			# In %p/fink we have:
+			# In %p/finx we have:
 			#  "dists"->$distribution
 			#  $distribution->REALDIR
 			# During upgrade, that second symlink is changed to point
@@ -290,19 +290,19 @@ if ( $distribution eq "10.9" or $distribution eq "10.10" or $distribution eq "10
 			$real_file =~ s/$distribution/10.7/g; # assumes platform version has not changed (?)
 			my $dir =  dirname ( $target_file );
 			# no need to make the directory if it already exists
-			unless ( -d "$basepath/fink/debs/$dir" ) {
-				if ( &execute ("/bin/mkdir -p $basepath/fink/debs/$dir" )) {
-					print "WARNING: couldn't create directory $basepath/fink/debs/$dir\n";
+			unless ( -d "$basepath/finx/debs/$dir" ) {
+				if ( &execute ("/bin/mkdir -p $basepath/finx/debs/$dir" )) {
+					print "WARNING: couldn't create directory $basepath/finx/debs/$dir\n";
 				}
 			}
-			if ( &execute ("/bin/cp -f $basepath/fink/debs/$real_file $basepath/fink/debs/$target_file" )) {
-					print "WARNING: couldn't create file $basepath/fink/debs/$dir/$file\n";
+			if ( &execute ("/bin/cp -f $basepath/finx/debs/$real_file $basepath/finx/debs/$target_file" )) {
+					print "WARNING: couldn't create file $basepath/finx/debs/$dir/$file\n";
 			}
 		}
 	}
 }
 
-# If a user upgrades to a new fink with AutoScanpackages, we'd rather do the
+# If a user upgrades to a new finx with AutoScanpackages, we'd rather do the
 # first (uncached, long) scan in postinst than at the end of the user's next
 # build.
 sub pre_scanpackages {
@@ -324,15 +324,15 @@ sub pre_scanpackages {
 pre_scanpackages();
 
 if ($configNeedsUpdate) {
-	&print_breaking("\nThis fink version introduces new settings stored in the " .
-				"fink configuration file \"$configpath\". You should rerun the " .
+	&print_breaking("\nThis finx version introduces new settings stored in the " .
+				"finx configuration file \"$configpath\". You should rerun the " .
 				"configuration process.\n");
 	my $answer = &prompt_boolean("Do you want to configure now?", default => 0, timeout => 60);
 	if ($answer) {
 		require Fink::Configure;
 		Fink::Configure::configure();
 	} else {
-		print "Please remember to call 'fink configure' later!\n\n";
+		print "Please remember to call 'finx configure' later!\n\n";
 	}
 } else {
 	# Only ask if not configuring, configure will ask later

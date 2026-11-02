@@ -5,7 +5,7 @@ IFS=:
 newpath=
 for dir in $PATH ; do
     case $dir in
-        *var/lib/fink/path-prefix*) ;;
+        *var/lib/finx/path-prefix*) ;;
         *) newpath="${newpath:+${newpath}:}$dir" ;;
     esac
 done

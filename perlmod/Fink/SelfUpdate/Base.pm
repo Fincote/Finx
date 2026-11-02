@@ -146,7 +146,7 @@ sub do_direct { die "Not implemented\n" }
 
 	Fink::SelfUpdate::$method->update_version_file(%options);
 
-Records information in %p/fink/$distribution/VERSION.selfupdate about
+Records information in %p/finx/$distribution/VERSION.selfupdate about
 the just-done selfupdate. Returns nothing useful. Probably safest to
 avoid overriding this class method. The following %options are known:
 
@@ -170,7 +170,7 @@ sub update_version_file {
 	my $class = shift;
 	my %options = ('distribution' => $distribution, 'data' => '', @_);
 
-	my $filename = "$basepath/fink/$options{distribution}/VERSION.selfupdate";
+	my $filename = "$basepath/finx/$options{distribution}/VERSION.selfupdate";
 	my @lines = ();
 
 	# read old file

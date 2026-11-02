@@ -3,18 +3,18 @@ Package: fink-mirrors
 Version: 0.43.0.1
 Revision: 1
 Essential: yes
-Source: mirror:custom:fink/%n-%v.tar.gz
+Source: mirror:custom:finx/%n-%v.tar.gz
 Source-MD5: 8c4347d367db95d8de965d9ca623fe52
-Depends: fink (>= 0.17.3-1)
-Replaces: fink (<< 0.17.2-1)
+Depends: finx (>= 0.17.3-1)
+Replaces: finx (<< 0.17.2-1)
 CompileScript:  sed -e "s|@PREFIX@|%p|g" < postinstall.pl.in > postinstall.pl
 InstallScript: ./install.sh %i
-PostInstScript: %p/lib/fink/mirror/postinstall.pl
+PostInstScript: %p/lib/finx/mirror/postinstall.pl
 #
 Description: Mirror infrastructure
 DescDetail: <<
 The fink-mirrors package keeps a current list of the mirrors which are used 
-by fink to download sourcefiles.
+by finx to download sourcefiles.
 <<
 License: GPL
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>

@@ -241,7 +241,7 @@ target_state() {
         printf 'absent\n'
     elif [ ! -d "$target" ]; then
         printf 'nonempty\n'
-    elif [ -e "$target/bin/fink" ]; then
+    elif [ -e "$target/bin/finx" ]; then
         printf 'existing\n'
     elif [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
         printf 'nonempty\n'
@@ -488,7 +488,7 @@ extract_seed() {
 # 前缀必须归 root 所有，不能 chown 给调用者。
 #
 # 两个理由，都不是风格问题：
-#   1. 解决不了免密码 —— fink install 的 rootflag 是 1，只看 $>，与归属无关；
+#   1. 解决不了免密码 —— finx install 的 rootflag 是 1，只看 $>，与归属无关；
 #   2. 会开提权口子 —— dpkg 以 root 执行 postinst，且 Fink 的 dpkg 打了
 #      fink-bld_no_fakeroot 补丁用真 root。前缀一旦用户可写，$prefix/bin/dpkg
 #      与 var/lib/dpkg/status 就成了用户可控的 root 输入。
@@ -552,7 +552,7 @@ resign_macho() {
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
 write_config() {
     target=$1
-    conf=$target/etc/fink.conf
+    conf=$target/etc/finx.conf
 
     if [ -e "$conf" ]; then
         info "keeping existing $conf"
@@ -567,7 +567,7 @@ write_config() {
     mkdir -p "$target/etc" || die "cannot create $target/etc"
     cat > "$conf" <<EOF
 # Finx configuration, created by finx-install
-# 其余字段（Trees / Distribution / SelfUpdateTrees）由 fink configure 补全。
+# 其余字段（Trees / Distribution / SelfUpdateTrees）由 finx configure 补全。
 Basepath: $target
 EOF
 }
@@ -575,12 +575,12 @@ EOF
 run_scanpackages() {
     target=$1
 
-    if [ ! -x "$target/bin/fink" ]; then
-        warn "this seed has no $target/bin/fink; skipping the package index rebuild"
+    if [ ! -x "$target/bin/finx" ]; then
+        warn "this seed has no $target/bin/finx; skipping the package index rebuild"
         return 0
     fi
 
-    run "$target/bin/fink" scanpackages || warn "fink scanpackages failed; run it manually later"
+    run "$target/bin/finx" scanpackages || warn "finx scanpackages failed; run it manually later"
     return 0
 }
 
@@ -788,6 +788,48 @@ check_target() {
     esac
 }
 
+# 装完之后 finx 还不在 PATH 上 —— 子进程改不了父 shell 的环境变量，
+# 所以只有两条路：让用户自己 source，或写进 shell 的启动文件。
+#
+# 这里不自动写启动文件。这个安装器的典型用法是 `curl ... | bash`，
+# 在用户没看清的情况下改 .zprofile 是坏做法，而且改错了很难发现。
+# 所以：按用户的登录 shell 给出**精确到文件**的那一行，用户可以复制粘贴；
+# 想让它代劳的，指向随包安装的 pathsetup.sh。
+print_path_help() {
+    shell=$(basename "${SHELL:-/bin/zsh}")
+
+    case $shell in
+        zsh)  rc="$HOME/.zprofile" ;;
+        bash)
+            if [ -f "$HOME/.bash_profile" ]; then
+                rc="$HOME/.bash_profile"
+            else
+                rc="$HOME/.profile"
+            fi ;;
+        csh|tcsh) rc="$HOME/.cshrc" ;;
+        *)    rc="$HOME/.profile" ;;
+    esac
+
+    if [ "$shell" = "csh" ] || [ "$shell" = "tcsh" ]; then
+        line="test -r $PREFIX/bin/init.csh && source $PREFIX/bin/init.csh"
+    else
+        line="test -r $PREFIX/bin/init.sh && . $PREFIX/bin/init.sh"
+    fi
+
+    printf '\n'
+    printf 'To use finx in this shell now:\n'
+    printf '    . %s/bin/init.sh\n' "$PREFIX"
+    printf '\n'
+    printf 'To make it permanent, append this line to %s:\n' "$rc"
+    printf '    %s\n' "$line"
+    printf '\n'
+    printf 'Or let the bundled helper do it (it asks first):\n'
+    printf '    %s/bin/pathsetup.sh\n' "$PREFIX"
+    printf '\n'
+    printf 'Note: finx installs into its own prefix, so it never shadows a Fink\n'
+    printf 'installation that may already be present under /sw.\n'
+}
+
 main() {
     parse_args "$@"
     apply_test_root
@@ -808,8 +850,8 @@ main() {
 
     printf '\n'
     info "Finx ${INSTALLED_RELEASE:-unknown} installed in $PREFIX"
-    info "Add it to this shell with: . $PREFIX/bin/init.sh"
-    info "Package operations run as root, like MacPorts; fink asks for sudo itself."
+    print_path_help
+    info "Package operations run as root, like MacPorts; finx asks for sudo itself."
 }
 
 # 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，

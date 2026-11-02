@@ -9,11 +9,11 @@
 - `bin`、`etc`、`var/lib/dpkg` 那套目录骨架
 
 在此之前，仓库里有 11 处引用 `$prefix/bin/init.sh`，零处生成它的代码 —— 它来自
-SourceForge 上的 `fink/base-files-1.9.19.tar.gz`。那个地址在本机已经 404。
+SourceForge 上的 `finx/base-files-1.9.19.tar.gz`。那个地址在本机已经 404。
 
 ## 来源
 
-上游是 `https://github.com/fink/base-files`，取的是 `release_1_9_19` 标签，
+上游是 `https://github.com/finx/base-files`，取的是 `release_1_9_19` 标签，
 与 [`10.9-libcxx/base-files.info`](../10.9-libcxx/base-files.info) 里 pin 的
 `Version: 1.9.19` 对应。许可证沿用上游的 GPL v2（见 [COPYING](./COPYING)）。
 
@@ -31,7 +31,7 @@ SourceForge 上的 `fink/base-files-1.9.19.tar.gz`。那个地址在本机已经
 ## 为什么要有 pack.sh
 
 Fink 的 `find_tarball()` 先搜 `$basepath/src`，找到就不下载。所以只要在装包之前
-把 tar 放进 `<prefix>/src`，`fink install base-files` 就完全不联网。
+把 tar 放进 `<prefix>/src`，`finx install base-files` 就完全不联网。
 [`pack.sh`](./pack.sh) 负责生成它，`Bootstrap::pack_included_sources` 在
 `bootstrap2` 里调用。
 
@@ -44,7 +44,7 @@ Fink 的 `find_tarball()` 先搜 `$basepath/src`，找到就不下载。所以�
 留到 bootstrap 跑到一半。
 
 版本与期望的 MD5 记在 [`pack.conf`](./pack.conf)，**不是**在
-`10.9-libcxx/base-files.info` 里。原因值得记一笔：`fink` 包自己的 `CompileScript`
+`10.9-libcxx/base-files.info` 里。原因值得记一笔：`finx` 包自己的 `CompileScript`
 会跑 `make test`，而那时的工作目录是 `MANIFEST` 打出来的载荷树 —— 里面没有
 `10.9-libcxx/`（被 `MANIFEST.SKIP` 排除）。第一版把这两个值放在 `.info` 里，
 bootstrap 因此死在 phase 3。`pack.conf` 随载荷一起发布，所以载荷树里也读得到；
@@ -61,5 +61,5 @@ make payload_test                  # 确认载荷树里跑得通
 ## 还没做的
 
 [`dpkg-base-files`](../10.9-libcxx/dpkg-base-files.info) 同样是外部 tarball
-（`fink/dpkg-base-files-0.4.tar.gz`）。它不阻塞「系统怎么跑起来」这个问题 ——
+（`finx/dpkg-base-files-0.4.tar.gz`）。它不阻塞「系统怎么跑起来」这个问题 ——
 它提供的是 `.la` 文件清理的 triggers —— 但用的是同一套机制，可以照此办理。

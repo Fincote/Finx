@@ -10,8 +10,24 @@
 | **Finx** | 本项目（`Fincote/Finx`）。x 取「扩展」之意：保留 Fink 的 dpkg/apt 内核，扩展的是安装前缀、文档与可维护性。 |
 
 不要混用：讲设计决策时用 Finx，讲历史、兼容与遗留写法时用 Fink。
-代码里的标识符仍是 `fink`（命令名、包名、`Fink::` 命名空间），这是刻意保留的，
-不在重命名范围内。
+
+## 命名边界（重要）
+
+**用户输入的命令是 `finx`，不是 `fink`。** 这条是为了让用户永远不会分不清
+自己调用的是 Fink 还是 Finx —— 在一台机器上两者可能同时存在（Fink 在 `/sw`，
+Finx 在 `/opt/finx`），命令名相同就必然混淆。没有 `fink` 兼容别名，故意的。
+
+| 该是 `finx` | 保持 `fink` |
+| --- | --- |
+| 可执行文件、`finx-*` 辅助脚本 | `Fink::` Perl 命名空间（内部 API，用户看不见） |
+| `etc/finx.conf`、`finx.8`、`finx.conf.5` | `finkproject.org`、`finkmirrors.net`、SourceForge 的 `/fink/` 路径 |
+| dpkg 包名 `finx`（含各 `.info` 的 `BuildDepends: finx`） | `fink-core@`、`fink-announce`、`fink-users`（上游邮件列表） |
+| `%p/finx/`（dists、debs）、`share/doc/finx` | `fink-bld`（系统账户）、`finkinfo`（描述树目录约定） |
+| 帮助/版本/报错里提到本程序时 | `fink_version`、`finkdir`、`finkPackage*`、`--with-finkvirtuals` 等内部标识符 |
+| | `Copyright ... The Fink Package Manager Team`（作者署名） |
+
+判定方法：**用户敲得到的、`ls` 看得到的、`dpkg -l` 列出来的，用 `finx`；
+其余保持原样。** 不确定时先看这张表，不要全仓库替换。
 
 ## 与用户交流
 
@@ -79,7 +95,7 @@ make test          # manifest_check → structure → sources_check → test_set
   否则自举时 Fink 会认为 tar 被篡改并停下来问人。背景见 TECHNICAL-GUIDE 8.9。
 - `make payload_test`（[`scripts/payload_test.sh`](./scripts/payload_test.sh)）是独立的，
   **不在 `make test` 里**：它只把 `MANIFEST` 列出的文件复制到临时目录，在那儿再跑一遍
-  `make test`。这正是 `fink.info.in` 的 `CompileScript` 执行时的环境 —— 没有
+  `make test`。这正是 `finx.info.in` 的 `CompileScript` 执行时的环境 —— 没有
   `10.9-libcxx/`、没有 `.git`。任何「只在仓库里成立」的假设都会在这一步暴露，
   而本地 `make test` 是绿的。改了 `Makefile`、`MANIFEST` 或任何构建期脚本后要跑。
 - 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
@@ -122,19 +138,19 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --dry-run
   `MANIFEST`、`Bootstrap::check_files`、`inject.pl` 与外部 tarball，做不全就装不上。
   面向用户的安装器在 `finx-install/`，见 TECHNICAL-GUIDE 8.7。
 - **不要**把 `/opt/finx` 或任何系统前缀 `chown` 给调用安装器的用户。
-  `fink install` 的 `rootflag` 是 1，chown 免不了密码；而 dpkg 以真 root 执行 `postinst`，
+  `finx install` 的 `rootflag` 是 1，chown 免不了密码；而 dpkg 以真 root 执行 `postinst`，
   用户可写的前缀等于把 root 交出去。理由与替代方案见 TECHNICAL-GUIDE 8.6。
 - `finx-install/standalone.sh`：生成物，不要手改。改 `finx-install/lib/` 或
   `finx-install/install.sh` 后必须跑 `./finx-install/build-bundle.sh`，否则线上那条
   `curl | bash` 跑的还是旧逻辑。`build-bundle.sh --check` 负责发现漂移。
 - `10.9-libcxx/*.patch` 与 `10.9-libcxx/dpkg.patch`：上游源码的补丁载荷，动一个字节就装不上。
 - **`MANIFEST` 是载荷清单，不是发行清单。** 它只列「要打进载荷 tar 的文件」；
-  `fink.info.in`、`10.9-libcxx/`、`mirror/` 被 `MANIFEST.SKIP` 排除是**刻意**的 ——
+  `finx.info.in`、`10.9-libcxx/`、`mirror/` 被 `MANIFEST.SKIP` 排除是**刻意**的 ——
   前者的用途是生成包描述，后者由 bootstrap 单独 `cp`。`Bootstrap::check_files`
   查的是另一件事（源码树完整性），两者不同集，不要套包含关系。
   这条曾被我判断错，纠正过程见 TECHNICAL-GUIDE 10.5。
 - `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE 第一节。
-- `base-files/` 是从上游 `fink/base-files` 收进来的包源码，见
+- `base-files/` 是从上游 `finx/base-files` 收进来的包源码，见
   [README](./base-files/README.md)。它与 `10.9-libcxx/base-files.info` 里写死的
   `Source-MD5` 绑定，改任何一个载荷文件后必须跑 `./base-files/pack.sh --update`，
   否则自举会卡在「校验和不符」。

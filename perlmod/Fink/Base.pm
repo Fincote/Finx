@@ -46,7 +46,7 @@ Fink::Base - basic parameter handling
 
 =head1 DESCRIPTION
 
-Basic parameter handling for fink objects.
+Basic parameter handling for finx objects.
 
 =head2 Constructors
 
@@ -57,7 +57,7 @@ Basic parameter handling for fink objects.
   my $obj = Fink::Base->new;
   my $obj = Fink::Base->new @args;
 
-Create a new, empty fink object, and initialize it with the given arguments.
+Create a new, empty finx object, and initialize it with the given arguments.
 
 =cut
 
@@ -79,7 +79,7 @@ sub new {
   my $obj = Fink::Base->new_from_properties({ key1 => val1, ...});
   my $obj = Fink::Base->new_from_properties({ key1 => val1, ...}, @parameters);
 
-Create a new fink object setting its parameters to the given hash, and
+Create a new finx object setting its parameters to the given hash, and
 initialize it with the given arguments.
 
 Any key with a leading _ is ignored.

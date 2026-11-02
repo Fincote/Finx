@@ -4,7 +4,7 @@ Revision: 1.3
 GCC: 4.0
 ## Remove po4a
 BuildDepends: <<
-	fink (>= 0.32),
+	finx (>= 0.32),
 	libgettext8-dev (>= 0.22.5-1),
 	gettext-tools (>= 0.18),
 	liblzma5,
@@ -33,7 +33,7 @@ Suggests: <<
 Essential: yes
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 
-Source: mirror:sourceforge:fink/dpkg_%v.tar.gz
+Source: mirror:sourceforge:finx/dpkg_%v.tar.gz
 Source-Checksum: SHA256(b50e58b71223f66196b419f776c7791b5cc3a9aa07e1ccf85848b123517cdd51)
 SourceDirectory: dpkg-%v
 
@@ -44,21 +44,21 @@ PatchFile-MD5: 82f5c581d07a327c4bbd3ca1c7a39f28
 PatchScript: <<
 sed -e 's,@FINKPREFIX@,%p,g' -e 's,@ARCHITECTURE@,%m,g' %{PatchFile} | patch -p1
 
-patch -p1 < fink/patches/add-BOD.patch
-patch -p1 < fink/patches/build-fix.patch
-patch -p1 < fink/patches/c++filt-defaults.patch
-patch -p1 < fink/patches/full-path-calls.patch
-patch -p1 < fink/patches/location-fixes.patch
-patch -p1 < fink/patches/protect-system-dirs.patch
-patch -p1 < fink/patches/so-to-dylib.patch
-patch -p1 < fink/patches/fink-as-vendor.patch
-patch -p1 < fink/patches/extra-env.patch
-patch -p1 < fink/patches/extra-statusfile.patch
-patch -p1 < fink/patches/coreutils.patch
-patch -p1 < fink/patches/fink-bld_no_fakeroot.patch
+patch -p1 < finx/patches/add-BOD.patch
+patch -p1 < finx/patches/build-fix.patch
+patch -p1 < finx/patches/c++filt-defaults.patch
+patch -p1 < finx/patches/full-path-calls.patch
+patch -p1 < finx/patches/location-fixes.patch
+patch -p1 < finx/patches/protect-system-dirs.patch
+patch -p1 < finx/patches/so-to-dylib.patch
+patch -p1 < finx/patches/finx-as-vendor.patch
+patch -p1 < finx/patches/extra-env.patch
+patch -p1 < finx/patches/extra-statusfile.patch
+patch -p1 < finx/patches/coreutils.patch
+patch -p1 < finx/patches/fink-bld_no_fakeroot.patch
 
 # Remove po4a and make sure it can't be found if it's installed
-# this is to keep fink policy happy since it has to build the same
+# this is to keep finx policy happy since it has to build the same
 # everytime on all systems
 perl -pi -e 's,in po4a,in notpo4a,g' configure
 
@@ -144,7 +144,7 @@ SetCXXFLAGS: -g -O2 -fstack-protector -Wformat -fPIE
 SetLDFLAGS: -Wl,-bind_at_load -fPIE -Wl,-pie
 
 ConfigureParams: <<
-	--with-finkvirtuals=%p/bin/fink-virtual-pkgs \
+	--with-finkvirtuals=%p/bin/finx-virtual-pkgs \
 	--with-dpkg-env-script=%p/bin/init.sh \
 	--disable-start-stop-daemon \
 	--with-admindir=%p/var/lib/dpkg \
@@ -187,27 +187,27 @@ install -d -m 0755 %i/share/doc/dpkg
 make install DESTDIR=%d
 
 install -d -m 0755 %i/etc/dpkg/origins
-install -c -p -m 644 fink/origins %i/etc/dpkg/origins/fink
+install -c -p -m 644 finx/origins %i/etc/dpkg/origins/finx
 install -c -p -m 644 debian/dselect.cfg %i/etc/dpkg
-## currently in fink
+## currently in finx
 # install -c -p -m 644 debian/shlibs.default %i/etc/dpkg
 install -c -p -m 644 debian/shlibs.override %i/etc/dpkg
-install -c -p -m 644 fink/buildflags.conf %i/etc/dpkg
+install -c -p -m 644 finx/buildflags.conf %i/etc/dpkg
 mkdir -p %i/lib/dpkg
 mv %i/var/lib/dpkg/methods %i/lib/dpkg
 rm -rf %i/libexec
 
-install -m 0755 fink/md5sum %i/bin
+install -m 0755 finx/md5sum %i/bin
 
 install -d -m 0755 %i/etc/cron.daily
 install -d -m 0755 %i/var/backups
-install -m 0644 fink/dpkg.cron.daily %i/etc/cron.daily/dpkg
+install -m 0644 finx/dpkg.cron.daily %i/etc/cron.daily/dpkg
 
-# install fink as a vendor
+# install finx as a vendor
 install -m 0644 scripts/Dpkg/Vendor/Fink.pm %i/lib/perl5/Dpkg/Vendor/Fink.pm
 <<
 ConfFiles: <<
-	%p/etc/dpkg/origins/fink
+	%p/etc/dpkg/origins/finx
 <<
 DocFiles: <<
 	ABOUT-NLS AUTHORS COPYING ChangeLog NEWS
@@ -255,7 +255,7 @@ Added code to support the pseudo package 'macosx' and 'darwin'.
 
 Fix to install-info script to prevent a certain problem with section titles.
 
-Patched to run 'fink-virtual-pkgs' to see what packages we have outside of $prefix.
+Patched to run 'finx-virtual-pkgs' to see what packages we have outside of $prefix.
 
 Patched to suppress warning about BuildDependsOnly control field.
 
@@ -267,7 +267,7 @@ Patched to hardcode complete paths to our component executables
 instead of relying on PATH
 
 Patch 'dpkg -b' tar invocation to avoid warning under tar>=1.16
-See: http://permalink.gmane.org/gmane.os.apple.fink.core/1281
+See: http://permalink.gmane.org/gmane.os.apple.finx.core/1281
 
 Patch 'dpkg -b' tar invocation to not die if tar returns exit code 1.
 (Exit 1 is a non-fatal error for tar; exit 2 is fatal.)  patch written by vasi
@@ -404,11 +404,11 @@ PostInstScript: <<
 
 set -e
 
-# this should be done in base-files but since fink has origins in dpkg we
+# this should be done in base-files but since finx has origins in dpkg we
 # do it here
 if [ ! -e %p/etc/dpkg/origins/default ]; then
-  if [ -e %p/etc/dpkg/origins/fink ]; then
-    ln -sf fink %p/etc/dpkg/origins/default
+  if [ -e %p/etc/dpkg/origins/finx ]; then
+    ln -sf finx %p/etc/dpkg/origins/default
   fi
 fi
 
@@ -423,10 +423,10 @@ if [ ! -f %p/var/lib/dpkg/status ]; then
   chown root: %p/var/lib/dpkg/status
 fi
 
-if [ ! -f %p/var/lib/dpkg/status-fink ]; then
-  echo > %p/var/lib/dpkg/status-fink
-  chmod 644 %p/var/lib/dpkg/status-fink
-  chown root: %p/var/lib/dpkg/status-fink
+if [ ! -f %p/var/lib/dpkg/status-finx ]; then
+  echo > %p/var/lib/dpkg/status-finx
+  chmod 644 %p/var/lib/dpkg/status-finx
+  chown root: %p/var/lib/dpkg/status-finx
 fi
 
 ### end base-files postinst stuff
@@ -435,7 +435,7 @@ fi
 create_database() {
     admindir=${DPKG_ADMINDIR:-%p/var/lib/dpkg}
 
-    for file in diversions statoverride status status-fink; do
+    for file in diversions statoverride status status-finx; do
 	if [ ! -f "$admindir/$file" ]; then
 	    touch "$admindir/$file"
 	fi
@@ -782,7 +782,7 @@ SplitOff2: <<
 		dpkg (<< 1.15.8)
 	<<
 	Essential: yes
-	### Currently in fink
+	### Currently in finx
 	# ConfFiles: %p/etc/dpkg/shlibs.default %p/etc/dpkg/shlibs.override
 	ConfFiles: <<
 		%p/etc/dpkg/shlibs.override

@@ -170,7 +170,7 @@ sub add_version {
 			my $infofile = $_->get_info_filename();
 			$msg .= sprintf "  epoch %d\t%s\n",
 				$_->get_epoch(),
-				length $infofile ? "fink virtual or dpkg status" : $infofile;
+				length $infofile ? "finx virtual or dpkg status" : $infofile;
 		};
 		die $msg;
 	}
@@ -651,10 +651,10 @@ older than the PDB cache that is moved into the dists will not be found.
 
 sub search_comparedb {
 	my $class = shift;
-	my $path = "$basepath/fink/dists/";  # extra '/' forces find to follow the symlink
+	my $path = "$basepath/finx/dists/";  # extra '/' forces find to follow the symlink
 
 	my $dbfile = $class->db_proxies;
-	return 1 if -M $dbfile > -M "$basepath/etc/fink.conf";
+	return 1 if -M $dbfile > -M "$basepath/etc/finx.conf";
 
 	# Using find is much faster than doing it in Perl
 	my $prune_bin = "\\( -name 'binary-" . $config->param("Debarch") . "' -prune \\)";
@@ -762,7 +762,7 @@ sub can_read_write_db {
 	}
 
 	# do not use disk cache if we are in the first bootstrap phase
-	# (because we may be running under a different perl than fink will
+	# (because we may be running under a different perl than finx will
 	#  eventually use, and Storable.pm may be incompatible)
 	if ($config->has_flag("bootstrap1")) {
 		return (0,0);
@@ -773,7 +773,7 @@ sub can_read_write_db {
 	eval "require Storable";
 	if ($@) {
 		my $perlver = sprintf '%*vd', '', $^V;
-		&print_breaking_stderr( "Fink could not load the perl Storable module, which is required in order to keep a cache of the package index. You should install the fink \"storable-pm$perlver\" package to enable this functionality.\n" );
+		&print_breaking_stderr( "Fink could not load the perl Storable module, which is required in order to keep a cache of the package index. You should install the finx \"storable-pm$perlver\" package to enable this functionality.\n" );
 		$read = 0;
 	} elsif ($> != 0) {
 	} else {
@@ -797,7 +797,7 @@ Returns the new index item for the .info file.
 sub update_index {
 	my ($class, $idx, $info, @pvs) = @_;
 
-	# Always use a new file, so an old fink doesn't accidentally read a newer
+	# Always use a new file, so an old finx doesn't accidentally read a newer
 	# file in the same place.
 
 	# TODO: This leaves old cache files sitting around, perhaps if the atime
@@ -838,7 +838,7 @@ sub pass1_update {
 	if ($noauto && $have_terminal) {
 		print_breaking_stderr rejoin_text <<END;
 The NoAutoIndex feature should only be used in special situations. You
-can can disable it by running 'fink configure'\n
+can can disable it by running 'finx configure'\n
 END
 	}
 
@@ -905,8 +905,8 @@ END
 		if ($> != 0 && $have_terminal) {
 			print_breaking_stderr rejoin_text <<END;
 Fink has detected that your package index cache is missing or out of date, but
-does not have privileges to modify it. Re-run fink as root, for example with a
-\"fink index\" command, to update the cache.\n
+does not have privileges to modify it. Re-run finx as root, for example with a
+\"finx index\" command, to update the cache.\n
 END
 		}
 
@@ -1011,7 +1011,7 @@ sub update_db {
 		$lock = 0;
 	}
 
-	# Get the cache dir; also notifies fink that the PDB is in use
+	# Get the cache dir; also notifies finx that the PDB is in use
 	my $dbdir = $class->db_dir($ops{write});
 
 	# Can we use the index? Definitely not if we have a whole new db_dir.
@@ -1035,7 +1035,7 @@ sub update_db {
 		};
 		if ($@ || !defined $packages) {
 			die "It appears that part of Fink's package database is corrupted. "
-				. "Please run 'fink index' to correct the problem.\n";
+				. "Please run 'finx index' to correct the problem.\n";
 		}
 		close $lock if $lock;
 	} else {
@@ -1054,7 +1054,7 @@ sub update_db {
 				# Try to force a re-gen next time
 				$class->forget_packages({ disk => 1 });
 				die "It appears that Fink's package database is corrupted. "
-					. "Please run 'fink index -f' to recreate it.\n";
+					. "Please run 'finx index -f' to recreate it.\n";
 			}
 		} else {
 			$idx = { infos => { }, 'next' => 1, };
@@ -1109,7 +1109,7 @@ sub tree_infos {
 	my $class = shift;
 	my $treename = shift;
 
-	my $treedir = "$basepath/fink/dists/$treename/finkinfo";
+	my $treedir = "$basepath/finx/dists/$treename/finkinfo";
 	return () unless -d $treedir;
 
 	my @filelist = ();

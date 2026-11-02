@@ -17,7 +17,7 @@ English |
 <h1 align="center">Fink Usage</h1><h3><a name="index.">Setting The Paths</a></h3>
 <p>
 To use the software installed in Fink's directory hierarchy, including
-the fink command itself, you must set your PATH environment variable
+the finx command itself, you must set your PATH environment variable
 (and some others) accordingly.
 Shell scripts are provided to do this for you.
 If you use tcsh, add the following to your .cshrc:
@@ -53,7 +53,7 @@ version and revision when they are not specified.</p>
 configure, builds and installs the packages you name. It will also
 install required dependencies automatically, but will ask you for
 confirmation before it does so. Example:</p>
-<pre>fink install nedit
+<pre>finx install nedit
 
 Reading package info...
 Information about 131 packages read.
@@ -72,19 +72,19 @@ the dpkg tool (usually this poses no problem, though).</p>
 the .deb compressed package file intact. This means that you can
 re-install the package later without going through the compile process
 again. If you need the disk space, you can remove the .deb from the
-/opt/finx/fink/dists tree.</p>
+/opt/finx/finx/dists tree.</p>
 <p>Aliases: disable, deactivate, unuse, delete, purge.</p>
 <h3><a name="index.">update-all</a></h3>
 <p>This command updates all installed packages to the latest version. It
 does not need a package list, so you just type:</p>
-<pre>fink update-all</pre>
+<pre>finx update-all</pre>
 <h3><a name="index.">list</a></h3>
 <p>
 This command produces a list of available packages, listing
 installation status, the latest version and a short description.
 If you call it without parameters, it will list all available
 packages.
-You can also pass a name or a shell pattern, and fink will list all
+You can also pass a name or a shell pattern, and finx will list all
 packages that match.
 </p>
 <p>
@@ -97,9 +97,9 @@ meanings:
 <p>
 Some usage examples:
 </p>
-<pre>fink list            - list all packages
-fink list bash       - check if bash is available and what version
-fink list "gnome*"   - list all packages that start with 'gnome'</pre>
+<pre>finx list            - list all packages
+finx list bash       - check if bash is available and what version
+finx list "gnome*"   - list all packages that start with 'gnome'</pre>
 <p>
 The quotes in the last example are necessary to stop the shell from
 interpreting the pattern itself.
@@ -152,10 +152,10 @@ This command automates the process of upgrading to a new Fink
 release.
 It checks the Fink website to see if a new version is available.
 It then downloads the package descriptions and updates the core
-packages, including fink itself.
+packages, including finx itself.
 This command can only upgrade to regular releases, but you can use it
 to upgrade from a CVS version to a later regular release.
-It will refuse to run if you have /opt/finx/fink set up to get package
+It will refuse to run if you have /opt/finx/finx set up to get package
 descriptions directly from CVS.
 </p>
 <h3><a name="index.">Further Questions</a></h3>
