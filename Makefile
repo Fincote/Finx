@@ -42,6 +42,12 @@ structure:
 sources_check:
 	./base-files/pack.sh --check
 
+# 所有 Perl 文件都必须能在系统 Perl 5 下编译。
+# 顺带挡住 Raku（Perl 6）语法：那是一门不同的语言，多数写法会直接语法失败，
+# 少数会在 Perl 5 里解析成别的意思 —— 后者不报错，最麻烦。
+perl_check:
+	./scripts/perl_check.sh
+
 # 种子打包器与安装器的往返验证。make_seed.sh 决定所有人下载到的是什么，
 # 两边任何一边走偏都只会安静地装出一个坏前缀，所以要真跑一遍。
 #
@@ -62,7 +68,10 @@ payload_test:
 format:
 	./scripts/format_check.pl
 
-test: manifest_check structure sources_check test_setup
+# perl_check 排在 test_setup 之后：它需要 setup.sh 生成的
+# perlmod/Fink/FinkVersion.pm，否则每个模块都会报「找不到 Fink::FinkVersion」，
+# 看着像代码坏了。
+test: manifest_check structure sources_check test_setup perl_check
 	@# must test with same perl binary as the one to be used to run finx
 	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
 	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'

@@ -86,14 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           make test_setup ARCHITECTURE="$FINX_ARCH"
-          fail=0
-          for file in perlmod/Fink.pm perlmod/Fink/*.pm perlmod/Fink/*/*.pm; do
-              if ! out=$(/usr/bin/perl -Iperlmod -c "$file" 2>&1); then
-                  echo "FAILED: $file"; echo "$out"; fail=1
-              fi
-          done
-          [ "$fail" -eq 0 ] || exit 1
-          echo "perl syntax OK"
+          make perl_check
 
       - name: "Check: standalone.sh in sync"
         # 生成物：改了 finx-install/lib/ 或 install.sh 却忘了重建，
