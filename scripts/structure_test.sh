@@ -150,27 +150,44 @@ check_ignore_pairing() {
 
 check_ignore_pairing
 
-# 上游路径里不许出现 finx。
+# 上游资源里不许出现 finx。
 #
-# 改名时最容易犯、也最难在本地发现的错误：把 `Source: mirror:custom:fink/...`
-# 里的 `fink/` 当成自己的命名空间一起改掉。那个 `fink/` 是 SourceForge 上的
-# 目录名，改了之后就 404 —— 而且只有在真自举跑到 phase one 时才会暴露，
-# 本地 `make test` 全绿。
+# 改名时最容易犯、也最难在本地发现的错误：把 `fink/...` 当成自己的命名空间
+# 一起改掉，而那个 `fink/` 其实指向别人。真实事故——一次全仓库改名同时改坏了：
 #
-# 真实事故：一次全仓库改名把 5 个 Source 行和 2 个 URL 一起改坏，CI 连着
-# 五轮重试全是 404。
+#   1. `Source: mirror:custom:fink/...`  → SourceForge 没有 /finx/，phase one 全 404
+#   2. `patch -p1 < fink/patches/...`    → 那些文件由 dpkg.patch 创建，路径对不上
+#   3. `finx-devel@lists.sourceforge.net` → 不存在的邮件列表
+#   4. `github.com/fink/fink-distributions` → 改成了 finx/finx-distributions，
+#      于是 `finx selfupdate` 会指向一个不存在的仓库
 #
-# 判定：.info 里的 `mirror:` 规格和 http/ftp URL 中不得出现 finx
-# （我们自己的 finx.sh 除外，那是 Homepage 合法值）。
+# 本地 `make test` 全程是绿的，因为测试套件不解析镜像 URL、不发邮件、不 selfupdate。
+# 这些只有真自举能暴露，而一轮 CI 是二十分钟。所以在这里静态拦掉。
+#
+# 允许的 finx 出现位置：我们自己的域名 finx.sh、包名（Package/Depends 等）、
+# 以及 %p/... 这样的前缀路径。
 check_no_finx_in_upstream_paths() {
-    offenders=$(grep -rnE 'mirror:[a-z]+:[^ ]*finx|https?://[^ ]*finx|ftp://[^ ]*finx' \
-                    --include='*.info' . 2>/dev/null \
-                | grep -v 'finx\.sh' || true)
+    # 收集到临时文件，而不是拼字符串
+    : > "$WORK/upstream"
 
-    if [ -n "$offenders" ]; then
-        bad "上游镜像路径里出现了 finx —— 那是上游目录名，改了会 404"
-        printf '%s\n' "$offenders" | sed 's/^/    /'
-        printf '    （finx.sh 已排除。改名前这些行原本写的是 fink/…）\n'
+    # 1. .info 里的 mirror 规格与 http/ftp URL
+    grep -rnE 'mirror:[a-z]+:[^ ]*finx|https?://[^ ]*finx|ftp://[^ ]*finx' \
+        --include='*.info' . 2>/dev/null | grep -v 'finx\.sh' >> "$WORK/upstream" || true
+
+    # 2. .info 里的相对源码树路径（finx/ 不在 %p 之类的绝对前缀之下）
+    grep -rnE '(^|[^%/.A-Za-z0-9_-])finx/' --include='*.info' . 2>/dev/null \
+        >> "$WORK/upstream" || true
+
+    # 3. 任何文件里的邮件地址与 GitHub 仓库地址。
+    #    排除本脚本自己 —— 它上面的注释就在讲这些反例。
+    grep -rnE '\bfinx-[a-z][a-z0-9-]*@|github\.com/finx/|finxproject\.org|finxmirrors\.net' \
+        --exclude-dir=.git --exclude=NEWS --exclude='*.patch' \
+        --exclude='structure_test.sh' . 2>/dev/null >> "$WORK/upstream" || true
+
+    if [ -s "$WORK/upstream" ]; then
+        bad "上游资源里出现了 finx —— 这些指向的是别人的东西，改了会失效"
+        sed 's/^/    /' "$WORK/upstream"
+        printf '    见 scripts/structure_test.sh 该函数的注释；这些行原本写的是 fink/\n'
     fi
 }
 

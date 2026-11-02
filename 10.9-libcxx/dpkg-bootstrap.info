@@ -16,18 +16,18 @@ PatchFile-MD5: 82f5c581d07a327c4bbd3ca1c7a39f28
 PatchScript: <<
 sed -e 's,@FINKPREFIX@,%p,g' -e 's,@ARCHITECTURE@,%m,g' %{PatchFile} | patch -p1
 
-patch -p1 < finx/patches/add-BOD.patch
-patch -p1 < finx/patches/build-fix.patch
-patch -p1 < finx/patches/c++filt-defaults.patch
-patch -p1 < finx/patches/full-path-calls.patch
-patch -p1 < finx/patches/location-fixes.patch
-patch -p1 < finx/patches/protect-system-dirs.patch
-patch -p1 < finx/patches/so-to-dylib.patch
-patch -p1 < finx/patches/finx-as-vendor.patch
-patch -p1 < finx/patches/extra-env.patch
-patch -p1 < finx/patches/extra-statusfile.patch
-patch -p1 < finx/patches/coreutils.patch
-patch -p1 < finx/patches/fink-bld_no_fakeroot.patch
+patch -p1 < fink/patches/add-BOD.patch
+patch -p1 < fink/patches/build-fix.patch
+patch -p1 < fink/patches/c++filt-defaults.patch
+patch -p1 < fink/patches/full-path-calls.patch
+patch -p1 < fink/patches/location-fixes.patch
+patch -p1 < fink/patches/protect-system-dirs.patch
+patch -p1 < fink/patches/so-to-dylib.patch
+patch -p1 < fink/patches/fink-as-vendor.patch
+patch -p1 < fink/patches/extra-env.patch
+patch -p1 < fink/patches/extra-statusfile.patch
+patch -p1 < fink/patches/coreutils.patch
+patch -p1 < fink/patches/fink-bld_no_fakeroot.patch
 
 # Remove po4a and make sure it can't be found if it's installed
 # this is to keep finx policy happy since it has to build the same
@@ -157,19 +157,19 @@ install -d -m 0755 %i/share/doc/dpkg
 make install DESTDIR=%d
 
 install -d -m 0755 %i/etc/dpkg/origins
-install -c -p -m 644 finx/origins %i/etc/dpkg/origins/finx
+install -c -p -m 644 fink/origins %i/etc/dpkg/origins/finx
 install -c -p -m 644 debian/dselect.cfg %i/etc/dpkg
 ## currently in finx
 # install -c -p -m 644 debian/shlibs.default %i/etc/dpkg
 install -c -p -m 644 debian/shlibs.override %i/etc/dpkg
-install -c -p -m 644 finx/buildflags.conf %i/etc/dpkg
+install -c -p -m 644 fink/buildflags.conf %i/etc/dpkg
 rm -rf %i/lib/dpkg/methods/*
 
-install -m 0755 finx/md5sum %i/bin
+install -m 0755 fink/md5sum %i/bin
 
 install -d -m 0755 %i/etc/cron.daily
 install -d -m 0755 %i/var/backups
-install -m 0644 finx/dpkg.cron.daily %i/etc/cron.daily/dpkg
+install -m 0644 fink/dpkg.cron.daily %i/etc/cron.daily/dpkg
 
 # install finx as a vendor
 install -m 0644 scripts/Dpkg/Vendor/Fink.pm %i/lib/perl5/Dpkg/Vendor/Fink.pm

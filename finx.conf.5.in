@@ -465,7 +465,7 @@ Defaults to
 (requires Mac::Growl to operate).  The available plugins are listed in the output of
 "finx plugins".
 .nf
-See the wiki at https://github.com/finx/finx/wiki/Notification-plugins
+See the wiki at https://github.com/fink/fink/wiki/Notification-plugins
 for more information.
 .fi
 .It Cm AutoScanpackages: Ar boolean

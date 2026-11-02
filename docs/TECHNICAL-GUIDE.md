@@ -497,7 +497,7 @@ finx-install/seed/manifest-x86_64.txt      ← 按架构分开，arch 字段与�
 判定「这是不是一个 Fink 安装」时也拿它当条件之一（[Bootstrap.pm:733](../perlmod/Fink/Bootstrap.pm:733)）。
 读完整个仓库仍然说不清系统是怎么跑起来的。
 
-现在源码在 [`base-files/`](../base-files/)，来自上游 `finx/base-files` 的
+现在源码在 [`base-files/`](../base-files/)，来自上游 `fink/base-files` 的
 `release_1_9_19` 标签，与 `.info` 里 pin 的版本对应。相对上游只改了两处：示例路径
 `/sw` → `/opt/finx`，shell 缩进 2 空格 → 4 空格。行为未动。
 

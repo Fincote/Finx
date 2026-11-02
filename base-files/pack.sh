@@ -18,7 +18,7 @@
 #
 # pack.sh - 打 base-files 的载荷 tar
 #
-# base-files 的源码原先只在 SourceForge 上（`mirror:custom:finx/%n-%v.tar.gz`），
+# base-files 的源码原先只在 SourceForge 上（`mirror:custom:fink/%n-%v.tar.gz`），
 # 而这台机器上那个地址已经 404。源码现由本仓库维护，`bootstrap` 在装包之前
 # 就地打出 tar 放进 <prefix>/src，`finx install base-files` 便不再需要联网
 # —— Fink 的 find_tarball 会先搜 $basepath/src，找到就不下载。

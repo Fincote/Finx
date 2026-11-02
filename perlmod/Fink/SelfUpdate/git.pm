@@ -203,7 +203,7 @@ sub setup_direct_git {
 		$verbosity = "";
 	}
 	my $gitpath = $config->param("GitPath");
-	my $repository = 'https://github.com/finx/finx-distributions.git';
+	my $repository = 'https://github.com/fink/fink-distributions.git';
 	if (-f "$basepath/lib/finx/URL/git-repository") {
 		$repository = cat "$basepath/lib/finx/URL/git-repository";
 		chomp($repository);
@@ -214,7 +214,7 @@ sub setup_direct_git {
 			chomp($repository);
 		}
 	} else {
-		$repository = 'ssh://git@github.com/finx/finx-distributions.git';
+		$repository = 'ssh://git@github.com/fink/fink-distributions.git';
 		if (-f "$basepath/lib/finx/URL/developer-git") {
 			$repository = cat "$basepath/lib/finx/URL/developer-git";
 			chomp($repository);

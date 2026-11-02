@@ -9,11 +9,11 @@
 - `bin`、`etc`、`var/lib/dpkg` 那套目录骨架
 
 在此之前，仓库里有 11 处引用 `$prefix/bin/init.sh`，零处生成它的代码 —— 它来自
-SourceForge 上的 `finx/base-files-1.9.19.tar.gz`。那个地址在本机已经 404。
+SourceForge 上的 `fink/base-files-1.9.19.tar.gz`。那个地址在本机已经 404。
 
 ## 来源
 
-上游是 `https://github.com/finx/base-files`，取的是 `release_1_9_19` 标签，
+上游是 `https://github.com/fink/base-files`，取的是 `release_1_9_19` 标签，
 与 [`10.9-libcxx/base-files.info`](../10.9-libcxx/base-files.info) 里 pin 的
 `Version: 1.9.19` 对应。许可证沿用上游的 GPL v2（见 [COPYING](./COPYING)）。
 
@@ -61,5 +61,5 @@ make payload_test                  # 确认载荷树里跑得通
 ## 还没做的
 
 [`dpkg-base-files`](../10.9-libcxx/dpkg-base-files.info) 同样是外部 tarball
-（`finx/dpkg-base-files-0.4.tar.gz`）。它不阻塞「系统怎么跑起来」这个问题 ——
+（`fink/dpkg-base-files-0.4.tar.gz`）。它不阻塞「系统怎么跑起来」这个问题 ——
 它提供的是 `.la` 文件清理的 triggers —— 但用的是同一套机制，可以照此办理。
