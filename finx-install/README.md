@@ -137,12 +137,12 @@ bootstrap 自己会建前缀、写配置、建索引，所以源码模式没有�
 | **`--ci`** | 参照 MacWave `install.sh` 的 `--ci`：绝不等待输入，提权只接受已是 root 或免密 sudo，否则直接失败 | 没有它，CI 里提权会卡在密码提示上 |
 | `--dir-option=N` | MacWave 用它免菜单选目录 | Finx 目前只有单一规范前缀，暂时用不上 |
 | 种子清单签名 | 现在只有 SHA256，清单本身如何被信任还没解 | 决定校验链的顶端 |
-| **镜像环境变量** | 仿照 MacWave 的 `MACWAVE_*_DOMAIN`：通过环境变量整体替换地址，不设则回落官方 | 决定国内可用性；命名与语义见下 |
+| **下载源环境变量** | 仿照 MacWave 的 `MACWAVE_*_DOMAIN`：通过环境变量整体替换地址，不设则回落官方 | 决定国内可用性；命名与语义见下 |
 
 `--ci` 的实现要点（写在这里，免得以后重新想）：在 `run_bootstrap` 决定提权方式时判断，
 `CI_MODE=1` 时用 `sudo -n true` 探免密，探不到就带解释退出；非 CI 时照旧 `sudo -v`。
 
-### 镜像环境变量：命名与语义（设计草案，未实现）
+### 下载源环境变量：命名与语义
 
 MacWave 的做法是**一个镜像主机下切若干路径**，一个账号覆盖全部：
 
@@ -153,20 +153,39 @@ MACWAVE_PYTHON_DOMAIN    自带解释器     python
 MACWAVE_CORE_DOMAIN      MacWave 自身   core
 ```
 
-Finx 需要覆盖的地址目前只有两个，但语义上应该分得更细，因为它们的更新频率与校验方式不同：
+Finx 照搬这套形状，但只暴露**已经真的有消费方**的变量。MacWave 的
+`MACWAVE_FILE_TIMEOUT`/`MACWAVE_SILENT`/`MACWAVE_BRANCH` 在那里是
+`export` 给下一阶段脚本的，`install.sh` 自己并不读；原样搬过来只会在
+Finx 里变成没人读的死配置，所以没有搬。
 
-| 变量 | 覆盖什么 | 现在是否有实现 |
+| 变量 | 默认值 | 覆盖什么 |
 | --- | --- | --- |
-| `FINX_SEED_DOMAIN` | 种子清单与种子归档（`<域名>/<arch>/manifest`） | 已有内部常量 `DEFAULT_MANIFEST_URL`，未暴露成变量 |
-| `FINX_SOURCE_DOMAIN` | 源码归档（默认 codeload） | 只有 `--source-url`，未做成变量 |
-| `FINX_INDEX_DOMAIN` | 包索引 / 包描述树 | 未实现（对应 Fink 的 `dists`） |
-| `FINX_BINARY_DOMAIN` | 二进制 `.deb` 分发 | 未实现（对应 `bindist`） |
+| `FINX_INDEX_DOMAIN` | `https://finx.sh/finx/seed` | 种子清单 `<域名>/manifest` |
+| `FINX_SEED_DOMAIN` | `https://finx.sh/finx/seed` | 清单里没写 `url` 时的种子归档 `<域名>/<文件名>` |
+| `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | 源码归档 `<域名>/tar.gz/<ref>` |
+| `FINX_SOURCE_REF` | `main` | 分支/标签/提交，等同 `--ref` |
+| `FINX_CONNECT_TIMEOUT` | `30` | 连不上的等待秒数；只管连接，不管下完 |
 
-三条约束，写在这里是为了以后不要走偏：
+清单与归档各一个变量，是因为 CDN 与对象存储常常分开部署；但默认同源，
+不设也能走通。
+
+四条约束，写在这里是为了以后不要走偏：
 
 1. **只有地址可以被替换，校验不能被跳过。** 换镜像不改变 SHA256，改了就必须失败。
 2. **部分设置必须可用。** 任何一个变量没设，就回落官方地址，不能要求用户配齐。
 3. **不设即官方。** 变量存在的意义是加速，不是必需；默认路径必须始终能走通。
+4. **地址只接受 `https://` 与 `file://`**，外加 `http://127.0.0.1:端口` 与
+   `http://localhost:端口`（离线测试用）。末尾斜杠统一去掉，否则拼出双斜杠，
+   有些服务端会因此回 404。报错里带变量名——改了三个变量中的一个却填错时，
+   光说 "invalid URL" 帮不上忙。
+
+`install.sh` 自身**没有**自举或自更新逻辑，也不需要域名变量：镜像带完整目录
+结构，用户直接从镜像取 `install.sh` 即可。
+
+实现上有一个坑值得记住：`finx_domain` 校验失败时 `exit 1`，但那行跑在
+`$( )` 子 shell 里，只结束子 shell 而不管父进程。所以每个赋值后面必须跟
+`|| exit 1`——否则填错一个域名得到的不是报错，而是一个变量被清空、
+悄悄失效的安装器。
 
 ## 七、测试根：`FINX_TEST`
 
