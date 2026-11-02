@@ -150,6 +150,32 @@ check_ignore_pairing() {
 
 check_ignore_pairing
 
+# 上游路径里不许出现 finx。
+#
+# 改名时最容易犯、也最难在本地发现的错误：把 `Source: mirror:custom:fink/...`
+# 里的 `fink/` 当成自己的命名空间一起改掉。那个 `fink/` 是 SourceForge 上的
+# 目录名，改了之后就 404 —— 而且只有在真自举跑到 phase one 时才会暴露，
+# 本地 `make test` 全绿。
+#
+# 真实事故：一次全仓库改名把 5 个 Source 行和 2 个 URL 一起改坏，CI 连着
+# 五轮重试全是 404。
+#
+# 判定：.info 里的 `mirror:` 规格和 http/ftp URL 中不得出现 finx
+# （我们自己的 finx.sh 除外，那是 Homepage 合法值）。
+check_no_finx_in_upstream_paths() {
+    offenders=$(grep -rnE 'mirror:[a-z]+:[^ ]*finx|https?://[^ ]*finx|ftp://[^ ]*finx' \
+                    --include='*.info' . 2>/dev/null \
+                | grep -v 'finx\.sh' || true)
+
+    if [ -n "$offenders" ]; then
+        bad "上游镜像路径里出现了 finx —— 那是上游目录名，改了会 404"
+        printf '%s\n' "$offenders" | sed 's/^/    /'
+        printf '    （finx.sh 已排除。改名前这些行原本写的是 fink/…）\n'
+    fi
+}
+
+check_no_finx_in_upstream_paths
+
 if git rev-parse --git-dir >/dev/null 2>&1; then
     IN_GIT=1
     git ls-files | sort -u > "$WORK/tracked"

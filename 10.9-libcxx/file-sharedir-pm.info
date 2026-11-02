@@ -10,7 +10,7 @@ Type: perl
 # no ext one present. Use it to avoid circular deps
 #BuildDepends: file-sharedir-install-pm%type_pkg[perl] (>= 0.03)
 # The bundled one doesn't seem to be found at test-time:
-# https://github.com/finx/finx-distributions/issues/711
+# https://github.com/fink/fink-distributions/issues/711
 # but the external one doesn't seem to be needed by tests and
 # obviously the bundled one exists, so remove the test for it
 PatchScript: <<

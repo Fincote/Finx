@@ -3,7 +3,7 @@ Package: fink-mirrors
 Version: 0.43.0.1
 Revision: 1
 Essential: yes
-Source: mirror:custom:finx/%n-%v.tar.gz
+Source: mirror:custom:fink/%n-%v.tar.gz
 Source-MD5: 8c4347d367db95d8de965d9ca623fe52
 Depends: finx (>= 0.17.3-1)
 Replaces: finx (<< 0.17.2-1)

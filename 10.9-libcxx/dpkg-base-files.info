@@ -4,7 +4,7 @@ Version: 0.4
 Revision: 1
 BuildDepends: finx (>= 0.45.99.git)
 Depends: dpkg (>> 1.16)
-Source: mirror:custom:finx/%n-%v.tar.gz
+Source: mirror:custom:fink/%n-%v.tar.gz
 Essential: yes
 Source-MD5: 7937b673519919e33e065421e6f1bf63
 CompileScript: ./setup.sh %p
