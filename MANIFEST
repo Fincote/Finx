@@ -114,6 +114,7 @@ readme.zh.html
 scripts/ci_bootstrap.sh
 scripts/fetch_sources.sh
 scripts/format_check.pl
+scripts/license_check.sh
 scripts/make_seed.sh
 scripts/payload_test.sh
 scripts/perl_check.sh

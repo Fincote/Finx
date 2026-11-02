@@ -1,110 +1,68 @@
-Finx 的许可证 / Licensing
-==========================
+Finx — License Scope
+====================
 
-这个仓库里有两个许可文件，各管一部分，不要混用：
+This repository is under two GPL grants, applied to different parts.
 
-    COPYING     GNU General Public License 第二版全文（FSF 原文，未改动）
-    LICENSE     本文件 —— 说明哪部分适用哪一版
+Files
+-----
 
-为什么分成两个
---------------
+    COPYING     GNU General Public License, version 2 (FSF text, unmodified)
+    LICENSE     This file: which part of the tree carries which grant
 
-Finx 是从 Fink 分出来的。Fink 的每个源文件都写着「either version 2 of the
-License, or (at your option) any later version」，也就是常说的
-`GPL-2.0-or-later`。这份授权是 Fink 的作者给的，**不能被我们收窄** —— 任何人
-对那份代码都仍然享有「可以选更新版本」的权利。
+GPL-2.0-only
+------------
 
-而我们自己新写的那部分，按项目决定采用 **GPL-2.0-only**（第二版，不含
-「或任何更新版本」）。
+    finx-install/         installer sources, and the generated install.sh
+    scripts/              repository checks and release tools
+    base-files/pack.sh    payload packer
+    docs/                 documentation
+    LICENSE               this file
 
-所以这个项目不是单一许可，是两段拼起来的。用 `COPYING` 存上游全文、用
-`LICENSE` 存我们的范围说明，是为了让这件事一眼可见 —— 而不是把两种措辞混在
-同一份文件里，让人以为整个项目只有一种授权。
+GPL-2.0-or-later
+----------------
 
-判定只看文件头
---------------
+    bootstrap
+    setup.sh
+    install.sh
+    perlmod/Fink/**
+    10.9-libcxx/
+    base-files/           the whole payload, including its own COPYING
+    mirror/
+    dpkg-checkall.sh
+    inject.pl
+    pre-build-test.sh
+    finx-virtual-pkgs.in
+    readme.*.html
 
-「only」和「or later」的差别**不在许可正文里**，GPL 第二版的条文对两者是同一份。
-差别在**每个源文件开头的声明行**：
+Third party
+-----------
 
-    取自 Fink 的文件，保留原有措辞：
+    update/               autoconf / automake helper scripts
+    10.9-libcxx/*.patch   patch text, following the upstream project
 
-        This program is free software; you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation; either version 2 of the License, or
-        (at your option) any later version.
+Reading a file header
+---------------------
 
-    我们自己写的文件：
+The grant is stated at the top of each file.
 
-        This program is free software; you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation; version 2 of the License.
+    ... either version 2 of the License, or (at your option) any later version
+        GPL-2.0-or-later
 
-看文件头就能判断，不必查表。下面这张表只是给你一个大概。
+    ... version 2 of the License.
+        GPL-2.0-only
 
-范围
-----
+Distribution
+------------
 
-**GPL-2.0-only（我们自己写的）**
+The combined work may be distributed under GPL version 2 only.
 
-    finx-install/            安装器全部：install.sh.in、lib/*.sh、build-bundle.sh、
-                             selftest.sh，以及生成的 install.sh
-    scripts/                 仓库守卫与发布工具：format_check.pl、
-                             structure_test.sh、payload_test.sh、perl_check.sh、
-                             seed_test.sh、fetch_sources.sh
-    base-files/pack.sh       base-files 载荷的确定性打包器（脚本是新的；
-                             它打包的内容仍来自 Fink，见下）
-    docs/                    本仓库的文档
-    LICENSE                 本文件
+Adding or modifying files
+-------------------------
 
-**GPL-2.0-or-later（继承自 Fink，不可收窄）**
+New files carry
 
-    bootstrap                自举脚本
-    setup.sh install.sh      finx 包的安装与准备脚本
-    perlmod/Fink/**          Fink 的 Perl 模块
-    10.9-libcxx/*.info       包描述与补丁
-    base-files/**            整个 base-files 载荷，包括 COPYING、setup.sh、
-                             install.sh、init.*.in、editor.in、pager.in
-    mirror/**                fink-mirrors 的数据与脚本
-    dpkg-checkall.sh、inject.pl、pathfinder.sh 等其余上游脚本
-    readme.*.html、README    Fink 时代的说明文件
+    Copyright (c) <year> Sha0huaZhang <zsh@finx.sh>
+    ... version 2 of the License.
 
-**第三方，各自的许可**
-
-    update/                  autoconf/automake 的辅助脚本（GPL，随上游）
-    10.9-libcxx/*.patch      补丁原文，跟着对应的上游项目
-
-分发时的净效果
---------------
-
-把上面两段合在一起发出去，整体只能是 **GPL 第二版**：因为「only」那部分只给了
-第二版的许可，而「or later」那部分允许你选第二版。两者都能满足的那个交集，就是
-第二版。所以：
-
-- 你收到 Finx 时，就整个仓库而言，适用的是 GPL 第二版
-- 其中取自 Fink 的那部分文件，你**另外**还享有 Fink 作者给的「可改用更新版本」
-  的权利（但那只对那部分文件本身有效，不能让整个仓库变成第三版）
-
-这就是为什么不能简单地「整个项目改成 v2 only」：那不是我们有权做的决定。
-
-新增文件怎么写
---------------
-
-新写的文件用 GPL-2.0-only，头部照 `scripts/make_seed.sh` 的样子抄：
-
-    # Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
-    #
-    # This program is free software; you can redistribute it and/or modify
-    # it under the terms of the GNU General Public License as published by
-    # the Free Software Foundation; version 2 of the License.
-    # ...（其余为标准免责与地址段）
-
-修改 Fink 原有的文件时，**保留它原来的措辞**，只追加一行 Copyright，
-照 `dpkg-checkall.sh` 的样子：
-
-    # Copyright (c) 2001-2016 The Fink Package Manager Team
-    # Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>      ← 追加这一行
-    #
-    # This program is free software; ... either version 2 ... or any later ...
-
-改一个文件的许可措辞等于替原作者做决定，不能这么干。
+Files inherited from Fink keep their original wording and gain one copyright
+line.
