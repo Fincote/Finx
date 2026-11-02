@@ -410,11 +410,14 @@ install_from_seed() {
     step "Verifying"
     verify_file "$ARTIFACT_FILE" "$SEED_SHA256" "$SEED_SIZE"
 
+    require_seed_payload "$ARTIFACT_FILE"
+
     step "Preparing $PREFIX"
     do_mkdir "$PREFIX"
 
     step "Extracting"
     extract_seed "$ARTIFACT_FILE" "$PREFIX"
+
 
     step "Finalizing"
     fix_permissions "$PREFIX"

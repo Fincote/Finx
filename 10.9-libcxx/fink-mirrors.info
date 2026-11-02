@@ -9,7 +9,15 @@ Depends: finx (>= 0.17.3-1)
 Replaces: finx (<< 0.17.2-1)
 CompileScript:  sed -e "s|@PREFIX@|%p|g" < postinstall.pl.in > postinstall.pl
 InstallScript: ./install.sh %i
-PostInstScript: %p/lib/finx/mirror/postinstall.pl
+# 这里是 lib/fink 而不是 lib/finx：这个包的源码是**上游 tar 包**
+# （mirror:custom:fink/fink-mirrors-0.43.0.1.tar.gz），其中的 install.sh 把文件
+# 装到 lib/fink/mirror。改名时把这一行改成 lib/finx，装出来却没有那个文件，
+# postinst 直接 "No such file or directory" —— 于是 bootstrap 第三阶段在这里
+# 中断，排在它后面的 dpkg 与 tar 一个都没装，种子因此没有 bin/dpkg。
+#
+# 要让它变成 lib/finx，正确做法是把 mirror/ 像 base-files 那样收进本仓库自己
+# 打包（pack_included_sources），而不是只改这一行路径。
+PostInstScript: %p/lib/fink/mirror/postinstall.pl
 #
 Description: Mirror infrastructure
 DescDetail: <<

@@ -83,6 +83,30 @@ resign_macho() {
 }
 
 # 只在配置不存在时写：已装过的目录里那份可能有用户调整。
+# 种子必须带齐「能装包」所需的东西。没有 dpkg 的种子解出来是个死目录：
+# finx 起不来，用户还以为装成功了。
+#
+# 真实事故：bootstrap 第三阶段在 fink-mirrors 的 postinst 上中断，排在它后面
+# 的 dpkg 与 tar 一个都没装，打出来的种子缺 bin/dpkg。安装器照常报「安装完成」。
+# 查归档而不是查解出来的树：解完才发现就晚了一步，前缀里已经躺了半个安装，
+# 下次再跑还会撞上 "does not look like a Finx installation"。
+require_seed_payload() {
+    archive=$1
+    listing=$FINX_TMP/seed-members
+    # 成员名可能带 ./ 前缀（`tar -C dir .` 会这样），也可能不带。先归一化再比，
+    # 否则同一种归档换个打包方式就判定失败。
+    /usr/bin/tar -tzf "$archive" 2>/dev/null | sed 's|^\./||' > "$listing" \
+        || die "cannot list $archive"
+
+    missing=""
+    for f in bin/finx bin/dpkg bin/dpkg-deb; do
+        grep -qxF "$f" "$listing" || missing="$missing $f"
+    done
+    [ -z "$missing" ] || die "the seed is incomplete, missing:$missing
+       This seed cannot install anything. Rebuild it from a complete bootstrap
+       (see scripts/make_seed.sh) or report the publishing side."
+}
+
 # 本机的 Distribution。bootstrap 就是这么推的：主版本号 + ".0"。
 # macOS 15.5 得到 15.0 —— 与 bootstrap 打印的 "Distribution: 15.0" 一致。
 host_distribution() {

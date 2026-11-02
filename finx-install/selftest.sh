@@ -87,6 +87,13 @@ esac
 STUB
 chmod 755 "$SEED/bin/finx"
 
+# 安装器会拒绝缺少 dpkg 的种子：真实事故里 bootstrap 第三阶段中断，种子没有
+# bin/dpkg，装出来是个死目录，而安装器照样报成功。
+for tool in dpkg dpkg-deb; do
+    printf '#!/bin/sh\nexit 0\n' > "$SEED/bin/$tool"
+    chmod 755 "$SEED/bin/$tool"
+done
+
 # 安装器收尾会提示 source 它，假种子也得有，否则那句提示对不上真实产物
 cat > "$SEED/bin/init.sh" <<'STUB'
 # stub init.sh for the selftest sandbox

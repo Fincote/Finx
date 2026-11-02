@@ -59,8 +59,12 @@ DEBPOOL=$PREFIX/finx/10.9-libcxx/stable/main/binary-darwin-arm64/base
 mkdir -p "$PREFIX/bin" "$PREFIX/var/lib/dpkg" "$PREFIX/etc" \
     "$PREFIX/src/x" "$PREFIX/var/log" "$PREFIX/share/doc" \
     "$DEBPOOL" "$PREFIX/finx/debs"
-printf '#!/bin/sh\nexit 0\n' > "$PREFIX/bin/finx"
-chmod 755 "$PREFIX/bin/finx"
+# 安装器现在会拒绝缺少 dpkg 的种子（真实事故：bootstrap 第三阶段中断，
+# 种子里没有 bin/dpkg，装出来是个死目录）。夹具要跟着补齐。
+for tool in finx dpkg dpkg-deb; do
+    printf '#!/bin/sh\nexit 0\n' > "$PREFIX/bin/$tool"
+    chmod 755 "$PREFIX/bin/$tool"
+done
 printf 'Package: finx\nStatus: install ok installed\n' > "$PREFIX/var/lib/dpkg/status"
 printf 'Basepath: /opt/finx\n' > "$PREFIX/etc/finx.conf"
 printf 'junk\n' > "$PREFIX/src/x/junk"

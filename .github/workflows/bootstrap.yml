@@ -107,9 +107,14 @@ jobs:
         run: |
           set -euo pipefail
           PREFIX="${{ inputs.prefix }}"
-          if [ ! -x "$PREFIX/bin/finx" ]; then
-              echo "FAILED: $PREFIX/bin/finx is missing -- bootstrap did not install finx itself." >&2
-              echo "Search bootstrap.log for 'phase compiling: finx-... failed'." >&2
+          missing=""
+          for f in bin/finx bin/dpkg bin/dpkg-deb bin/tar; do
+              [ -e "$PREFIX/$f" ] || missing="$missing $f"
+          done
+          if [ -n "$missing" ]; then
+              echo "FAILED: bootstrap left an unusable prefix, missing:$missing" >&2
+              echo "A phase-three package failed and everything after it was skipped." >&2
+              echo "Look in bootstrap.log for 'dpkg: error processing package'." >&2
               exit 1
           fi
           "$PREFIX/bin/finx" --version
