@@ -32,6 +32,13 @@ fi
 
 basepath="$1"
 
+# 注意：本文件与构建时实际使用的那一份可能不同。
+#
+# fink-mirrors 的源码是上游 tar 包，构建时用的是 tar 包里的 install.sh，不是这里。
+# 上游把数据装到 lib/fink/{mirror,URL}，本仓库的规范是 lib/finx —— 这个改写由
+# 10.9-libcxx/fink-mirrors.info 的 CompileScript 在构建时完成。这里保持上游原样，
+# 是为了让两边对照时能看出差异从哪来。
+
 
 echo "Creating directories..."
 
