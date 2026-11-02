@@ -184,6 +184,22 @@ check_no_finx_in_upstream_paths() {
         --exclude-dir=.git --exclude=NEWS --exclude='*.patch' \
         --exclude='structure_test.sh' . 2>/dev/null >> "$WORK/upstream" || true
 
+    # 4. 构建脚本里把 finx 当成**文件名/目录名**用的地方。
+    #
+    #    这类最隐蔽：它不指向任何别人的地址，改坏了也不会 404，只会让构建在
+    #    某个 mkdir/mv 上失败。真实事故：texinfo 的 CompileScript 原本是
+    #
+    #        cp man/texi2dvi.1 fink
+    #        mv fink/texi2dvi.1 man/
+    #
+    #    那里的 fink 是 texinfo 源码树里的内部目录，与产品无关。改名只把第一行
+    #    改成 finx、漏了第二行，于是 mv 找不到文件，texinfo 编译失败 —— 而它是
+    #    install-info 的构建来源，一失败就让 bootstrap 第三阶段断在 dpkg 之前。
+    #    只查**源码树内**的操作：目标里带 %p 的是安装到前缀里，那里的 finx 是
+    #    我们自己的文件名（如 %p/etc/dpkg/origins/default -> finx），是对的。
+    grep -rnE '(^|[[:space:]"])(cp|mv|ln|touch|mkdir)[[:space:]].*[[:space:]/"]finx([[:space:]"]|$)' \
+        --include='*.info' . 2>/dev/null | grep -v '%p' >> "$WORK/upstream" || true
+
     if [ -s "$WORK/upstream" ]; then
         bad "上游资源里出现了 finx —— 这些指向的是别人的东西，改了会失效"
         sed 's/^/    /' "$WORK/upstream"

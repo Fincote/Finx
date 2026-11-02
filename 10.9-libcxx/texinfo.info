@@ -59,7 +59,11 @@ CompileScript: <<
 #!/bin/sh -ev
 	./configure %c
 	echo '#define DEFAULT_INFOPATH "%p/share/info:%p/info:/usr/local/share/info:/usr/local/lib/info:/usr/local/info:/usr/share/info:."' >>config.h
-	cp man/texi2dvi.1 finx
+	# 这里的 fink 是 texinfo 源码树里的内部目录名，与我们的产品无关，保持原样。
+	# 改名时曾把它改成 finx，但只改了这一行、漏了下一行，于是 mv 找不到
+	# fink/texi2dvi.1，texinfo 编译失败；而 texinfo 是 install-info 的构建来源，
+	# 它一失败，第三阶段就断在 dpkg 之前。
+	cp man/texi2dvi.1 fink
 	make
 	mv fink/texi2dvi.1 man/
 	touch man/texi2dvi.1
