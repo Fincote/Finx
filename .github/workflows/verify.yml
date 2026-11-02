@@ -110,6 +110,11 @@ jobs:
         # 挡住「只在仓库里成立」的假设。真实事故见 base-files/pack.conf 的注释。
         run: make payload_test ARCHITECTURE="$FINX_ARCH"
 
+      - name: "Test: seed round trip"
+        # 打包器与安装器的契约。不能放进 make test —— 它要 finx-install/，
+        # 而载荷树里没有那个目录（MANIFEST.SKIP 排除了它）。
+        run: make seed_test
+
       - name: "Test: installer selftest"
         # 自建临时根，全程离线；不会碰 /opt/finx。
         run: ./finx-install/selftest.sh
