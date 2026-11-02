@@ -203,7 +203,14 @@ sub setup_direct_git {
 		$verbosity = "";
 	}
 	my $gitpath = $config->param("GitPath");
-	my $repository = 'https://github.com/fink/fink-distributions.git';
+	# 默认指向本仓库：里面 10.9-libcxx/ 就是包描述树，布局与
+	# fink-distributions 相同（自更新会 clone 到 finx/ 再按 SelfUpdateTrees
+	# 取 10.9-libcxx）。这里原本写的是 fink/fink-distributions —— 那样
+	# `finx selfupdate` 会把 Fink 的包描述（含 /sw 路径与 fink 命令）拉进来。
+	#
+	# 想换成专用的分发仓库，不必改代码：#basepath#/lib/finx/URL/git-repository
+	# 存在时优先于这里（见下面几行）。
+	my $repository = 'https://github.com/Fincote/Finx.git';
 	if (-f "$basepath/lib/finx/URL/git-repository") {
 		$repository = cat "$basepath/lib/finx/URL/git-repository";
 		chomp($repository);
@@ -214,7 +221,7 @@ sub setup_direct_git {
 			chomp($repository);
 		}
 	} else {
-		$repository = 'ssh://git@github.com/fink/fink-distributions.git';
+		$repository = 'ssh://git@github.com/Fincote/Finx.git';
 		if (-f "$basepath/lib/finx/URL/developer-git") {
 			$repository = cat "$basepath/lib/finx/URL/developer-git";
 			chomp($repository);

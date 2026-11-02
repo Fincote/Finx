@@ -17,9 +17,14 @@ CompileScript: <<
 <<
 InfoTest: <<
 	TestScript: <<
-		TestDepends: fink-package-precedence
+		# finx-package-precedence 是包管理器的配套工具，本仓库尚未提供它
+		# （上游对应的是 fink-package-precedence）。所以这里不再把它写成
+		# TestDepends —— 那会让测试在解析依赖阶段就失败，报的还是个拿不到的
+		# 包名。有就跑，没有就只跑 make check。
 		make check || exit 2
-		fink-package-precedence --prohibit-bdep=%n . || exit 2
+		if command -v finx-package-precedence >/dev/null 2>&1; then
+			finx-package-precedence --prohibit-bdep=%n . || exit 2
+		fi
 	<<
 <<
 InstallScript: make install DESTDIR=%d docdir=%p/share/doc/%n

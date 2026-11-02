@@ -200,7 +200,7 @@ sub setup_direct_svn {
 		$verbosity = "";
 	}
 	my $svnpath = $config->param("SvnPath");
-	my $repository = "https://github.com/fink/fink-distributions.git/trunk";
+	my $repository = "https://github.com/Fincote/Finx.git/trunk";
 	if (-f "$basepath/lib/finx/URL/svn-repository") {
 		$repository = cat "$basepath/lib/finx/URL/svn-repository";
 		chomp($repository);
@@ -211,7 +211,7 @@ sub setup_direct_svn {
 			chomp($repository);
 		}
 	} else {
-		$repository = 'https://USERNAME@github.com/fink/fink-distributions.git/trunk';
+		$repository = 'https://USERNAME@github.com/Fincote/Finx.git/trunk';
 		if (-f "$basepath/lib/finx/URL/developer-svn") {
 			$repository = cat "$basepath/lib/finx/URL/developer-svn";
 			chomp($repository);
