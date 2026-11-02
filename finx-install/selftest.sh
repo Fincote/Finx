@@ -394,6 +394,66 @@ else
     failed "FINX_CONNECT_TIMEOUT was ignored (got: $out)"
 fi
 
+# ---- run_bootstrap 的两条路径 --------------------------------------------
+#
+# 不用真 sudo、不用真 bootstrap：把 lib 直接 source 进来，用桩替换外部依赖。
+# 这里守的是两个「看不见的」东西：
+#
+#   1. sudo_cmd 为空时不能炸。以 root 运行（最常见的 `sudo ./install.sh`）或
+#      测试根里，那个数组是空的，而 bash 3.2 在 set -u 下展开空数组会报
+#      unbound variable —— 4.4 才修好。
+#   2. 代理变量必须穿过 sudo。sudo 默认重置环境，不转发的话，配了代理的用户
+#      会在源码自举的下载阶段卡住，而 curl 明明是通的。
+
+cat > "$ROOT/run_bootstrap_probe.sh" <<'PROBE'
+set -u -o pipefail
+. "$1/finx-install/lib/common.sh"
+. "$1/finx-install/lib/detect.sh"
+. "$1/finx-install/lib/manifest.sh"
+. "$1/finx-install/lib/extract.sh"
+. "$1/finx-install/lib/source.sh"
+SOURCE_ROOT=$2
+target=/nowhere
+require_bootstrap_prerequisites() { :; }
+info() { :; }
+die() { echo "die: $*" >&2; exit 1; }
+have() { return 0; }
+# 桩 sudo：-v 直接成功，其余原样执行（env VAR=... 那层由真的 env 处理）。
+sudo() {
+    if [ "${1:-}" = "-v" ]; then return 0; fi
+    printf 'sudo-call: %s\n' "$*"
+    "$@"
+}
+if [ "${PROBE_ROOT:-0}" -eq 1 ]; then
+    # 冒充 root：sudo_cmd 保持为空，正是 sudo ./install.sh 的情形
+    id() { if [ "$1" = "-u" ]; then echo 0; else command id "$@"; fi; }
+fi
+run_bootstrap "$target"
+PROBE
+
+mkdir -p "$ROOT/stub-src"
+printf '#!/bin/bash\necho "BOOTSTRAP RAN $*"\n' > "$ROOT/stub-src/bootstrap"
+chmod +x "$ROOT/stub-src/bootstrap"
+
+# bash 3.2 在 set -u 下展开空数组会报 unbound variable；以 root 运行和测试根里
+# sudo_cmd 正好为空，这条路径不测就发现不了。
+if out=$(PROBE_ROOT=1 /bin/bash "$ROOT/run_bootstrap_probe.sh" "$HERE/.." "$ROOT/stub-src" 2>&1) \
+        && printf '%s' "$out" | grep -q 'BOOTSTRAP RAN'; then
+    pass "run_bootstrap works when there is no sudo to prefix"
+else
+    failed "run_bootstrap broke with an empty sudo_cmd: $out"
+fi
+
+# sudo 默认重置环境；不显式转发，配了代理的用户会卡在源码自举的下载阶段。
+if out=$(http_proxy=http://p.example:1 https_proxy=http://p.example:1 \
+        /bin/bash "$ROOT/run_bootstrap_probe.sh" "$HERE/.." "$ROOT/stub-src" 2>&1) \
+        && printf '%s' "$out" | grep -q 'env http_proxy=http://p.example:1 https_proxy=http://p.example:1' \
+        && printf '%s' "$out" | grep -q 'BOOTSTRAP RAN'; then
+    pass "proxy variables are passed through sudo"
+else
+    failed "proxy variables did not reach the bootstrap command: $out"
+fi
+
 # ---- 汇总 ---------------------------------------------------------------
 
 printf '\n'

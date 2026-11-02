@@ -115,6 +115,10 @@ Environment:
                       DIR/opt/finx, temporary files go to DIR/tmp, and --prefix
                       outside DIR is refused. Meant for tests and CI.
 
+  https_proxy / http_proxy / all_proxy / no_proxy are honoured, including by
+  the bootstrap step that runs as root (sudo resets the environment, so they
+  are passed explicitly).
+
   Addresses must be https:// or file://; plain http is accepted only for
   http://127.0.0.1:PORT and http://localhost:PORT (offline testing).
   Changing a domain never skips verification: seeds are still checked

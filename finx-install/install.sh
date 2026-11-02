@@ -704,7 +704,8 @@ run_bootstrap() {
 
     # bootstrap 自己会在非 root 时提问并 exec sudo，但那时 stdin 已是 /dev/null，
     # sudo 读不到密码。所以先提权，让 bootstrap 一进来就是 root。
-    sudo_prefix=""
+    # 数组而不是拼字符串：代理地址里可能有空格或特殊字符，靠词分割会散架。
+    sudo_cmd=()
     if [ "$(id -u)" -ne 0 ]; then
         if [ "${IN_TEST_ROOT:-0}" -eq 1 ]; then
             # 测试根里装的都是假东西，不需要真 root
@@ -713,13 +714,31 @@ run_bootstrap() {
             have sudo || die "root is required and sudo is not available"
             # sudo 从 /dev/tty 读密码，所以 stdin 接 /dev/null 也不影响
             sudo -v || die "could not obtain sudo privileges"
-            sudo_prefix="sudo "
+            sudo_cmd=(sudo)
         fi
+    fi
+
+    # 代理变量必须显式传进去：sudo 默认会重置环境，而 bootstrap 里 Fink 自己的
+    # 下载是以 root 跑的。用户明明配了代理、curl 也通，却会卡在下载那一步，
+    # 报的错还只会说「连不上」。
+    proxy_vars=()
+    for name in http_proxy https_proxy all_proxy no_proxy \
+                HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; do
+        if [ -n "${!name:-}" ]; then
+            proxy_vars+=("$name=${!name}")
+        fi
+    done
+    if [ "${#proxy_vars[@]}" -gt 0 ] && [ "${#sudo_cmd[@]}" -gt 0 ]; then
+        sudo_cmd=(sudo env "${proxy_vars[@]}")
+        info "passing ${#proxy_vars[@]} proxy variable(s) through sudo"
     fi
 
     info "running bootstrap (this compiles tar and dpkg; it can take a while)"
 
-    ( cd "$SOURCE_ROOT" && ${sudo_prefix}./bootstrap "$target" < /dev/null ) \
+    # ${arr[@]+"${arr[@]}"} 而不是 "${arr[@]}"：bash 3.2 在 set -u 下展开空数组
+    # 会报 unbound variable（4.4 才修好）。而以 root 运行、或测试根里，
+    # sudo_cmd 正好是空的。
+    ( cd "$SOURCE_ROOT" && ${sudo_cmd[@]+"${sudo_cmd[@]}"} ./bootstrap "$target" < /dev/null ) \
         || die "bootstrap failed; see its output above for the failing step"
 }
 
@@ -771,6 +790,10 @@ Environment:
   FINX_TEST=DIR       confine the whole run to DIR: the default prefix becomes
                       DIR/opt/finx, temporary files go to DIR/tmp, and --prefix
                       outside DIR is refused. Meant for tests and CI.
+
+  https_proxy / http_proxy / all_proxy / no_proxy are honoured, including by
+  the bootstrap step that runs as root (sudo resets the environment, so they
+  are passed explicitly).
 
   Addresses must be https:// or file://; plain http is accepted only for
   http://127.0.0.1:PORT and http://localhost:PORT (offline testing).
