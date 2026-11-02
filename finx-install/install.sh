@@ -419,7 +419,7 @@ resolve_manifest() {
         [ -n "$MANIFEST_URL" ] || die "no seed location given; use --seed-dir or --manifest-url"
         MANIFEST_FILE=$FINX_TMP/manifest
         ARTIFACT_BASE=""
-        fetch_one "$MANIFEST_URL" "$MANIFEST_FILE" \
+        fetch_one "$MANIFEST_URL" "$MANIFEST_FILE" quiet \
             || die "cannot download the seed manifest from $MANIFEST_URL"
     fi
 
@@ -462,14 +462,37 @@ manifest_urls() {
 fetch_one() {
     url=$1
     dest=$2
+    # 第三个参数：quiet 表示文件很小（清单），不要画进度。
+    quiet=${3:-}
 
     info "GET $url"
 
+    # 进度显示分两档：
+    #   quiet       -sS，只留真正的错误。清单就两百字节，画个进度表很荒唐
+    #   其余        --progress-bar（即 curl -#），一条随宽度更新的进度条，
+    #               不刷行，比默认那张会重画整屏的表干净得多
+    if [ -n "$quiet" ]; then
+        progress_opts=(-sS)
+    else
+        progress_opts=(--progress-bar)
+    fi
+
+    # --speed-limit/--speed-time 是这里唯一一处「不限总时长、但要判死活」的开关：
+    #
+    #   --connect-timeout 只管握手；握手成功之后传输停滞，curl 会一直等下去。
+    #   实测过一次种子下到 1.7 MB / 21 MB 就再也不动了，进程挂在那里无限期。
+    #
+    #   总时长上限会误伤慢速网络（1 KB/s 但一直在走是能装完的），所以不用
+    #   --max-time；改用「连续 45 秒低于 4 KB/s 就判死」，判死之后靠 -C - 续传。
+    stall=(-C - --speed-limit 4096 --speed-time 45)
     part=$dest.part
-    if ! curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" --retry 2 -C - -o "$part" "$url"; then
+    if ! curl -fL "${progress_opts[@]}" --connect-timeout "$FINX_CONNECT_TIMEOUT" \
+            --retry 3 --retry-delay 2 "${stall[@]}" -o "$part" "$url"; then
         # 退出码 33 是「服务器不支持续传」，此时从头再来一次
         rm -f "$part"
-        curl -fL --connect-timeout "$FINX_CONNECT_TIMEOUT" -o "$part" "$url" || {
+        curl -fL "${progress_opts[@]}" --connect-timeout "$FINX_CONNECT_TIMEOUT" \
+            --retry 2 --retry-delay 2 --speed-limit 4096 --speed-time 45 \
+            -o "$part" "$url" || {
             rm -f "$part"
             return 1
         }
@@ -897,7 +920,11 @@ check_target() {
             [ "$FORCE" -eq 1 ] || die "$PREFIX already holds an installation; re-run with --force to replace it"
             warn "replacing the existing installation in $PREFIX" ;;
         *)
-            [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation"
+            [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation.
+       This is usually what a source build leaves behind when it stops halfway.
+       Inspect it, then either remove it or re-run with --force:
+         sudo ls -la $PREFIX
+         sudo rm -rf $PREFIX"
             warn "$PREFIX is not a Finx installation; continuing because --force was given" ;;
     esac
 }

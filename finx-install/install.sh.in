@@ -181,7 +181,11 @@ check_target() {
             [ "$FORCE" -eq 1 ] || die "$PREFIX already holds an installation; re-run with --force to replace it"
             warn "replacing the existing installation in $PREFIX" ;;
         *)
-            [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation"
+            [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation.
+       This is usually what a source build leaves behind when it stops halfway.
+       Inspect it, then either remove it or re-run with --force:
+         sudo ls -la $PREFIX
+         sudo rm -rf $PREFIX"
             warn "$PREFIX is not a Finx installation; continuing because --force was given" ;;
     esac
 }
