@@ -118,4 +118,16 @@ make format             # indentation check (Perl uses tabs, shell uses 4 spaces
 
 ## 🧩 License
 
-Finx keeps Fink's license and is released under the **GNU General Public License, version 2, or (at your option) any later version** — SPDX `GPL-2.0-or-later`. That is the wording every source file inherited from Fink carries; see [`LICENSE`](./LICENSE) for the full text.
+**This project is not under a single license; it is two grants put together.**
+
+- Files inherited from Fink stay **`GPL-2.0-or-later`** — that grant came from
+  Fink's authors and we have no right to narrow it.
+- Files we wrote ourselves (the installer, `scripts/`, the docs) are
+  **`GPL-2.0-only`**.
+
+Distributed together, the combination can only be **GPL version 2**, because that
+is the only version both grants permit.
+
+Read the notice at the top of a file to tell which grant applies. The upstream
+GPL text is in [`COPYING`](./COPYING); the scope and how to tell them apart are
+in [`LICENSE`](./LICENSE).

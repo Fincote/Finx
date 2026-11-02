@@ -117,4 +117,13 @@ make format             # 缩进检查（Perl 用 tab，shell 用 4 空格）
 
 ## 🧩 许可证
 
-Finx 沿用 Fink 的许可证，以 **GNU General Public License 第二版，或（由你选择）任何更新版本** 发布 —— SPDX 标识为 `GPL-2.0-or-later`。这与每个源文件从 Fink 继承下来的措辞一致；全文见 [`LICENSE`](./LICENSE)。
+**这个项目不是单一许可，是两段拼起来的。**
+
+- 从 Fink 继承的文件保持 **`GPL-2.0-or-later`** —— 这是 Fink 作者给的授权，
+  我们无权收窄。
+- 我们自己写的文件（安装器、`scripts/`、文档）采用 **`GPL-2.0-only`**。
+
+合在一起分发时，整体只能是 **GPL 第二版**：两段授权唯一都能满足的交集就是它。
+
+看文件头就能判断属于哪一段，不必查表。上游 GPL 全文见 [`COPYING`](./COPYING)，
+范围说明与判定方法见 [`LICENSE`](./LICENSE)。

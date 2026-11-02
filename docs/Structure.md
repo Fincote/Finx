@@ -210,7 +210,7 @@ resolve_method()   决定走种子还是源码
 | `VERSION` / `REVISION` | 版本号 / 每个发行版的修订号 | 是 |
 | `Release` | apt 索引模板 | 是 |
 | `STYLE` | 2003 年的 Perl 代码风格原文 | 是（历史文档） |
-| `NEWS` / `AUTHORS` / `LICENSE` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档，随包分发 | 是 |
+| `NEWS` / `AUTHORS` / `COPYING` / `LICENSE` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档与许可文件，随包分发 | 是 |
 
 ### `perlmod/`：全部 Perl 模块（42 个文件）
 
@@ -276,7 +276,7 @@ resolve_method()   决定走种子还是源码
 | `dir-base` | `share/info/dir` 的初始内容 |
 | `pack.sh` | **确定性打包器**，见下 |
 | `pack.conf` | 版本 + 期望 MD5（随载荷发布，所以载荷树里也读得到） |
-| `COPYING` / `NEWS` / `README` | 上游文档 |
+| `COPYING` / `NEWS` / `README` | 上游文档（`base-files/COPYING` 是载荷的一部分） |
 
 `pack.sh` 把源码打成 `base-files-<ver>.tar.gz`，要求**跨机器逐字节可复现**（钉死 mtime/uid/gid/格式/顺序/gzip 头），因为 `.info` 里的 `Source-MD5` 是写死的。
 
