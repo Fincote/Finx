@@ -275,8 +275,7 @@ sub process {
 			} else {
 				die "\nWe don't support updates from $raw_distribution to $new_distribution.\n" .
 					"Check the 'Clean Upgrade' section of $basepath/share/doc/finx/INSTALL\n" .
-					"or $basepath/share/doc/finx/INSTALL.html for information about \n" .
-					"how to proceed.\n\n".
+					"or run 'man finx', for information about how to proceed.\n\n".
 					"'$cmd' operation not permitted.\n"
 			}
 		}

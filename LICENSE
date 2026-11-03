@@ -32,7 +32,6 @@ GPL-2.0-or-later
     inject.pl
     pre-build-test.sh
     finx-virtual-pkgs.in
-    readme.*.html
 
 Third party
 -----------

@@ -621,9 +621,10 @@ make test        # manifest_check → test_setup → 跑完 test/ 全部测试
 
 维护 `MANIFEST` 的两条经验：
 
-- **要随程序分发的文件必须登记。** `install.sh` 会装 `readme.*.html`，而
-  `readme.de.html` 曾经漏登记 —— 结果是德文 readme 长期不在发行包里，且
-  `manifest_check` 一直红着，把这条真问题掩盖掉了。
+- **要随程序分发的文件必须登记。** 当年的例子是 `readme.de.html`：`install.sh`
+  用通配符装 `readme.*.html`，它却漏登记 —— 结果是德文 readme 长期不在发行包里，
+  且 `manifest_check` 一直红着，把这条真问题掩盖掉了。那批 HTML 已删（见 10.1），
+  但这条规则不受影响。
 - **生成物要同时进 `MANIFEST.SKIP` 与 `.gitignore`。** 只加一处会出现"git 干净了但
   tar 里混进生成物"，或反之。`setup.sh` 生成的 `compiler_wrapper-10.7` / `-10.9`
   就曾漏在 `MANIFEST.SKIP` 之外，导致每次 `make test_setup` 之后 `make test` 都失败。
@@ -707,7 +708,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 
 | 症状 | 根因 | 修法 |
 | --- | --- | --- |
-| `Not in MANIFEST: readme.de.html` | 该文件确实没登记，而 `install.sh` 会装 `readme.*.html` —— **德文 readme 从未进过发行包** | 登记进 `MANIFEST` |
+| `Not in MANIFEST: <文件>` | 该文件确实没登记，而 `install.sh` 的通配符会装上它 —— 当年的 `readme.de.html` 就是这样让**德文 readme 从未进过发行包** | 登记进 `MANIFEST` |
 | `Not in MANIFEST: compiler_wrapper-10.7` / `-10.9` | 它们由 `setup.sh` 从 `.in` 生成，而 `MANIFEST.SKIP` 只写了 `^compiler_wrapper$` | 改为 `^compiler_wrapper(-\d+\.\d+)?$`，`.gitignore` 同步加 `/compiler_wrapper-*` |
 
 排除模式不能图省事写成 `^compiler_wrapper-.*$`：那样会把 `compiler_wrapper-10.6.in`
@@ -814,8 +815,8 @@ done
 `-m 755` 写成 `-m 644` 两边会错得一样，比对恒真。所以它检查的是「装出来的东西对不对」，
 而不是「两棵树是否一样」。
 
-三条检测路径都做过反向验证：从 `MANIFEST` 里删掉 `readme.de.html` → 报
-`Only in tree-git.prefix/share/doc/finx: readme.de.html`；加一条不存在的文件 → 报
+三条检测路径都做过反向验证：从 `MANIFEST` 里删掉一条 → 报
+`Only in tree-git.prefix/share/doc/finx: <那个文件>`；加一条不存在的文件 → 报
 "打 tar 时会被静默跳过"；往 `check_files` 里塞一个不存在的名字 → 报"自举会在这里 die"；
 把 `install.sh` 里 `$bin` 那行的 `-m 755` 改成 `-m 644` → 逐条列出 `bin/finx` 等七个
 文件"没有可执行位"。

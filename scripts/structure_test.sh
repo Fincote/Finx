@@ -24,10 +24,11 @@
 #   Bootstrap::check_files  自举前断言源码树完整
 #   install.sh 的复制语句   真正装进前缀的东西，大量依赖 shell 通配符
 #
-# 三者不同步就会静默出错。readme.de.html 就是现成的例子：它在 git 里、会被
+# 三者不同步就会静默出错。曾经有现成的例子：readme.de.html 在 git 里、会被
 # install.sh 的 `readme.*.html` 装上、却不在 MANIFEST 里 —— 于是它从未进过
 # 任何一个载荷包，而 `make test` 只报了一句"Not in MANIFEST"，没人看得出
-# 这句话的含义是"德文 readme 从来没发出去过"。
+# 这句话的含义是"德文 readme 从来没发出去过"。那批上游渲染的 HTML 后来整批
+# 删掉了（XML 源从来不在这个仓库里），但这个口子还在，所以检查留着。
 #
 # 本脚本不去解析 install.sh。它的写法是
 #

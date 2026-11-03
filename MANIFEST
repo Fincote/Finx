@@ -1,7 +1,6 @@
 AUTHORS
 COPYING
 INSTALL
-INSTALL.html
 LICENSE
 MANIFEST
 MANIFEST.SKIP
@@ -9,14 +8,12 @@ Makefile
 NEWS
 README
 README.buildsystem
-README.html
 README.removing-fink-bld
 REVISION
 Release
 STYLE
 TODO
 USAGE
-USAGE.html
 VERSION
 base-files/COPYING
 base-files/NEWS
@@ -105,14 +102,6 @@ perlmod/Fink/Validation.pm
 perlmod/Fink/VirtPackage.pm
 postinstall.pl.in
 pre-build-test.sh
-readme.de.html
-readme.en.html
-readme.es.html
-readme.fr.html
-readme.ja.html
-readme.pt.html
-readme.ru.html
-readme.zh.html
 scripts/ci_bootstrap.sh
 scripts/fetch_sources.sh
 scripts/format_check.pl
