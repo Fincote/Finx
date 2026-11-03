@@ -6,7 +6,7 @@ License: LGPL
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 Depends: base-files
 BuildDepends: <<
-	finx (>= 0.30.0),
+	finx (>= 0.1.0-alpha),
 	gperf (>= 3.1-1)
 <<
 Essential: yes

@@ -2,7 +2,7 @@ Info4: <<
 Package: dpkg-base-files
 Version: 0.4
 Revision: 1
-BuildDepends: finx (>= 0.45.99.git)
+BuildDepends: finx (>= 0.1.0-alpha)
 Depends: dpkg (>> 1.16)
 Source: mirror:custom:%n-%v.tar.gz
 Essential: yes

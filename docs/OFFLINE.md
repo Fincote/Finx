@@ -141,7 +141,7 @@ ls /opt/finx/bin/{finx,dpkg,dpkg-deb,tar}
 打成该机器自己的种子，以后重装就不用再编：
 
 ```sh
-sudo ./scripts/make_seed.sh --prefix /opt/finx --out seed --release 0.45.99.git
+sudo ./scripts/make_seed.sh --prefix /opt/finx --out seed --release 0.1.0-alpha.git
 ```
 
 上传为 Release `seed-<该机 Darwin>`，其他人就也能用了。

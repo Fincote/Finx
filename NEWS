@@ -2,6 +2,20 @@ For a more comprehensive changelog of the latest experimental code, see:
         https://github.com/fink/fink/commits/
 
 /-------------
+| finx 0.1.0-alpha
+\-------------
+
+0.1.0-alpha.git (2026-11-03)
+
+	* Renumbered. The package version no longer continues Fink's 0.45.x line;
+	  every "finx (>= ...)" floor in the tree moved with it.
+	* Security: a payload's symbolic links must now resolve inside the install
+	  prefix, or into one of eight exempt system locations. Enforced in the seed
+	  installer, before dpkg installs a .deb, and against the built tree.
+	* apt is in the tree and ships in the seed, so binary mode works.
+	* t/ renamed to test/; the pre-rendered HTML documents are gone.
+
+/-------------
 | fink HEAD
 \-------------
 

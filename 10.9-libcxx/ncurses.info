@@ -10,7 +10,7 @@ SourceDirectory: ncurses-5.9
 CustomMirror: <<
 Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
 <<
-BuildDepends: finx (>= 0.13.0)
+BuildDepends: finx (>= 0.1.0-alpha)
 Depends: libncurses5-shlibs (>= %v-%r)
 Replaces: libncurses5 (<< 5.4-20041023-4)
 Essential: true

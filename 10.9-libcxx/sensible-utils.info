@@ -4,7 +4,7 @@ Revision: 4
 Essential: true
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 ## Remove po4a
-BuildDepends: finx (>= 0.24.12-1)
+BuildDepends: finx (>= 0.1.0-alpha)
 Replaces: debianutils (<= 2.32.3)
 Source: mirror:custom:%n_%v.tar.gz
 Source-MD5: 9a208cceb0e9c5cc1d2aa4d53d7d2baa

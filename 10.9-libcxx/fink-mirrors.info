@@ -8,7 +8,7 @@ Source-MD5: 8c4347d367db95d8de965d9ca623fe52
 CustomMirror: <<
 Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
 <<
-Depends: finx (>= 0.17.3-1)
+Depends: finx (>= 0.1.0-alpha)
 Replaces: finx (<< 0.17.2-1)
 CompileScript: <<
  #!/bin/bash -e

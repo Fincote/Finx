@@ -9,7 +9,7 @@ CustomMirror: <<
 Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
 <<
 BuildDepends: <<
-	finx (>= 0.32),
+	finx (>= 0.1.0-alpha),
 	libiconv-dev,
 	libncurses5,
 	libgettext8-dev,

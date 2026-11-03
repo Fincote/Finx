@@ -44,7 +44,7 @@ CustomMirror: <<
 Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
 <<
 
-BuildDepends: libiconv-dev, libgettext8-dev, gettext-tools, finx (>= 0.24.12)
+BuildDepends: libiconv-dev, libgettext8-dev, gettext-tools, finx (>= 0.1.0-alpha)
 Depends: liblzma5-shlibs (= %v-%r)
 Conflicts: lzip (<< 1.3-2), lzma (<< 4.999.8-1)
 Replaces: lzip (<< 1.6-1), lzma (<< 4.999.8-1)

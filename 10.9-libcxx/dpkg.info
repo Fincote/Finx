@@ -4,7 +4,7 @@ Revision: 1.3
 GCC: 4.0
 ## Remove po4a
 BuildDepends: <<
-	finx (>= 0.32),
+	finx (>= 0.1.0-alpha),
 	libgettext8-dev (>= 0.22.5-1),
 	gettext-tools (>= 0.18),
 	liblzma5,

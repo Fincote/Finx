@@ -72,7 +72,7 @@ die() {
 # 自己编的 GNU tar。GNU tar 不认 bsdtar 的 --uid/--uname，直接
 #
 #     tar: unrecognized option '--uid'
-#     phase compiling: finx-0.45.99.git failed
+#     phase compiling: finx-0.1.0-alpha.git failed
 #
 # 而 bootstrap 只是打印一段「请附上错误信息」的说明就继续往下走，退出码仍是 0，
 # 于是 CI 一直显示绿色，装出来的前缀里却从来没有 bin/finx。

@@ -242,7 +242,7 @@ SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来�
 
 ```
 schema 1
-release 0.45.99.git
+release 0.1.0-alpha.git
 arch arm64
 seed seed.tar.gz
 size 21111384

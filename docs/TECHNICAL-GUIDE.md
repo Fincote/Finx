@@ -2,7 +2,7 @@
 
 > 目标：讲清「为什么这样设计」。文件在哪、归谁管，见 [Structure.md](./Structure.md)。
 >
-> 适用版本：`0.45.99.git`
+> 适用版本：`0.1.0-alpha.git`
 
 ## 目录
 
@@ -699,7 +699,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | phase 2 被执行两次 | [bootstrap:794](../bootstrap) 在错误检查之前多了一次裸的 `execute`，第一次的返回值被丢弃 | **已修**，见 10.3 |
 | 两个锁实现不一致 | `lockwait.in` 用可配置的 `pack(@PACKARGS@,…)`，`finx-dpkg-status-cleanup.in` 硬编码 `pack("lllliss",…)`，而文件头写着"KEEP THIS IN SYNC" | **已修**，见 10.4 |
 | 三份手写清单互不校验 | `MANIFEST`、`check_files`、`install.sh` 是同一份事实的三个副本 | **已修**，见 10.5 |
-| 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 是 0.45.99.git | 未修。新文档以本手册为准 |
+| 安装文档版本滞后 | [INSTALL](../INSTALL:3) 是 0.45.6，[Install.md](../Install.md:1) 还是 0.41.1，`VERSION` 已改为 0.1.0-alpha.git | 未修。新文档以本手册为准 |
 | `NEWS` 里的旧路径 | 历史条目仍写 `/sw`、`/opt/sw` | 刻意保留，见 [AGENTS.md](../AGENTS.md) |
 
 ### 10.1 已修：`manifest_check` 必然失败
