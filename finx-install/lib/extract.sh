@@ -26,6 +26,19 @@ extract_seed() {
     [ -d "$target" ] || die "target directory missing: $target"
 
     tar -xzf "$archive" -C "$target" || die "failed to extract $archive"
+
+    # 解包之后、任何东西碰这棵树之前。越界链接本身不会伤人，危险的是顺着它去读
+    # 或去写 —— 而下一步 resign_macho 就会走遍整棵树、run_scanpackages 会执行
+    # 树里的 bin/finx。所以检查必须卡在这里，且失败时清空前缀：半装好的树比
+    # 没装更危险。
+    offending=$(offending_links "$target")
+    if [ -n "$offending" ]; then
+        find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+        die "the seed contains $(printf '%s\n' "$offending" | wc -l | tr -d ' ') symbolic link(s) pointing outside $target:
+$offending
+       Only these locations are exempt: $FINX_LINK_EXEMPT
+       Refusing this payload. Report it to whoever built the seed."
+    fi
 }
 
 # 前缀必须归 root 所有，不能 chown 给调用者。

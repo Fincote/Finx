@@ -50,7 +50,7 @@ set -o pipefail
 # 被 bash 管道执行时既没有可靠的 $0，也没有同级目录可用。
 if [ "${FINX_BUNDLED:-0}" -ne 1 ]; then
     FINX_INSTALL_DIR=$(cd -- "$(dirname -- "$0")" 2>/dev/null && pwd) || FINX_INSTALL_DIR=""
-    for needed in common detect manifest extract source; do
+    for needed in common detect manifest extract links source; do
         if [ ! -f "$FINX_INSTALL_DIR/lib/$needed.sh" ]; then
             printf 'ERROR: lib/%s.sh not found next to %s\n' "$needed" "${0:-<stdin>}" >&2
             printf '       This modular entry point needs its lib/ directory.\n' >&2
@@ -64,6 +64,7 @@ if [ "${FINX_BUNDLED:-0}" -ne 1 ]; then
     . "$FINX_INSTALL_DIR/lib/detect.sh"
     . "$FINX_INSTALL_DIR/lib/manifest.sh"
     . "$FINX_INSTALL_DIR/lib/extract.sh"
+    . "$FINX_INSTALL_DIR/lib/links.sh"
     . "$FINX_INSTALL_DIR/lib/source.sh"
 fi
 # <<< bundle:skip

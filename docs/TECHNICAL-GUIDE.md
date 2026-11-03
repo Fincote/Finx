@@ -304,7 +304,7 @@ url     https://host/b/seed.tar.gz
 `FINX_TEST=<绝对路径>` 把整次运行关进该目录（作用等同于 MacWave 的 `MACWAVE_TEST`）：
 默认前缀变成 `<测试根>/opt/finx`，`TMPDIR` 改到 `<测试根>/tmp`，`--prefix` 越界即中止。
 相对路径、`/`、解析后落在系统目录的路径一律拒绝 —— 测试根写错时宁可中止，也不降级到真实目录。
-`finx-install/selftest.sh` 用这个机制跑 19 项断言，全程离线。
+`finx-install/selftest.sh` 用这个机制跑全套断言，全程离线。
 
 ### 8.6 前缀归属：必须是 root
 
@@ -664,7 +664,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | 3 | `make test_setup` + `perl -c` 全部模块 | 模块有语法错（必须先 test_setup，否则报的是「找不到模块」） |
 | 4 | `build-bundle.sh --check` | 改了 `finx-install/lib/` 却没重建 `install.sh` |
 | 5 | `make test` | 1059 项断言里有失败 |
-| 6 | `./finx-install/selftest.sh` | 安装器沙箱的 19 项里有一条不成立 |
+| 6 | `./finx-install/selftest.sh` | 安装器沙箱的断言里有一条不成立 |
 | 7 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |
 
 三条与"为什么这么设"有关的决定：
@@ -837,3 +837,52 @@ bootstrap 会在那种场景下跑 `make test`，不该因此失败。
 这就是第 8.7 节「一个概念四个名字」的另一种形态：**两个名字听起来是同一件事
 （"清单"），实际是两个不同的集合。** `10.9-libcxx/` 与 `mirror/` 同样只被
 `MANIFEST.SKIP` 排除、不进载荷 tar，理由相同。
+
+### 10.6 已补：载荷的符号链接能逃出前缀
+
+解包工具只过滤成员**名字**里的 `../`，与链接的**目标**无关。于是一个载荷可以
+老实躺在树内、指向任何位置：
+
+```
+lib/innocent.dylib -> /Users/someone/.ssh/id_rsa
+```
+
+装完之后，任何顺着它去读或去写的代码都落到树外 —— `resign_macho` 会走遍整棵树、
+`scanpackages` 会执行树里的 `bin/finx`、卸载时的 `rm -rf` 会顺着它出去。而 dpkg
+的 `postinst` 本来就是真 root。
+
+规则：**一个载荷自带的符号链接，解析后必须落在安装根目录内，或落在豁免的系统
+位置，否则拒绝安装。** 判定按**路径分段**比较，不是字符串前缀 —— `/opt/finx2`
+不是 `/opt/finx` 的子目录，`/usrlocal` 也不是 `/usr`。
+
+豁免只有八处，两条理由必须同时成立才开口子：
+
+```
+/bin   /sbin   /usr/bin   /usr/sbin   /usr/lib   /usr/libexec
+/System   /Library/Apple
+```
+
+1. **SIP 保护。** 连 root 都写不进去，"顺着链接去写"不成立；上游产物里本来就有
+   指向 `/usr/bin` 的正常引用。
+2. **不含隐私文件。** 那里只有系统自带的二进制与库，"顺着链接去读"也不成立。
+
+其余一律不例外：`/Users`、`/Library` 里 `Apple/` 以外的部分、`/private`、`/opt`、
+`/etc`、`/var` 都有用户数据，且大多不受 SIP 保护。
+
+三个出口，两套实现，**豁免表必须一致**：
+
+| 出口 | 实现 | 检查时机 |
+| --- | --- | --- |
+| 种子安装器（`curl \| bash`） | [`finx-install/lib/links.sh`](../finx-install/lib/links.sh) | 解包之后、`resign_macho` 之前；拒绝时清空前缀内容 |
+| `finx install` 装 `.deb` | [`perlmod/Fink/Links.pm`](../perlmod/Fink/Links.pm) `offending_in_deb` | `dpkg -i` 之前，解析 `dpkg-deb -c`，不额外解包 |
+| 构建出的前缀 | 同上 `offending_in_tree`，挂在 `make structure` | 装完立即查，早于打包 |
+
+两个实现都做**词典序**归一化，不碰文件系统：悬空链接同样判定 —— 一个指向
+`/opt/nothing-here` 的悬空链接，等那个路径出现时就变成真越界。
+
+解析 `dpkg-deb -c` 时按**第一个** ` -> ` 切，不是最后一个：产物文件名不可能含
+箭头，目标却可能；按最后切会让 `-> /usr/local/t -> y` 的目标被看成无害的相对
+`y` 而放行。
+
+已知边界：检查发生在解包之后，所以越界链接会短暂存在于目标目录里（随后被删除）。
+真正危险的是"顺着它写"与"顺着它读"，两者都要等落盘之后才可能发生。

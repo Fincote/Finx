@@ -214,7 +214,43 @@ check_fails "sha256 mismatch is refused" \
 [ ! -e "$ROOT/tampered" ] && pass "failed verification left no directory" \
     || failed "failed verification left $ROOT/tampered behind"
 
-# ---- 6. 管道模式 ---------------------------------------------------------
+# ---- 6. 载荷里的越界符号链接必须被拒 ------------------------------------
+
+# 解包工具只过滤成员**名字**里的 "../"，与链接的**目标**无关。于是一个种子可以
+# 老实躺在树内，却指向 /usr/local/... —— 装完之后 resign_macho 会走遍整棵树，
+# 卸载时的 rm -rf 也会顺着它出去。同一份种子里再放一个树内相对链接和一个指向
+# /usr/bin 的链接，用来确认防线区分的是「在不在树内」，不是「像不像系统路径」。
+LINK_BAD=$ROOT/linkbad
+mkdir -p "$LINK_BAD"
+cp -R "$SEED" "$LINK_BAD/seed" || exit 1
+ln -s /usr/local/test/test_write "$LINK_BAD/seed/lib/evil_write"
+ln -s 15.0 "$LINK_BAD/seed/lib/ok_rel"
+ln -s /usr/bin/true "$LINK_BAD/seed/lib/ok_system"
+tar -czf "$LINK_BAD/seed.tar.gz" -C "$LINK_BAD/seed" . || exit 1
+printf 'schema 1\nrelease 0.46.0\narch %s\nseed seed.tar.gz\nsize %s\nsha256 %s\n' \
+    "$HOST_ARCH" "$(wc -c < "$LINK_BAD/seed.tar.gz" | tr -d ' ')" \
+    "$(shasum -a 256 "$LINK_BAD/seed.tar.gz" | awk '{print $1}')" > "$LINK_BAD/manifest"
+
+LINK_LOG=$ROOT/linkbad.log
+if "$INSTALL" --seed-dir="$LINK_BAD" --prefix="$ROOT/linkbad-target" >"$LINK_LOG" 2>&1; then
+    failed "a seed with a link escaping the prefix was accepted"
+else
+    pass "a seed with a link escaping the prefix is refused"
+fi
+
+if grep -q 'lib/evil_write -> /usr/local/test/test_write' "$LINK_LOG" \
+    && ! grep -q 'ok_rel' "$LINK_LOG" && ! grep -q 'ok_system' "$LINK_LOG" \
+    && grep -q 'Only these locations are exempt' "$LINK_LOG"; then
+    pass "the refusal names the offending link only, plus the exempt list"
+else
+    failed "the refusal did not name exactly the offending link"
+fi
+
+[ -z "$(ls -A "$ROOT/linkbad-target" 2>/dev/null)" ] \
+    && pass "the refused seed left an empty prefix" \
+    || failed "the refused seed left content in $ROOT/linkbad-target"
+
+# ---- 7. 管道模式 ---------------------------------------------------------
 
 if cat "$HERE/install.sh" | /bin/bash -s -- --seed-dir="$ROOT" --prefix="$ROOT/piped" >/dev/null 2>&1; then
     pass "piped standalone install"
@@ -224,11 +260,11 @@ fi
 [ -f "$ROOT/piped/bin/finx" ] && pass "piped install landed in the sandbox" \
     || failed "piped install did not land in the sandbox"
 
-# ---- 7. 单文件必须与源同步 ----------------------------------------------
+# ---- 8. 单文件必须与源同步 ----------------------------------------------
 
 check_ok "install.sh is not stale" "$HERE/build-bundle.sh" --check
 
-# ---- 8. 源码回落 ---------------------------------------------------------
+# ---- 9. 源码回落 ---------------------------------------------------------
 
 SRCROOT=$ROOT/fake-src
 mkdir -p "$SRCROOT/Finx-main" || exit 1
@@ -270,7 +306,7 @@ check_fails "a source archive without bootstrap is refused" \
 check_fails "--no-fallback refuses a missing seed" \
     "$INSTALL" --no-fallback --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/strict"
 
-# ---- 9. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
+# ---- 10. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
 
 MIRROR=$ROOT/mirror
 mkdir -p "$MIRROR" || exit 1

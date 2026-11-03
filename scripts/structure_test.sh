@@ -315,6 +315,29 @@ if [ "$IN_GIT" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 3.5 装出来的前缀里，符号链接不得跳出前缀
+# ---------------------------------------------------------------------------
+#
+#
+# 这一节查的不是源码，而是 install.sh 真正装出来的东西。一个包若写死
+# `ln -s /opt/homebrew/...`，前缀里就会多出一条指向树外的链接 —— 它会被打进
+# 载荷 tar、被 chmod、被收尾步骤走遍，卸载时还会被顺着 rm -rf。
+#
+# 判定与 finx-install/lib/links.sh 同源（豁免表也同一份），改一处要改两处。
+for _prefix in "$WORK/tree-git.prefix" "$WORK/tree-manifest.prefix"; do
+    [ -d "$_prefix" ] || continue
+    _out=$(PERL5LIB="$REPO_ROOT/perlmod" /usr/bin/perl -MFink::Links -e '
+        print "$_\n" for Fink::Links::offending_in_tree($ARGV[0]);
+    ' "$_prefix" 2>&1)
+    if [ -n "$_out" ]; then
+        bad "$(basename "$_prefix") 里有符号链接指向前缀之外："
+        printf '%s\n' "$_out" | sed -e 's/^/    /'
+        printf '    豁免位置只有：%s\n' \
+            "$(PERL5LIB="$REPO_ROOT/perlmod" /usr/bin/perl -MFink::Links -e 'print Fink::Links::exempt_list()')"
+    fi
+done
+
+# ---------------------------------------------------------------------------
 # 4. 结论
 # ---------------------------------------------------------------------------
 

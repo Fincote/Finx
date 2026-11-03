@@ -292,7 +292,7 @@ resolve_method()   决定走种子还是源码
 | `lib/source.sh` | **源码回落**：取源码包、检查前置、跑 `./bootstrap` |
 | `install.sh` | **生成物**：把所有 lib 打平成一个文件，供 `curl \| bash`；用户下载的就是它 |
 | `build-bundle.sh` | 生成/校验 `install.sh` |
-| `selftest.sh` | 23 项沙箱断言 |
+| `selftest.sh` | 沙箱断言，全程离线 |
 | `seed/manifest.example` | 种子清单样例 |
 | `README.md` | 设计与未做项 |
 

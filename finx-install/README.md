@@ -82,7 +82,7 @@ finx-install/
 ├── install.sh            模块化入口：解析参数、编排七个阶段
 ├── install.sh            生成物：自包含单文件，用户下载的就是它
 ├── build-bundle.sh       把 install.sh.in + lib/*.sh 打平成 install.sh
-├── selftest.sh           沙箱自测：19 项断言，全程离线
+├── selftest.sh           沙箱自测：全程离线，不碰真实目录
 ├── lib/
 │   ├── common.sh         输出、错误、trap、临时目录、sha256、测试根
 │   ├── detect.sh         宿主探测（macOS 版本 / 架构）、目标目录状态、写权限
@@ -239,7 +239,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh --seed-dir=/tmp/seed
 
 ## 八、自测
 
-一条命令跑完 19 项断言，全程离线、不碰真实目录：
+一条命令跑完全套断言，全程离线、不碰真实目录：
 
 ```
 ./finx-install/selftest.sh

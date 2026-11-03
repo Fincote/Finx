@@ -74,6 +74,7 @@ perlmod/Fink/Finally.pm
 perlmod/Fink/Finally/BuildConflicts.pm
 perlmod/Fink/Finally/Buildlock.pm
 perlmod/Fink/FinkVersion.pm.in
+perlmod/Fink/Links.pm
 perlmod/Fink/Mirror.pm
 perlmod/Fink/NetAccess.pm
 perlmod/Fink/Notify.pm
@@ -142,6 +143,7 @@ test/Engine/p3.info
 test/Engine/p4.info
 test/Finally/buildlocks.t
 test/Finally/finally.t
+test/Links/links.t
 test/FinkVersion/exports.t
 test/FinkVersion/version.t
 test/Mirror/exports.t

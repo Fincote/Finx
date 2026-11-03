@@ -5009,6 +5009,27 @@ sub phase_activate {
 		print_breaking_stderr "WARNING: $@";
 	}
 
+	# 载荷里的符号链接解析后必须落在前缀内。dpkg 只看成员名字、不看链接目标，
+	# 而 postinst 以真 root 执行、卸载时会顺着链接 rm -rf —— 所以这层必须卡在
+	# dpkg 之前，装完再查就没有意义了。
+	{
+		require Fink::Links;
+		my $bp = $config->param("Basepath");
+		my $dpkgdeb = "$bp/bin/dpkg-deb";
+		my @escaping;
+		for my $pkg (@installable) {
+			my $deb = $pkg->find_debfile();
+			next unless defined $deb and length $deb and -f $deb;
+			push @escaping, map { $pkg->get_fullname() . ": $_" }
+				Fink::Links::offending_in_deb($deb, $bp, $dpkgdeb);
+		}
+		if (@escaping) {
+			die "refusing to install: payload symbolic links point outside $bp\n"
+				. join("\n", map { "  $_" } @escaping) . "\n"
+				. "Only these locations are exempt: " . Fink::Links::exempt_list() . "\n";
+		}
+	}
+
 	my @deb_installable = map { $_->find_debfile() } @installable;
 	if (&execute(dpkg_lockwait() . " -i @deb_installable", ignore_INT=>1)) {
 		if (@installable == 1) {

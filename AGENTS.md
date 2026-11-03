@@ -154,6 +154,10 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh   # 手工装进 /tmp/finx-c
 - `finx-install/install.sh`：生成物，不要手改。改 `finx-install/lib/` 或
   `finx-install/install.sh` 后必须跑 `./finx-install/build-bundle.sh`，否则线上那条
   `curl | bash` 跑的还是旧逻辑。`build-bundle.sh --check` 负责发现漂移。
+- **载荷符号链接的豁免表不能随手加路径。** `finx-install/lib/links.sh` 与
+  `perlmod/Fink/Links.pm` 各有一份，必须一致。开口子要同时满足「SIP 连 root 都
+  拒绝写」与「那里不含隐私文件」—— 加一条 `/opt/homebrew` 就等于允许载荷读遍
+  用户在那个目录下的一切。理由见 TECHNICAL-GUIDE 10.6。
 - `10.9-libcxx/*.patch` 与 `10.9-libcxx/dpkg.patch`：上游源码的补丁载荷，动一个字节就装不上。
 - **`MANIFEST` 是载荷清单，不是发行清单。** 它只列「要打进载荷 tar 的文件」；
   `finx.info.in`、`10.9-libcxx/`、`mirror/` 被 `MANIFEST.SKIP` 排除是**刻意**的 ——

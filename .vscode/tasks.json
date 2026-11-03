@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "Test: installer selftest",
-            "detail": "finx-install 的 19 项沙箱断言，全程离线，不碰真实目录",
+            "detail": "finx-install 的沙箱断言，全程离线，不碰真实目录",
             "type": "shell",
             "command": "./finx-install/selftest.sh",
             "group": {
