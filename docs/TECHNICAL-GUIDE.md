@@ -131,6 +131,19 @@ finx 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
 字段与占位符（`%p` 前缀、`%b` 构建目录、`%i` 假根、`%d` DEBIAN 目录、`%n` 名、`%v` 版本、
 `%m` 架构）由 `Fink::Services::expand_percent` 展开。
 
+### `InstallScript` 必须写 `%i`，不能写 `%p`
+
+构建默认以 `fink-bld` 运行（`BuildAsNobody` 默认 1），而 `%p` 归 root —— 在
+`InstallScript` 里往 `%p/bin` 装东西会直接 EACCES。首次给树里加 `tree` 时就栽在这里：
+`make install PREFIX=%p` 报 `Error 71`，原因就是 `install tree /opt/finx/bin/tree`
+以 `fink-bld` 写不进 root 的目录。
+
+所以：**产物一律装进 `%i`**，由 `dpkg` 以 root 在 `phase_activate` 时落到真实前缀。
+`%p` 在 `InstallScript` 里只用于**引用**（读已有文件、往脚本里写绝对路径），不用于写。
+
+例外是声明了 `BuildAsNobody: false` 的包 —— `tar`、`dpkg` 这类必须 root 构建的；
+它们以 `root:admin` 运行，`%p` 可写。
+
 ---
 
 ## 四、依赖模型与一致性求解

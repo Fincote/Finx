@@ -11,8 +11,12 @@ BuildDepends: finx (>= 0.1.0-alpha)
 # 上游把安装变量从 1.x 的 prefix/MANDIR=.../man1 改成了 PREFIX/MANDIR=.../share/man，
 # 且 DESTDIR 就是 bin 目录（不是暂存根）。1.x 的补丁在这里用不上，也不需要：
 # 2.x 的 Makefile 默认就带 strverscmp.o，本机 clang 直接编过。
-CompileScript: make PREFIX=%p MANDIR=%p/share/man
-InstallScript: make install PREFIX=%p MANDIR=%p/share/man
+#
+# 编译阶段不需要 PREFIX —— 它只被 install 目标使用。
+CompileScript: make
+# 安装阶段必须是 %i 而不是 %p：InstallScript 以 fink-bld 运行，写 /opt/finx/bin
+# 会直接 EACCES（首次 CI 就栽在这里，make 报 Error 71）。
+InstallScript: make install PREFIX=%i MANDIR=%i/share/man
 DocFiles: CHANGES LICENSE README
 Description: Recursive directory listing program
 DescDetail: <<
