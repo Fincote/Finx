@@ -282,6 +282,32 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           du -h seed/seed.tar.gz
 
+      - name: Build one package from source
+        # 前面所有步骤都是「把 Finx 自己装上」，没有一步走过用户真正会用的那条路：
+        # 拿一份树里的 .info，下源码、校验、编译、打 .deb、dpkg 装上。
+        #
+        # tree 是最小的那块试金石 —— 单个 C 程序、无库依赖、无补丁。它同时验证了
+        # mirror:custom 取源码、Source-Checksum、以及刚加的 .deb 符号链接检查
+        # （offending_in_deb 就在这条路上被调用，之前从没在真实 dpkg 上跑过）。
+        #
+        # 排在「Pack the seed」之后：种子是「essential 前缀的快照」，tree 不想让它
+        # 预先装进去 —— 那会让用户那边的第一次 finx install 变成「已经是最新版」。
+        # 但必须排在「Publish the seed」之前：源码构建不通就不该发布种子。
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.prefix }}"
+
+          sudo "$PREFIX/bin/finx" -y install tree
+
+          [ -x "$PREFIX/bin/tree" ] || { echo "FAILED: bin/tree did not appear" >&2; exit 1; }
+          [ -f "$PREFIX/share/man/man1/tree.1" ] || { echo "FAILED: tree.1 did not appear" >&2; exit 1; }
+
+          "$PREFIX/bin/tree" --version
+          "$PREFIX/bin/tree" -L 1 "$PREFIX/bin" | head -5
+
+          # 装完之后 dpkg 必须认得它，否则「装上了」只是文件躺在那里
+          "$PREFIX/bin/dpkg" -s tree | sed -n '1,6p'
+
       - name: Publish the seed
         # 固定标签 seed：一条滚动更新的「当前可用种子」。安装器的默认清单地址
         # 就指向这里，所以用户不需要任何环境变量。

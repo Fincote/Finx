@@ -1,0 +1,24 @@
+Package: tree
+Version: 2.3.2
+Revision: 1
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Source: mirror:custom:%n-%v.tar.gz
+Source-Checksum: SHA256(22cf32e84e3eb508d97a9e991c2c3cc006b9dcf4afed201d96311c5c57d08fcf)
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
+BuildDepends: finx (>= 0.1.0-alpha)
+# 上游把安装变量从 1.x 的 prefix/MANDIR=.../man1 改成了 PREFIX/MANDIR=.../share/man，
+# 且 DESTDIR 就是 bin 目录（不是暂存根）。1.x 的补丁在这里用不上，也不需要：
+# 2.x 的 Makefile 默认就带 strverscmp.o，本机 clang 直接编过。
+CompileScript: make PREFIX=%p MANDIR=%p/share/man
+InstallScript: make install PREFIX=%p MANDIR=%p/share/man
+DocFiles: CHANGES LICENSE README
+Description: Recursive directory listing program
+DescDetail: <<
+ tree is a recursive directory listing program that produces a depth-indented
+ listing of files. Colorization and the ability to list directories first are
+ provided by default.
+<<
+License: GPL
+Homepage: https://oldmanprogrammer.net/source.php?dir=projects/tree
