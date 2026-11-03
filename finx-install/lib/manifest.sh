@@ -79,6 +79,15 @@ probe_url() {
     url=$1
     tries=${FINX_PROBE_TRIES:-3}
 
+    # file:// 不走网络，curl -I 也能取到，但拿回来的 http_code 是 000，
+    # 于是「文件明明在」被判定成「连不上」。FINX_INDEX_DOMAIN 接受 file://
+    # （离线测试、本地镜像都靠它），这条路径必须能一致地探到。
+    case $url in
+        file://*)
+            [ -f "${url#file://}" ] && return 0
+            return 1 ;;
+    esac
+
     PROBE_ATTEMPTS=0
     total=$tries
     while [ "$tries" -gt 0 ]; do
@@ -136,9 +145,13 @@ resolve_manifest() {
     schema=$(manifest_field "$MANIFEST_FILE" schema)
     [ "$schema" = "1" ] || die "unsupported manifest schema: ${schema:-<missing>}"
 
+    # 清单存在不等于种子能用：种子是按 arch 与 darwin 构建的，别的机器上的
+    # 种子装不进来。自动发现时要把这件事当成「这份种子不是给你的」，退回源码；
+    # 显式指定来源时仍然直接拒绝 —— 调用方说了就用这份，静默换源会让校验失去意义。
     manifest_arch=$(manifest_field "$MANIFEST_FILE" arch)
-    [ "$manifest_arch" = "$HOST_ARCH" ] \
-        || die "seed is built for $manifest_arch but this host is $HOST_ARCH"
+    if [ "$manifest_arch" != "$HOST_ARCH" ]; then
+        SEED_HOST_MISMATCH="seed is built for $manifest_arch but this host is $HOST_ARCH"
+    fi
 
     SEED_RELEASE=$(manifest_field "$MANIFEST_FILE" release)
     SEED_NAME=$(manifest_field "$MANIFEST_FILE" seed)
@@ -159,6 +172,11 @@ resolve_manifest() {
     esac
 
     check_darwin_floor
+
+    if [ -n "${SEED_HOST_MISMATCH:-}" ]; then
+        [ "${SEED_MAY_FALL_BACK:-0}" -eq 1 ] || die "$SEED_HOST_MISMATCH"
+        return 0
+    fi
 
     ARTIFACT_FILE=$FINX_TMP/$SEED_NAME
     info "$(t 'seed' '种子') $SEED_NAME ($(t 'release' '版本') ${SEED_RELEASE:-unknown}, $(human_size "$SEED_SIZE"))"
@@ -186,7 +204,7 @@ check_darwin_floor() {
 
     msg=$(t "this seed was built on a newer macOS (Darwin $SEED_DARWIN); this system is Darwin $host" \
             "这个种子是在更新的 macOS 上构建的（Darwin $SEED_DARWIN），本机是 Darwin $host")
-    die "$msg"
+    SEED_HOST_MISMATCH=$msg
 }
 
 manifest_field() {

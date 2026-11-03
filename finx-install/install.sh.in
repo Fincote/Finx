@@ -401,6 +401,9 @@ resolve_method() {
     case $? in
         0)
             MODE=seed
+            # 清单在，但种子未必是给这台机器的（arch / darwin 不匹配）。允许换路，
+            # 交给 resolve_manifest 判定后回退源码；--no-fallback 与显式来源不换。
+            SEED_MAY_FALL_BACK=1
             info "$(t 'seed, from' '种子，来自') $MANIFEST_URL" ;;
         1)
             MODE=source
@@ -452,6 +455,16 @@ resolve_method() {
 install_from_seed() {
     step "$(t 'Resolving seed manifest' '解析种子清单')"
     resolve_manifest
+
+    # 种子的清单存在，却与这台机器不匹配。把它当成「没有可用的种子」，而不是
+    # 一个致命错误：用户要的是装上 Finx，不是拿到一份错误信息。
+    if [ -n "${SEED_HOST_MISMATCH:-}" ]; then
+        warn "$(t 'this seed cannot be used here' '这份种子在本机用不了')"
+        warn "  $SEED_HOST_MISMATCH"
+        warn "$(t 'building from source instead' '改为源码自举')"
+        install_from_source
+        return 0
+    fi
 
     step "$(t 'Checking target' '检查目标目录')"
     check_target

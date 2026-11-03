@@ -306,7 +306,50 @@ check_fails "a source archive without bootstrap is refused" \
 check_fails "--no-fallback refuses a missing seed" \
     "$INSTALL" --no-fallback --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/strict"
 
-# ---- 10. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
+# ---- 10. 种子与主机不匹配时回退源码 --------------------------------------
+#
+# 清单存在不等于种子能用：种子是按 arch 与 darwin 构建的。自动发现那条路上，
+# 碰到「有清单但这份种子装不进来」应当退回源码并说明原因，而不是在
+# resolve_manifest 里直接 die。
+#
+# 真实症状：Intel 机器在 macOS 15 上跑安装器，探到了为 arm64 构建的 seed-24，
+# 然后只拿到一句 "seed is built for arm64 but this host is x86_64" 就结束了 ——
+# 用户要的是装上 Finx，不是一条错误信息。
+
+WRONG_ARCH=x86_64
+[ "$HOST_ARCH" = "x86_64" ] && WRONG_ARCH=arm64
+FOREIGN=$ROOT/foreign
+mkdir -p "$FOREIGN" || exit 1
+cp "$ROOT/seed.tar.gz" "$FOREIGN/" || exit 1
+printf 'schema 1\nrelease 0.46.0\narch %s\nseed seed.tar.gz\nsize %s\nsha256 %s\n' \
+    "$WRONG_ARCH" "$SEED_SIZE" "$SEED_SHA" > "$FOREIGN/manifest"
+
+FBLOG=$ROOT/fallback.log
+if FINX_INDEX_DOMAIN="file://$FOREIGN" \
+        "$INSTALL" --source-url="file://$ROOT/finx-src.tar.gz" \
+        --prefix="$ROOT/fallback" >"$FBLOG" 2>&1; then
+    pass "a seed built for another architecture falls back to source"
+else
+    failed "a seed built for another architecture did not fall back"
+fi
+
+if [ -s "$ROOT/fallback/marker" ]; then
+    pass "the fallback actually ran bootstrap"
+else
+    failed "the fallback did not run bootstrap"
+fi
+
+if grep -q "seed is built for $WRONG_ARCH" "$FBLOG"; then
+    pass "the unusable seed is named in the warning"
+else
+    failed "the warning did not name the unusable seed"
+fi
+
+# 显式指定来源时不换路：调用方说了用这份，静默换源会让校验失去意义。
+check_fails "an explicit seed for another architecture is still refused" \
+    "$INSTALL" --manifest-url="file://$FOREIGN/manifest" --prefix="$ROOT/foreign-explicit"
+
+# ---- 11. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
 
 MIRROR=$ROOT/mirror
 mkdir -p "$MIRROR" || exit 1

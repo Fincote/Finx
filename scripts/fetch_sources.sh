@@ -54,11 +54,20 @@ CPAN=https://cpan.metacpan.org
 
 # ---- 1. 要哪些包 ---------------------------------------------------------
 
-# 要哪些包：凡是 CustomMirror 指向我们镜像的那些。这是最准确的判据 ——
-# 我们镜像里放的就是它们需要的源码，不多不少。用 Essential 列表会漏掉
-# expat1、texinfo、objtools 这类「不是 Essential 但 bootstrap 要装」的包，
-# 第一版就是这么漏掉 6 个的。
-PKGS=$(grep -l "^Primary: $OURS\$" 10.9-libcxx/*.info 2>/dev/null \
+# 要哪些包：树里所有包。
+#
+# 曾经按 CustomMirror 是否指向我们镜像来挑，理由是「我们镜像里放的就是它们
+# 需要的源码」。那个判据错在把「我们搬过哪些」当成了「需要哪些」：
+#
+#   - 5 个 CPAN 包（class-inspector-pm、file-sharedir-pm、text-unidecode-pm、
+#     time-date-pm、locale-textdomain-pm）走 mirror:cpan:，没有被搬进我们
+#     的镜像，于是全部落选 —— 而它们都是 Essential，bootstrap 必须编。
+#   - debianutils 的 CustomMirror 还指着旧上游，同理落选，它也是 Essential。
+#
+# 离线机器上这 6 个缺一个就起不来。改成「树里的每一个 .info」，就是「这棵树
+# 需要的源码」，与搬没搬过无关。多下的那几个（如 cvs 4 MB）正好让装完之后的
+# finx install 也不必联网。
+PKGS=$(ls 10.9-libcxx/*.info 2>/dev/null \
     | sed 's|.*/||;s|\.info$||' | sort | tr '\n' ' ')
 
 printf 'packages: %s\n\n' "$PKGS" >&2
