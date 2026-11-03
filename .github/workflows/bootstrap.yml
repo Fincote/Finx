@@ -179,7 +179,8 @@ jobs:
               exit 1
           }
 
-          "$PREFIX/bin/apt-get" -s install base-files
+          # -s 只是模拟，但 apt 仍然要锁 var/lib/dpkg，所以照样得是 root
+          sudo "$PREFIX/bin/apt-get" -s install base-files
 
       - name: Collect the built packages
         if: always()
