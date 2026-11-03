@@ -135,6 +135,52 @@ jobs:
           fi
           "$PREFIX/bin/finx" --version
 
+      - name: Install apt and prove it runs
+        # 种子是「装好的前缀的快照」，所以在打包之前把 apt 装进去，种子就自带
+        # apt-get。这比把 apt 塞进 Fink::Bootstrap::additional_packages() 更窄：
+        # 那个列表是「构建其他包需要的包」，apt 不是，改它会让每次 selfupdate
+        # 都顺带重装 apt。
+        #
+        # 断言按依赖顺序往上走，任何一步断了都能立刻看出断在哪：
+        #   能不能编（finx install）
+        #   能不能链接（--version，缺 dylib 会在这里炸）
+        #   认不认架构（--version 打印的 darwin arm64 / x86_64 要和 %m 一致）
+        #   能不能读 dpkg 的库（apt-cache policy 要报出已装的版本）
+        #   求解器能不能跑（apt-get -s 模拟安装）
+        #
+        # 这里不测 apt 从树里找包：那要求 etc/apt/sources.list 存在，而它是
+        # config->save 的产物，装完 apt 不会自动有。那条路径现在由
+        # Engine::aptget_update 负责补（首次二进制分发之前写一次），但走它要
+        # 触发一次二进制安装，不适合放在这里当冒烟测试。
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.prefix }}"
+          ARCH="$(uname -m)"
+
+          sudo "$PREFIX/bin/finx" -y install apt
+          # 索引进种子时要包含刚装上的 apt-*，否则种子里的 apt-get 看不到自己的包
+          sudo "$PREFIX/bin/finx" scanpackages
+
+          for f in bin/apt-get bin/apt-cache bin/apt-config; do
+              [ -x "$PREFIX/$f" ] || { echo "FAILED: $f did not appear" >&2; exit 1; }
+          done
+
+          version="$("$PREFIX/bin/apt-get" --version)"
+          echo "$version"
+          case "$version" in
+              *"for darwin $ARCH"*) ;;
+              *) echo "FAILED: apt reports the wrong architecture, wanted darwin $ARCH" >&2; exit 1 ;;
+          esac
+
+          policy="$("$PREFIX/bin/apt-cache" policy base-files)"
+          echo "$policy"
+          echo "$policy" | grep -q 'Installed: [0-9]' || {
+              echo "FAILED: apt-cache cannot read the dpkg database" >&2
+              exit 1
+          }
+
+          "$PREFIX/bin/apt-get" -s install base-files
+
       - name: Collect the built packages
         if: always()
         run: |

@@ -786,6 +786,9 @@ sub aptget_update {
 
 	return 1 unless $config->binary_requested();  # binary-mode disabled
 	return 0 unless apt_available;
+	# etc/apt 只有装了 apt 才存在，而 sources.list 是 config->save 时生成的。
+	# 装完 apt 直接开二进制分发的人，会撞上一个没有源的空配置。
+	$config->write_sources_list;
 	print "Downloading the indexes of available packages in the binary distribution.\n";
 	my $aptcmd = aptget_lockwait();
 	if ($config->verbosity_level == 0) {
