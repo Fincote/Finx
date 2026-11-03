@@ -5,7 +5,7 @@ PREFIX=/opt/finx
 # 被 dpkg 以架构不符拒绝。真实踩过。
 ARCHITECTURE=$(shell uname -m)
 VERSION=`cat VERSION`
-TEST_BASEPATH=$(PWD)/t/basepath
+TEST_BASEPATH=$(PWD)/test/basepath
 TESTS=.
 
 all:
@@ -83,8 +83,8 @@ format:
 # 看着像代码坏了。
 test: manifest_check structure sources_check license_check test_setup perl_check
 	@# must test with same perl binary as the one to be used to run finx
-	@# (which also must be coded into t/Services/execute_nonroot_okay.t)
-	cd t && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
+	@# (which also must be coded into test/Services/execute_nonroot_okay.t)
+	cd test && ./testmore.pl && find ${TESTS} -name '*.t' | sort | PREFIX="$(PREFIX)" xargs /usr/bin/perl -I`pwd`/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
 
 # remove various generated files
 clean:
@@ -110,8 +110,8 @@ clean:
 	rm -f g++-wrapper-4.0
 	rm -f perlmod/Fink.pm
 	rm -f perlmod/Fink/FinkVersion.pm
-	rm -f t/basepath/etc/apt/sources.list
-	rm -f t/basepath/etc/apt/sources.list.finkbak
+	rm -f test/basepath/etc/apt/sources.list
+	rm -f test/basepath/etc/apt/sources.list.finkbak
 
 # maybe we should clean or ./setup.sh before this, to eliminate dups?
 podcheck:

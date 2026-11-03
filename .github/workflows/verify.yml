@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # 第一条命令就断言工具链，而不是等某个测试莫名失败。
-      # Makefile 的 test 目标与 t/Services/execute_nonroot_okay.t 都把 /usr/bin/perl
+      # Makefile 的 test 目标与 test/Services/execute_nonroot_okay.t 都把 /usr/bin/perl
       # 写死了 —— 跑测试的必须是这一个，PATH 上的 perl 可能是别的版本。
       - name: Assert the toolchain
         run: |
@@ -49,7 +49,7 @@ jobs:
           /usr/bin/perl -e 'exit($] >= 5.016 ? 0 : 1)' || {
               echo "FAILED: /usr/bin/perl is older than 5.16"; exit 1; }
 
-      # t/basepath 里的架构由 setup.sh 生成，Makefile 默认 x86_64。这里跟着 runner
+      # test/basepath 里的架构由 setup.sh 生成，Makefile 默认 x86_64。这里跟着 runner
       # 走，免得在 arm64 机器上用 x86_64 的配置测完还以为测过 arm64。
       - name: Pick the architecture
         run: |
@@ -112,7 +112,7 @@ jobs:
         # 自建临时根，全程离线；不会碰 /opt/finx。
         run: ./finx-install/selftest.sh
 
-      # 最后一条：跑完必须不留产物。t/basepath 与 setup.sh 生成的文件都该被
+      # 最后一条：跑完必须不留产物。test/basepath 与 setup.sh 生成的文件都该被
       # .gitignore 挡住；一旦报出东西，说明有生成物没登记 —— 它会被误提交，
       # 或者让 manifest_check 在下一次提交时莫名变红。
       - name: Assert the tree is still clean

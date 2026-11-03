@@ -605,10 +605,10 @@ phase one 下载与 phase two 编译 —— 包括 dpkg 1.19.7 与 tar 1.29 这�
 
 ## 九、测试
 
-套件在 `t/`，Test::Harness 驱动。**基线：48 个测试文件、1059 项断言。**
+套件在 `test/`，Test::Harness 驱动。**基线：48 个测试文件、1059 项断言。**
 
 ```
-make test        # manifest_check → test_setup → 跑完 t/ 全部测试
+make test        # manifest_check → test_setup → 跑完 test/ 全部测试
 ```
 
 `make test` 的三个阶段各有分工：
@@ -616,7 +616,7 @@ make test        # manifest_check → test_setup → 跑完 t/ 全部测试
 | 阶段 | 作用 |
 | --- | --- |
 | `manifest_check` | `MANIFEST` 必须列出仓库里每个文件（漏了就不会进发行 tarball），同时 `MANIFEST.SKIP` 必须排除全部生成物 |
-| `test_setup` | `./setup.sh t/basepath x86_64`，生成 `finx` / `postinstall.pl` / `lockwait` / `FinkVersion.pm` 等运行时文件 |
+| `test_setup` | `./setup.sh test/basepath x86_64`，生成 `finx` / `postinstall.pl` / `lockwait` / `FinkVersion.pm` 等运行时文件 |
 | 测试本体 | `cd t && ./testmore.pl && find . -name '*.t' \| sort \| PREFIX=... xargs perl -MTest::Harness` |
 
 维护 `MANIFEST` 的两条经验：
@@ -637,7 +637,7 @@ cd t && ./testmore.pl && find . -name '*.t' | sort | \
     PREFIX=/opt/finx xargs /usr/bin/perl -I$(pwd)/../perlmod -MTest::Harness -e 'runtests(@ARGV)'
 ```
 
-`t/basepath/` 是一套假安装，`PREFIX` 只影响少数用例。
+`test/basepath/` 是一套假安装，`PREFIX` 只影响少数用例。
 
 安装器自己的测试走 `FINX_TEST` 沙箱，不碰真实目录：
 
@@ -679,12 +679,12 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 - **`concurrency` 开了 `cancel-in-progress`。** 连推几次时，被新提交取代的旧任务
   就地取消，不必等它跑完。
 - **一个 job，不做矩阵。** `ARCHITECTURE` 取自 runner 自己的 `uname -m`
-  （`test_setup` 会把它写进 `t/basepath`），所以跑的是这台机器的架构，不是
+  （`test_setup` 会把它写进 `test/basepath`），所以跑的是这台机器的架构，不是
   Makefile 里那个默认的 `x86_64`。要覆盖另一种架构就再加一个 job，别加在同一个
-  job 里循环 —— 那样第二次运行会覆盖第一次的 `t/basepath`。
+  job 里循环 —— 那样第二次运行会覆盖第一次的 `test/basepath`。
 
 `/usr/bin/perl` 而不是 PATH 上的 `perl`：Makefile 的 `test` 目标与
-`t/Services/execute_nonroot_okay.t` 都把它写死了，CI 里做语法检查的也必须是同一个
+`test/Services/execute_nonroot_okay.t` 都把它写死了，CI 里做语法检查的也必须是同一个
 二进制，否则「查过的」和「跑过的」不是一回事。
 
 ---

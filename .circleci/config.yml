@@ -27,7 +27,7 @@
 # 两边**不各写一份逻辑**。所有检查都调用仓库里同一批入口：
 #
 #   make format               缩进
-#   make test                 manifest_check → structure → sources_check → t/ 测试
+#   make test                 manifest_check → structure → sources_check → test/ 测试
 #   make payload_test         在只有 MANIFEST 文件的树里再跑一遍 make test
 #   ./finx-install/selftest.sh
 #   scripts/ci_bootstrap.sh   真自举（带重试），GitHub 也调它

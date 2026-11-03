@@ -310,7 +310,7 @@ resolve_method()   决定走种子还是源码
 
 | 路径 | 作用 |
 | --- | --- |
-| `t/`（67 个） | Perl 测试套件，48 个 `.t` 文件 |
+| `test/`（67 个） | Perl 测试套件，48 个 `.t` 文件 |
 | `docs/` | 本文档与 `TECHNICAL-GUIDE.md` |
 | `update/`（5 个） | `config.guess` / `config.sub` / `ltmain.sh` 等，供包构建用 |
 | `update-packages/` | `finx selfupdate-packages` 用的脚本 |

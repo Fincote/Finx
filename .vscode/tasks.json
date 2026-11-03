@@ -14,7 +14,7 @@
         },
         {
             "label": "Test: perl suite",
-            "detail": "manifest_check + test_setup + t/ 里的 48 个测试文件",
+            "detail": "manifest_check + test_setup + test/ 里的 48 个测试文件",
             "type": "shell",
             "command": "make test",
             "group": "test",

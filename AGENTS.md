@@ -77,7 +77,7 @@ Finx 在 `/opt/finx`），命令名相同就必然混淆。没有 `fink` 兼容�
 完整方法见 [`docs/TECHNICAL-GUIDE.md`](./docs/TECHNICAL-GUIDE.md) 第九节。要点：
 
 ```
-make test          # manifest_check → structure → sources_check → test_setup → 跑完 t/ 全部测试
+make test          # manifest_check → structure → sources_check → test_setup → 跑完 test/ 全部测试
 ```
 
 - 基线：**48 个测试文件、1059 项断言**全通过。
@@ -101,7 +101,7 @@ make test          # manifest_check → structure → sources_check → test_set
   `make test`。这正是 `finx.info.in` 的 `CompileScript` 执行时的环境 —— 没有
   `10.9-libcxx/`、没有 `.git`。任何「只在仓库里成立」的假设都会在这一步暴露，
   而本地 `make test` 是绿的。改了 `Makefile`、`MANIFEST` 或任何构建期脚本后要跑。
-- 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `t/` 的方式驱动。
+- 只想跑测试、跳过完整性检查时用 `make test_setup` 再按 `test/` 的方式驱动。
 - 改 `PkgVersion` / `Engine` / `Services` / `Bootstrap` 后必须重跑全套；只改文档不用跑。
 - VS Code 里有同名任务：`Test: perl suite`、`Test: payload tree`、`Verify: all`
   （见 `.vscode/tasks.json`）。

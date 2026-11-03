@@ -15,7 +15,7 @@ can_ok('Fink::Finally::Buildlock','finalize');
 my $prog = 'finx-virtual-pkgs';
 my $path;
 foreach ('.', '..') {
-	# test could run with PWD as parent of t/ or t/ itself
+	# test could run with PWD as parent of test/ or test/ itself
 	if (-r "$_/$prog") {
 	$path = $_;
 	last;

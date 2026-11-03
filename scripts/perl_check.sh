@@ -32,7 +32,7 @@
 #      标记清单总会漏，编译器不会。
 #
 # 覆盖范围必须是「仓库里所有 Perl」，不能只看 perlmod/ —— bootstrap 本身、
-# t/ 下的测试、以及 *.pl 脚本同样是 Perl。之前 CI 只编 perlmod/**/*.pm，
+# test/ 下的测试、以及 *.pl 脚本同样是 Perl。之前 CI 只编 perlmod/**/*.pm，
 # 于是 bootstrap 与 48 个 .t 文件从来没被检查过。
 #
 # .in 模板（postinstall.pl.in 之类）带着 @PREFIX@ 占位符，直接编译会被当成

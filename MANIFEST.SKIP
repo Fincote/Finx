@@ -32,5 +32,5 @@ CVS/
 ^perlmod/Fink.pm$
 ^perlmod/Fink/FinkVersion.pm$
 
-^t/basepath/etc/apt/sources.list$
-^t/basepath/etc/apt/sources.list.finkbak$
+^test/basepath/etc/apt/sources.list$
+^test/basepath/etc/apt/sources.list.finkbak$
