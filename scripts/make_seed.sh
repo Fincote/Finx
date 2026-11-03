@@ -29,8 +29,10 @@
 #   --out DIR       产物目录，生成 seed.tar.gz 与 manifest
 #   --release VER   写进清单的版本号；不给就读仓库根目录的 VERSION
 #   --arch ARCH     写进清单的架构；默认取 uname -m
-#   --url URL       写进清单的下载地址；不给就不写，安装器会改用
-#                   FINX_SEED_DOMAIN 拼出来（见 manifest.sh 的 fetch_artifact）
+#   --url URL       写进清单的下载地址。**发布到 GitHub 时必须给**，否则
+#                   清单里没有 url 行，安装器会回落到 FINX_SEED_DOMAIN
+#                   （默认 https://finx.sh/finx/seed/seed.tar.gz）——它探得到
+#                   清单、却下不到种子，静默失效。自建镜像时不给才是对的。
 #   --force         覆盖已存在的产物
 #
 # 关于「可迁移性」，这一点必须说清楚，因为它决定了种子能装到哪儿：
@@ -114,7 +116,10 @@ done
 
 [ -n "$OUT" ] || die "--out is required"
 
-PREFIX=$(cd "$PREFIX" 2>/dev/null && pwd) || die "no such prefix: $PREFIX"
+# 先算到临时变量再赋值：写成 PREFIX=$(...)，失败时 $PREFIX 已经被赋成空串，
+# 那句话就变成 "no such prefix: " —— 报错却不说哪个目录。
+_resolved=$(cd "$PREFIX" 2>/dev/null && pwd) || die "no such prefix: $PREFIX"
+PREFIX=$_resolved
 
 # 两条就够判断「这是个装好的前缀而不是随便一个目录」。dpkg 的 status 尤其
 # 关键：没有它，种子里就没有「装了什么」的记录，解出来是个死目录。
@@ -179,7 +184,10 @@ dropped=0
 ) > "$LIST.raw" || die "cannot walk $PREFIX"
 
 sed -n 's/^k //p' "$LIST.raw" > "$LIST"
-dropped=$(grep -c '^x ' "$LIST.raw" 2>/dev/null || echo 0)
+# grep -c 找不到匹配时自己会打印 0 **并返回 1**，所以后面不能接 || echo 0：
+# 那样变量会变成两行 "0\n0"，printf 把它插进句子就断成两截。
+# 实测：一个没有任何排除项的前缀打出来是 "packing 7 members (0" 换行 "0 excluded)"。
+dropped=$(grep -c '^x ' "$LIST.raw" 2>/dev/null) || dropped=0
 kept=$(wc -l < "$LIST" | tr -d ' ')
 rm -f "$LIST.raw"
 
@@ -234,3 +242,16 @@ printf 'seed     %s\n' "$SEED"
 printf 'manifest %s\n' "$MANIFEST"
 printf 'size     %s bytes\n' "$SIZE"
 printf 'sha256   %s\n' "$SHA"
+
+# 没给 --url 时清单里没有下载地址，安装器会回落到 $FINX_SEED_DOMAIN/<seed>。
+# 那个回落是为自建镜像准备的；发布到 GitHub Release 时它指向错的地方，而
+# 错误方式很安静 —— 清单探得到、种子下不来。实测踩过一次（seed-21）。
+if [ -z "$URL" ]; then
+    printf '\n'
+    printf 'NOTE: no --url given, so the manifest has no download address.\n'
+    printf '      The installer will fall back to $FINX_SEED_DOMAIN/<seed>:\n'
+    printf '        %s\n' "${FINX_SEED_DOMAIN:-https://finx.sh/finx/seed}/seed.tar.gz"
+    printf '      That is right for a self-hosted mirror. Publishing this seed as\n'
+    printf '      a GitHub release needs --url <asset URL>, or it will be found\n'
+    printf '      and then fail to download.\n'
+fi

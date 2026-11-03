@@ -309,25 +309,37 @@ jobs:
           "$PREFIX/bin/dpkg" -s tree | sed -n '1,6p'
 
       - name: Publish the seed
-        # 固定标签 seed：一条滚动更新的「当前可用种子」。安装器的默认清单地址
-        # 就指向这里，所以用户不需要任何环境变量。
+        # 标签是 seed-<darwin>：安装器按 uname -r 自己拼出来，所以这个名字不能改。
+        # 标题则要能分辨 —— 光写 "Seed" 的话三个种子的列表长得一模一样。
+        #
+        # 标题由清单里已有的三个字段拼成，不引入任何需要人去记的东西：
+        #   Seed-<release>-darwin<darwin>-<arch>
         if: inputs.publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           TAG="seed-${{ inputs.darwin }}"
+
+          field() { awk -v k="$1" '$1 == k { print $2; exit }' seed/manifest; }
+          title="Seed-$(field release)-darwin$(field darwin)-$(field arch)"
+          echo "title: $title"
+
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-              gh release create "$TAG" \
-                  --title "Seed" \
-                  --notes "Prebuilt Finx seed, published by the Bootstrap workflow.
+              gh release create "$TAG" --title "$title" --notes "Prebuilt Finx seed, published by the Bootstrap workflow.
           Download and use with:
           /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)\""
+          else
+              # 已有的标签也要跟上，否则第一次发布之后就再也不改了。
+              gh release edit "$TAG" --title "$title"
           fi
+
           gh release upload "$TAG" seed/seed.tar.gz seed/manifest --clobber
+
           echo "### published" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "${{ github.server_url }}/${{ github.repository }}/releases/download/seed/manifest" >> "$GITHUB_STEP_SUMMARY"
+          echo "$title" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ github.server_url }}/${{ github.repository }}/releases/download/$TAG/manifest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the seed
