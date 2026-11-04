@@ -205,14 +205,6 @@ jobs:
           path: bootstrap.log
           if-no-files-found: warn
 
-      - name: Upload the built packages
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: essential-debs
-          path: essential-debs/
-          if-no-files-found: warn
-
       - name: Summarise the installed prefix
         if: always()
         run: |
@@ -350,3 +342,14 @@ jobs:
           count=$(ls -1 essential-debs 2>/dev/null | wc -l | tr -d ' ')
           echo "collected $count .deb"
           ls -l essential-debs 2>/dev/null | head -20
+
+      - name: Upload the built packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: essential-debs
+          path: essential-debs/
+          # error 而不是 warn：上一轮 Collect 挪到末尾后，这一步还留在这里，
+          # 于是它面对一个还不存在的目录，静默上传了零个文件，而整轮是绿的。
+          # 「没东西可传」本身就是缺陷，不该只留一条看不见的警告。
+          if-no-files-found: error
