@@ -182,23 +182,6 @@ jobs:
           # -s 只是模拟，但 apt 仍然要锁 var/lib/dpkg，所以照样得是 root
           sudo "$PREFIX/bin/apt-get" -s install base-files
 
-      - name: Collect the built packages
-        if: always()
-        run: |
-          set -uo pipefail
-          PREFIX="${{ inputs.prefix }}"
-          # dpkg 把成品放在 %p/finx/debs（符号链接指向 buildpath 里的实物）。
-          # 用 find -L 跟过去，拿到真实文件。
-          if [ -d "$PREFIX/finx/debs" ]; then
-              mkdir -p essential-debs
-              sudo find -L "$PREFIX/finx/debs" -maxdepth 1 -name '*.deb' \
-                  -exec cp {} essential-debs/ \; 2>/dev/null || true
-              sudo chown -R "$(id -u):$(id -g)" essential-debs || true
-          fi
-          count=$(ls -1 essential-debs 2>/dev/null | wc -l | tr -d ' ')
-          echo "collected $count .deb"
-          ls -l essential-debs 2>/dev/null | head -20
-
       - name: Summarise where it stopped
         if: always()
         run: |
@@ -350,3 +333,20 @@ jobs:
             seed/seed.tar.gz
             seed/manifest
           if-no-files-found: error
+
+      - name: Collect the built packages
+        if: always()
+        run: |
+          set -uo pipefail
+          PREFIX="${{ inputs.prefix }}"
+          # dpkg 把成品放在 %p/finx/debs（符号链接指向 buildpath 里的实物）。
+          # 用 find -L 跟过去，拿到真实文件。
+          if [ -d "$PREFIX/finx/debs" ]; then
+              mkdir -p essential-debs
+              sudo find -L "$PREFIX/finx/debs" -maxdepth 1 -name '*.deb' \
+                  -exec cp {} essential-debs/ \; 2>/dev/null || true
+              sudo chown -R "$(id -u):$(id -g)" essential-debs || true
+          fi
+          count=$(ls -1 essential-debs 2>/dev/null | wc -l | tr -d ' ')
+          echo "collected $count .deb"
+          ls -l essential-debs 2>/dev/null | head -20
