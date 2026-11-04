@@ -153,21 +153,25 @@ step() {
 
 # 许可协议确认。
 #
-# 放在**动手之前**，不是装完之后。理由：拒签时不需要回滚。
-# MacWave 把确认放在收尾，是因为它的安装是用户级的、要改 shell 启动文件，
-# 拒签必须把已装目录与 PATH 行一起删掉。这里放在最前面，拒签时系统一个字节都
-# 没被碰过，「未安装任何内容」是字面意义上的真话，而不是一句安慰。
+# 位置与 MacWave 一致：装完了，但还没告诉用户「装好了」，也还没碰 shell 的
+# 启动文件。先宣告成功再因为不同意而删掉，是最难看的顺序。
 #
 # 三道门，按顺序：
-#   1. --accept-license  → 显式同意，不再问（给脚本与自动化用）
-#   2. FINX_TEST 沙箱    → 自动同意并说明（那里本来就不会碰真实系统）
-#   3. 其余              → 读 /dev/tty 问一次
+#   1. --ci（或 --accept-license）→ 自动同意并说明（给脚本与自动化用）
+#   2. FINX_TEST 沙箱             → 自动同意（那里本来就不会碰真实系统）
+#   3. 其余                       → 读 /dev/tty 问一次
 #
 # 为什么读 /dev/tty 而不是 stdin：`curl | sudo bash` 时 stdin 是脚本自身，
 # 读它会吃掉脚本剩下的内容。这也是 MacWave 用 /dev/tty 的原因。
 license_gate() {
-    if [ "$ACCEPT_LICENSE" -eq 1 ]; then
-        info "$(t 'agreement accepted with --accept-license' '已用 --accept-license 接受协议')"
+    if [ "$CI" -eq 1 ]; then
+        if [ "$ACCEPT_LICENSE" -eq 1 ]; then
+            info "$(t 'agreement accepted with --accept-license' \
+                     '已用 --accept-license 接受协议')"
+        else
+            info "$(t '--ci: the agreement is accepted automatically' \
+                     '--ci：自动接受协议')"
+        fi
         return 0
     fi
 
@@ -177,34 +181,68 @@ license_gate() {
         return 0
     fi
 
-    warn "$(t 'Finx is released under the GPL v2. Read both files before you agree:
+    echo -e "${YELLOW}$(t 'Finx is released under the GPL v2. Read both files before you agree:
     LICENSE   which part of the tree carries which grant
     COPYING   the licence text itself
     https://finx.sh/#license-en' \
      'Finx 以 GPL v2 发布。同意之前请先读这两个文件：
     LICENSE   哪些目录适用哪个授权
     COPYING   许可证正文
-    https://finx.sh/#license')"
+    https://finx.sh/#license')${RESET}"
 
     # 不能用 `[ -r /dev/tty ]`：那查的是权限，而设备节点谁都「可读」。
     # 没有控制终端时 access(R_OK) 仍然成功，打开才失败（ENXIO）。
     # 实测过：写成 [ -r ] 时门形同虚设，`curl | sudo bash` 会直接越过协议确认。
     if ! { exec 3<>/dev/tty; } 2>/dev/null; then
-        die "$(t 'no terminal to ask for agreement, so --accept-license is required.
-Re-run interactively, or pass --accept-license after reading both files.' \
-         '没有终端可以询问协议，因此必须显式传入 --accept-license。
-请改为交互运行，或在读过这两个文件后传入 --accept-license。')"
+        die "$(t 'no terminal to ask for agreement, so --ci is required.
+Re-run interactively, or pass --ci after reading both files.' \
+         '没有终端可以询问协议，因此必须显式传入 --ci。
+请改为交互运行，或在读过这两个文件后传入 --ci。')"
     fi
 
-    printf '%s ' "$(t 'Have you read and agree to it? [Y/n]' '你是否已阅读并同意？[Y/n]')" >&3
+    echo -e "${YELLOW}$(t 'Have you read and agree to them? [Y/n]' \
+                            '你是否已阅读并同意？[Y/n]')${RESET} " >&3
     answer=""
     read -r answer <&3 || answer=""
     exec 3<&-
 
     case $answer in
-        ''|y|Y|yes|YES) info "$(t 'agreement accepted' '已记录你的同意')" ;;
-        *) die "$(t 'you did not accept the agreement; nothing was installed.' \
-                   '你未同意该协议，未安装任何内容。')" ;;
+        ''|y|Y|yes|YES)
+            echo -e "${GREEN}$(t 'You have agreed to the agreement.' \
+                                '已记录你的同意。')${RESET}" ;;
+        *)
+            echo -e "${RED_BOLD}$(t 'You do not agree to the agreement. Installation stopped.' \
+                                    '你未同意该协议，安装已停止。')${RESET}" >&2
+            agreement_rollback
+            exit 1 ;;
+    esac
+}
+
+# 拒签后的清理。只删**这次真正新建**的前缀。
+#
+# `--force` 覆盖的是用户原有的安装，删掉就等于把人家原来的东西一并毁了，
+# 那种情况只能报错、不能动手 —— 这时用户手上仍是一个能用的前缀，只是没被
+# 放上 PATH、也没被告知安装成功。
+agreement_rollback() {
+    case ${PREFIX_WAS:-unknown} in
+        absent)
+            info "$(t 'removing' '正在删除') $PREFIX"
+            if rm -rf "$PREFIX"; then
+                echo -e "${RED_BOLD}$(t 'Everything this run created has been removed.' \
+                                        '本次创建的内容已全部删除。')${RESET}" >&2
+            else
+                warn "$(t "could not remove $PREFIX; inspect it by hand" \
+                         "没能删除 $PREFIX，请手工检查")"
+            fi ;;
+        empty)
+            info "$(t "$PREFIX was empty before this run; it is empty again" \
+                     "$PREFIX 在这次运行之前就是空的，现已恢复为空")" ;;
+        *)
+            warn "$(t "$PREFIX was already there before this run, so it was not removed." \
+                     "$PREFIX 在这次运行之前就存在，因此未删除。")"
+            info "$(t 'Remove it yourself if you want it gone:' \
+                     '如果要清掉它，请自行删除：')"
+            info "  sudo rm -rf $PREFIX" ;;
     esac
 }
 

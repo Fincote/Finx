@@ -78,6 +78,7 @@ fi
 PREFIX=/opt/finx
 PREFIX_EXPLICIT=0
 NO_PATH=0
+CI=0
 ACCEPT_LICENSE=0
 SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
@@ -108,8 +109,9 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --no-path           leave your shell startup file alone
-  --accept-license    state that you have read and accept the agreement;
-                      required when there is no terminal to ask (scripts, CI)
+  --ci                no interaction: the agreement is accepted automatically.
+                      Required when there is no terminal to ask (scripts, CI).
+                      --accept-license is an alias that says the same thing
   --zh                print steps and errors in Chinese (for self-diagnosis;
                       tool output such as curl and compilers stays English)
   --verbose           stream the bootstrap output instead of logging it
@@ -166,7 +168,8 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
-            --accept-license) ACCEPT_LICENSE=1 ;;
+            --ci|--CI)        CI=1 ;;
+            --accept-license) CI=1; ACCEPT_LICENSE=1 ;;
             --zh)             ZH=1 ;;
             --verbose)        VERBOSE=1 ;;
             --force)          FORCE=1 ;;
@@ -188,6 +191,9 @@ parse_args() {
 
 check_target() {
     state=$(target_state "$PREFIX")
+    # 记住装之前的样子：许可协议在收尾才问，拒签时要靠它判断这个前缀能不能删。
+    # absent 才是「这次新建的」；--force 覆盖的是用户原有的东西，删不得。
+    PREFIX_WAS=$state
     case $state in
         absent) ;;
         empty)
@@ -363,9 +369,6 @@ main() {
     parse_args "$@"
     apply_test_root
 
-    # 许可协议必须在碰系统之前：拒签时无需回滚。
-    license_gate
-
     step "$(t 'Checking host' '正在检查主机')"
     detect_host
     [ -n "$ARCH_OVERRIDE" ] && HOST_ARCH=$ARCH_OVERRIDE
@@ -379,6 +382,12 @@ main() {
         seed)   install_from_seed ;;
         source) install_from_source ;;
     esac
+
+    # 装完了，但还没告诉用户「装好了」，也还没碰 shell 的启动文件。
+    # MacWave 在同一个位置问，理由一样：先宣告成功、再因为不同意而删掉，
+    # 是最难看的顺序。
+    printf '\n'
+    license_gate
 
     printf '\n'
     info "$(t 'Finx' 'Finx') ${INSTALLED_RELEASE:-unknown} $(t 'installed in' '已安装到') $PREFIX"
