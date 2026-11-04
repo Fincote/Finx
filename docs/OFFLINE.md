@@ -141,10 +141,18 @@ ls /opt/finx/bin/{finx,dpkg,dpkg-deb,tar}
 打成该机器自己的种子，以后重装就不用再编：
 
 ```sh
-sudo ./scripts/make_seed.sh --prefix /opt/finx --out seed --release 0.1.0-alpha.git
+D=$(uname -r | cut -d. -f1)
+sudo ./scripts/make_seed.sh --prefix /opt/finx --out seed \
+    --release 0.1.0-alpha.git \
+    --url "https://github.com/Fincote/Finx/releases/download/seed-$D/seed.tar.gz"
 ```
 
-上传为 Release `seed-<该机 Darwin>`，其他人就也能用了。
+上传为 Release，标签 `seed-$D`，标题 `Seed-<release>-darwin$D-<arch>`。
+
+`--url` 不能省。省了清单里就没有下载地址，安装器会回落到
+`$FINX_SEED_DOMAIN/seed.tar.gz`（默认 `https://finx.sh/finx/seed/`）—— 那是给
+自建镜像用的位置。放进 GitHub Release 时它指向错的地方，而失效方式很安静：
+**清单探得到，种子下不来**。`make_seed.sh` 在缺 `--url` 时会打印这条提醒。
 
 ---
 

@@ -454,14 +454,33 @@ fi
 
 domain_ok() {
     FINX_INDEX_DOMAIN="$1" FINX_SEED_DOMAIN=https://ok.example \
-        FINX_SOURCE_DOMAIN=https://ok.example \
+        FINX_SOURCE_DOMAIN=https://ok.example FINX_DEB_DOMAIN=https://ok.example \
         sh -c '. "$1/finx-install/lib/common.sh"; printf "%s\n" "$FINX_INDEX_DOMAIN"' _ "$HERE/.."
+}
+
+# FINX_DEB_DOMAIN 与另外三个走同一套校验，但要单独确认它真的被读进来 ——
+# 变量名拼错时 finx_domain 根本不会被调用，于是「设了没用」而没人发现。
+deb_domain() {
+    FINX_DEB_DOMAIN="$1" \
+        sh -c '. "$1/finx-install/lib/common.sh"; printf "%s\n" "$FINX_DEB_DOMAIN"' _ "$HERE/.."
 }
 
 if [ "$(domain_ok 'https://mirror.example/finx/')" = "https://mirror.example/finx" ]; then
     pass "domain value is normalized (trailing slash dropped)"
 else
     failed "domain normalization did not strip the trailing slash"
+fi
+
+if [ "$(deb_domain 'https://mirror.example/debs/')" = "https://mirror.example/debs" ]; then
+    pass "FINX_DEB_DOMAIN is read and normalized"
+else
+    failed "FINX_DEB_DOMAIN was not applied"
+fi
+
+if [ "$(deb_domain 'file:///srv/debs')" = "file:///srv/debs" ]; then
+    pass "FINX_DEB_DOMAIN accepts file:// for offline mirrors"
+else
+    failed "FINX_DEB_DOMAIN rejected file://"
 fi
 
 if [ "$(domain_ok 'file:///srv/finx')" = "file:///srv/finx" ]; then

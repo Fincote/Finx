@@ -89,6 +89,12 @@ export FINX_INDEX_DOMAIN
 FINX_SEED_DOMAIN=$(finx_domain FINX_SEED_DOMAIN "${FINX_SEED_DOMAIN:-https://finx.sh/finx/seed}") || exit 1
 export FINX_SEED_DOMAIN
 
+# 预编译 .deb 的取处。形状是 Bottle 式的「一包一 Release」：
+#   <域名>/<包名>/<包名>@<版本>-<修订>.darwin<Darwin>-<架构>.deb
+# 默认指向我们自己的 debs 仓库。镜像站只要提供「域名之后那两段」的相对路径。
+FINX_DEB_DOMAIN=$(finx_domain FINX_DEB_DOMAIN "${FINX_DEB_DOMAIN:-https://github.com/Fincote/debs/releases/download}") || exit 1
+export FINX_DEB_DOMAIN
+
 # 源码自举时取源码归档的地方，默认 GitHub 的 codeload。
 FINX_SOURCE_DOMAIN=$(finx_domain FINX_SOURCE_DOMAIN "${FINX_SOURCE_DOMAIN:-https://codeload.github.com/Fincote/Finx}") || exit 1
 export FINX_SOURCE_DOMAIN

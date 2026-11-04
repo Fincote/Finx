@@ -439,9 +439,12 @@ GitHub Releases 的资产是另一套存储：**单文件上限 2 GiB**，公开
 Releases 的下载地址恒定是「域名 + 固定前缀 + `/<tag>/<资产名>`」：
 
 ```
-https://github.com/Fincote/Finx/releases/download/seed/seed-0.46.0-arm64.tar.gz
-└──────────────── 恒定 ─────────────────┘└tag┘└────────── 资产名 ──────────┘
+https://github.com/Fincote/Finx/releases/download/seed-24/seed.tar.gz
+└──────────────── 恒定 ─────────────────┘└─tag─┘└─资产名─┘
 ```
+
+标签是 `seed-<Darwin 主版本>`（安装器按 `uname -r` 拼出来），资产名固定是
+`seed.tar.gz` 与 `manifest`。
 
 自建镜像只要提供**最后两段**，形状就完全一致：
 

@@ -15,6 +15,7 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 | `FINX_INDEX_DOMAIN` | 不设则用 GitHub Releases 的 `seed` 标签 | 种子**清单**：`<域名>/manifest` |
 | `FINX_SEED_DOMAIN` | `https://finx.sh/finx/seed` | 清单里没写 `url` 时的种子**归档**：`<域名>/<文件名>` |
 | `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | 源码归档：`<域名>/tar.gz/<ref>` |
+| `FINX_DEB_DOMAIN` | `https://github.com/Fincote/debs/releases/download` | 预编译 `.deb`：`<域名>/<包名>/<包名>@<版本>-<修订>.darwin<Darwin>-<架构>.deb` |
 | `FINX_SOURCE_REF` | `main` | 源码的分支/标签/提交，等同 `--ref` |
 | `FINX_CONNECT_TIMEOUT` | `30` | 连不上的等待秒数。**只管连接**，不管下完要多久 |
 | `FINX_DEFAULT_MANIFEST_URL` | 见下面的优先级 | 直接给出清单的完整 URL，绕过上面的拼装 |
@@ -73,6 +74,12 @@ export FINX_SEED_DOMAIN=https://oss.example.com/finx/seeds
 
 注意 `FINX_SEED_DOMAIN` 只在**清单里没有 `url` 行**时才用得上。清单里写了
 `url`，就以清单为准 —— 那是发布方对这个种子实际存放位置的声明。
+
+### 预编译 .deb 走自己的镜像
+
+```sh
+export FINX_DEB_DOMAIN=https://mirror.example.com/finx/debs
+```
 
 ### 连不上，缩短等待
 
@@ -231,7 +238,10 @@ SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来�
 
 ## 五、自建镜像需要放什么
 
-一个可用的镜像目录只有两个文件：
+三样东西，形状都只是「域名之后的一段相对路径」，所以 `rsync` + `nginx` 就够，
+镜像站不需要理解任何协议。
+
+### 种子（可选）
 
 ```
 <域名>/manifest        清单（纯文本）
@@ -252,12 +262,51 @@ url https://.../seed.tar.gz      ← 可选
 
 字段全部由 `scripts/make_seed.sh` 生成，不要手写。
 
+### 源码归档
+
+```
+<域名>/tar.gz/<ref>          ref 是分支、标签或提交，默认 main
+```
+
+### 预编译 .deb（Bottle 形式）
+
+一个包一个 Release，同一个 tag 下不同平台并存：
+
+```
+<域名>/<包名>/<包名>@<版本>-<修订>.darwin<Darwin>-<架构>.deb
+```
+
+例如：
+
+```
+默认：https://github.com/Fincote/debs/releases/download/dpkg/dpkg@1.19.7-1.3.darwin24-arm64.deb
+镜像：https://mirror.example.com/finx/debs/dpkg/dpkg@1.19.7-1.3.darwin24-arm64.deb
+                                            └──────── 域名之后完全相同 ────────┘
+```
+
+**Darwin 主版本必须进文件名。** 同一个 `dpkg@1.19.7-1.3` 在 macOS 12 与 15 上编出来的
+是两个文件：每个 `.deb` 都带 `darwin (>= N-1)` 依赖，装错了 dpkg 会拒绝。所以
+`darwin21-x86_64` 与 `darwin24-arm64` 不能互相顶替。
+
+**只增不删。** 镜像侧同步请用「只补缺失」，不要 `--delete` —— 上游删掉一个资产，
+等于让某个版本永久消失，而存档意义正是反过来的。
+
+**镜像不需要做的事：**
+
+- 不需要模拟容器 registry（没有按 digest 取字节的接口）
+- 不需要提供 apt 的 `Packages` 索引 —— 这套 `.deb` 由 Finx 按名字直接取，不走 apt 的源列表
+- 不需要 https 才能用：`finx_domain` 也接受 `file://`，本地目录与 U 盘都行
+
 ---
 
 ## 六、这些变量**不**管什么
 
-- **不管包仓库。** 装软件包时用哪个 dists、走哪个二进制源，由 `finx.conf` 里的
+- **不管包仓库的目录结构。** 装软件包时用哪个 dists、哪些 trees，由 `finx.conf` 里的
   `Trees` 与 `Distribution` 决定，不是安装器的事。
+- **`FINX_DEB_DOMAIN` 目前只声明位置。** 它指出预编译 `.deb` 放在哪，但当前版本的
+  `finx install` 仍然让 apt 自己取字节（`apt-get --download-only`），而 apt 0.5.4
+  没有 https method。也就是说这个变量要等「Finx 自己下载再交给 apt」那条路做完才
+  生效 —— 现在设了不会改变任何行为。镜像站可以照第五节先把目录准备好。
 - **不管已安装的 Finx 自身更新。** `finx selfupdate` 走自己的仓库地址。
 - **不是必需的。** 全部不设，`curl | bash` 就该能装成。
 
