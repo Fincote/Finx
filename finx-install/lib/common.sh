@@ -39,30 +39,25 @@ on_exit() {
 # 屏幕输出：颜色与横幅
 # ---------------------------------------------------------------------------
 #
-# 用 printf 而不是 echo -e：echo 的转义解释在 POSIX 里是未定义的，而这里的
-# 字符串里有反斜杠（\033）。printf '%b' 是唯一可移植的写法。
-#
-# 不做 TTY 检测：安装器全程是给人看的，输出被重定向时多几个转义序列不影响
-# 任何解析（没有任何地方解析自己的输出）。
+# 用 echo -e：脚本的 shebang 是 bash（见 62529dd5 统一过），bash 内建的 echo
+# 认 -e。项目约定如此，横幅内容也不含需要转义的东西。
 
-RED_BOLD=$(printf '\033[1;31m')
-GREEN=$(printf '\033[32m')
-YELLOW=$(printf '\033[33m')
-RESET=$(printf '\033[0m')
+RED_BOLD='\033[1;31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RESET='\033[0m'
 
 print_banner() {
-    printf '\n'
-    printf '%s' "$GREEN"
-    printf '███████╗██╗███╗   ██╗██╗  ██╗\n'
-    printf '██╔════╝██║████╗  ██║╚██╗██╔╝\n'
-    printf '█████╗  ██║██╔██╗ ██║ ╚███╔╝ \n'
-    printf '██╔══╝  ██║██║╚██╗██║ ██╔██╗ \n'
-    printf '██║     ██║██║ ╚████║██╔╝ ██╗\n'
-    printf '╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝\n'
-    printf '%s' "$RESET"
-    printf '\n'
-    printf '%s\n' "$(t 'Welcome to FINX!' '欢迎使用 FINX！')"
-    printf '\n'
+    echo ""
+    echo -e "${GREEN}███████╗██╗███╗   ██╗██╗  ██╗${RESET}"
+    echo -e "${GREEN}██╔════╝██║████╗  ██║╚██╗██╔╝${RESET}"
+    echo -e "${GREEN}█████╗  ██║██╔██╗ ██║ ╚███╔╝ ${RESET}"
+    echo -e "${GREEN}██╔══╝  ██║██║╚██╗██║ ██╔██╗ ${RESET}"
+    echo -e "${GREEN}██║     ██║██║ ╚████║██╔╝ ██╗${RESET}"
+    echo -e "${GREEN}╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝${RESET}"
+    echo ""
+    echo -e "${GREEN}$(t 'Welcome to FINX!' '欢迎使用 FINX！')${RESET}"
+    echo ""
 }
 
 # ---------------------------------------------------------------------------
