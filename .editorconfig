@@ -37,6 +37,12 @@ indent_size = 4
 
 # ---- 其它 ----------------------------------------------------------------
 
+# bootstrap 没有扩展名，上面那些 glob 一个都匹配不到它，而它是 Perl（tab）。
+# format_check.pl 按 shebang 判定，不看扩展名 —— 这个文件是唯一对不上的地方。
+[bootstrap]
+indent_style = tab
+indent_size = 4
+
 [Makefile]
 indent_style = tab
 indent_size = 4

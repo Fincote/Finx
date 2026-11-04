@@ -1,0 +1,30 @@
+# .git-blame-ignore-revs
+#
+# `git blame` 可以跳过的提交：纯格式化、纯重排，不改变任何行为。
+# 不跳过的后果是「这行代码是谁写的」变成「谁跑了格式化」。
+#
+# 用法（每台机器设一次）：
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+#   # 一次性：
+#   git blame --ignore-revs-file .git-blame-ignore-revs perlmod/Fink/Engine.pm
+#
+# GitHub 网页版的 blame 不读这个文件；命令行读。
+#
+# ---- 加进来的条件，两个都要满足 ------------------------------------------
+#
+#   1. 提交**只**改空白 / 缩进 / 引号 / 排序，没有任何语义变化。
+#      验证方法：`git show <sha> -w --numstat` 必须全部是 0 0。
+#   2. 该提交单独跑过 `make test` 且全绿。
+#
+# 用完整 SHA，不要短 SHA —— 短 SHA 可能撞。
+#
+# ---- 为什么现在是空的 ----------------------------------------------------
+#
+# 唯一一次大规模缩进调整是 46ec6f27 "enforce one indentation rule per language,
+# and apply it"，但它**同时**新增了 .editorconfig 与 .vscode/tasks.json，且
+# `git show -w` 之后仍有 385 行实质性差异。按条件 1 不合格 —— 混着语义变更的
+# 提交放进来，会让 blame 跳过真正该被看见的改动。
+#
+# 将来第一次纯 `scripts/format_check.pl --fix` 的提交，把它的完整 SHA 加在下面。

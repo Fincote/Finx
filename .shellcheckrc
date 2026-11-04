@@ -1,0 +1,63 @@
+# .shellcheckrc
+#
+# 27 个 shell 脚本的静态检查标准。
+#
+# **当前 CI 不跑 shellcheck** —— verify.yml 与 CircleCI 只做 `bash -n`（语法）。
+# 这个文件是给本地手动跑用的：
+#
+#   shellcheck -x finx-install/*.sh finx-install/lib/*.sh scripts/*.sh \
+#              setup.sh install.sh mirror/install.sh
+#
+# 目标解释器是 **bash 3.2**（macOS 自带）。所以没有关联数组、没有
+# `${arr[@]}` 空数组在 `set -u` 下的安全展开（4.4 才修）、没有 `mapfile`。
+# 写完一定要在真机上跑 —— shellcheck 不检查这种版本差异。
+#
+# 下面每条 disable 都写了为什么，免得以后有人以为是懒得改。
+
+# ---- 环境 ----------------------------------------------------------------
+
+# 库文件之间互相 source，路径相对脚本自身（$FINX_INSTALL_DIR）而非当前目录。
+# 不设这两条，每次 source 都会被报成「无法跟随」。
+external-sources=true
+source-path=SCRIPTDIR
+
+# 以 bash 语义检查，别按 POSIX sh 判。
+shell=bash
+
+# ---- 结构性的误报 --------------------------------------------------------
+
+# SC1090：`source "$FINX_INSTALL_DIR/lib/$needed.sh"` 这种变量路径。
+#
+# finx-install 的模块是运行时按需加载的（目录模式用 lib/，单文件模式则整段内联），
+# 路径在解析期根本不存在。shellcheck 的 -x 也救不了变量路径。
+# 真写错时脚本立刻报 "lib/xxx.sh not found next to ..."，比静态检查更明确。
+disable=SC1090
+
+# SC2154：引用了「未赋值」的变量。
+#
+# finx-install/lib/*.sh 是**被 source 的库**，共享调用方的全局变量：common.sh 定义
+# FINX_TMP / PREFIX，extract.sh 直接使用它们。单独检查任何一个 lib 文件，这些
+# 变量都「看不见」；bash 本身没有作用域能表达这种关系。
+disable=SC2154
+
+# SC2034：赋了值却「未使用」。
+#
+# 同一件事的另一面：lib 里定义、由调用方消费；或者 export 给子进程；或者通过
+# 长字符串一次性传给 bash 子脚本。真有无用变量不影响正确性，而误报会让这条
+# 告警失去意义。
+disable=SC2034
+
+# SC2016：单引号里的 `$` 不会被展开。
+#
+# 本项目的 shell 脚本大量生成**别的**脚本与配置（base-files/pack.sh、setup.sh、
+# finx-install/lib/extract.sh 写 finx.conf、scripts/*.sh 拼 heredoc）。里面的
+# `$` 是给下一层用的，静态检查看到的「没展开」正是预期。
+disable=SC2016
+
+# SC2086：未加引号的变量。
+#
+# 有意为之的地方：`for _ex in $FINX_LINK_EXEMPT` 就是要按空格分词，
+# 还有各处有意做 word splitting 的候选列表。真正需要引号的地方已经在逐个处理。
+# 这条逐点 disable 更有意义，所以全局只关掉不看，但 review 时人工留意。
+# 若将来要开，先跑一遍 `shellcheck -x --enable=SC2086` 看清有多少真问题。
+disable=SC2086

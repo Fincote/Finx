@@ -1,0 +1,45 @@
+# .gitattributes
+#
+# 这个仓库只关心两件事：**补丁的字节不能被碰**，**上游原样搬来的文件不能被规范化**。
+# 换行符本身反而次要 —— 全部构建都在 macOS 上，没有 Windows 贡献者。
+
+# ---- 全局：文本按 LF 存 --------------------------------------------------
+#
+# 只影响「提交时怎么存」，不强制工作区。下面几个 -text 的文件会豁免。
+* text=auto eol=lf
+
+# ---- 绝不能被改写的文件 --------------------------------------------------
+
+# 10.9-libcxx/*.patch 是上游源码补丁的载荷，`.info` 里的 PatchFile-MD5 钉死了
+# 它们的字节。任何规范化（CRLF→LF、行尾空白修剪）都会让 MD5 不符、patch 报
+# "does not apply"，而症状出现在自举第三阶段，离原因很远。
+*.patch -text
+
+# 这两份是从 CPAN 的 Text-ParseWords-3.29 逐字节搬来的（文件头写明了出处），
+# 而且**整份都是 CRLF**。改成 LF 就等于篡改上游，也让「与 CPAN 那份一致」这句话
+# 变成假的。它们只是测试，Perl 读 CRLF 没问题。
+test/Text/ParseWords/ParseWords.t -text
+test/Text/ParseWords/taint.t -text
+
+# update/ltmain.sh 是 libtool 的整份拷贝，其中有 1 行带 CR —— 可能在字符串里。
+# 不碰它，理由同上：第三方文件按它自己的样子。
+update/ltmain.sh -text
+
+# ---- 二进制 --------------------------------------------------------------
+
+*.png binary
+*.icns binary
+*.jpg binary
+*.gif binary
+
+
+# ---- 一个刻意不做的决定 --------------------------------------------------
+#
+# 没有 `export-ignore`。它能把这些开发用文件从 `git archive` 里剔掉：
+#   .github/ .circleci/ .vscode/ .cursor/ .codex/ .editorconfig
+#   .cursorignore .shellcheckrc .git-blame-ignore-revs .gitattributes
+#
+# 不做，因为**发行物不是用 git archive 打的**：种子是「装好的前缀的快照」
+# （scripts/make_seed.sh），源码 tarball 由 make_seed / 手工打包。加 export-ignore
+# 只会让「git archive 的结果」与「工作区」不一致，而这个差异平时看不见 ——
+# 正好是那种将来会咬人的不一致。

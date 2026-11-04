@@ -1,0 +1,58 @@
+---
+description: Finx 的项目约定入口：命名边界、安装前缀、必须走生成器的文件、几条代价很高的坑
+alwaysApply: true
+---
+
+# Finx 项目规则
+
+**权威是仓库根目录的 `AGENTS.md`。** 本文件不复制它的内容，只把「做错了要花一整轮
+CI 才能发现」的几条前置，其余一律去读 AGENTS.md。
+
+## 一、命名边界（最容易全仓替换错的地方）
+
+用户敲的命令是 `finx`，不是 `fink`。**没有任何兼容别名，故意的。**
+
+| 该改 | 必须保持 |
+| --- | --- |
+| 可执行文件、`finx-*` 脚本、`etc/finx.conf`、dpkg 包名 `finx` | `Fink::` Perl 命名空间、`Fink.pm` |
+| 帮助/版本/报错里提到本程序时 | `finkproject.org`、`finkmirrors.net`、`github.com/fink/`、邮件列表 |
+| `%p/finx/`、`share/doc/finx` | `fink-bld`、`finkinfo`、`$finkdir`、`finkPackage*` |
+
+判定：**用户敲得到的、`ls` 看得到的、`dpkg -l` 列出来的**才用 `finx`。
+不确定就先看 AGENTS.md 那张表，**不要全仓库 sed**。
+
+## 二、安装前缀
+
+唯一规范前缀 `/opt/finx`。全仓库只有一个地方允许写死它：
+`Fink::Config::bindist_check_prefix`。其余一律用 `%p` / `$basepath`。
+
+## 三、生成物不要手改
+
+| 文件 | 谁生成 |
+| --- | --- |
+| `finx-install/install.sh` | `./finx-install/build-bundle.sh`（改 `lib/` 或 `install.sh.in` 后必须重跑） |
+| `perlmod/Fink.pm`、`FinkVersion.pm` | `./setup.sh` |
+| 根目录 `compiler_wrapper*`、`pathsetup.sh`、`postinstall.pl` 等 | `./setup.sh` |
+
+`build-bundle.sh --check` 会发现漂移。**忘了重跑，线上那条 `curl \| bash` 跑的还是旧逻辑。**
+
+## 四、五条代价很高的坑
+
+1. **`InstallScript` 必须写 `%i` 不能写 `%p`。** 构建以 `fink-bld` 运行，`%p` 归 root，
+   往 `%p/bin` 装东西会 EACCES（`make: *** [install] Error 71`）。唯一例外是声明了
+   `BuildAsNobody: false` 的包（`tar`、`dpkg`）。
+2. **载荷的符号链接不能跳出前缀。** 豁免表只有八处，`finx-install/lib/links.sh` 与
+   `perlmod/Fink/Links.pm` 各一份，**必须一致**。开口子要同时满足「SIP 保护」与
+   「不含隐私文件」—— 加一条 `/opt/homebrew` 就等于允许载荷读遍那个目录。
+3. **`manifest_check` 红着的时候别往下改代码。** 它一红，`make test` 第一步就退出，
+   后面的测试从来没跑过 —— 而这会掩护真正的问题（曾经掩护了「德文 readme 从未
+   进过发行包」）。
+4. **`finx (>= …)` 的下界与 `VERSION` 绑定。** 改 `VERSION` 要同步改树里每一处
+   `finx (>= …)`，否则 `dpkg-base-files` 编不出来，自举第三阶段必断。
+5. **`.pages` / `.pdf` 一律不读。** 压缩二进制容器，读进来只有乱码。同目录通常有
+   `.md`，读那个。
+
+## 五、和用户交流
+
+- 对话、注释、文档一律中文；**程序面向用户的输出保持英文**。
+- 提交前跑 `.vscode/tasks.json` 的 `Verify: all`（= 语法 + 缩进 + 产物同步 + 两套测试）。
