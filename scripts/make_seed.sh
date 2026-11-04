@@ -143,6 +143,48 @@ if [ "$PREFIX" != /opt/finx ]; then
         "$PREFIX" >&2
 fi
 
+# bootstrap 时代留下的 alternatives 链接。
+#
+# 阶段三里 xz 的 PostInst 建了 bin/lzdiff -> <prefix>/bootstrap/etc/alternatives/
+# lzdiff，而 bootstrap/ 之后被整个删掉，于是前缀里留下死链（lzdiff、lzgrep 与
+# 它们的两个 man 页）。在构建机上它只是「跑不起来」，装到别处更糟：安装器的
+# 符号链接围栏看到指向 <prefix>/bootstrap/ 的绝对链接，会判定越界并拒收整份
+# 种子 —— 在 FINX_TEST 沙箱里前缀不是 /opt/finx，就必然触发。
+#
+# 数据库是对的（var/lib/dpkg/alternatives 里记的路径都指向前缀），所以让
+# update-alternatives 照数据库把链接重建一遍，而不是在这里硬编码这几个名字。
+repair_alternatives() {
+    _admin=$PREFIX/var/lib/dpkg/alternatives
+    _tool=$PREFIX/bin/update-alternatives
+    [ -x "$_tool" ] || return 0
+    [ -d "$_admin" ] || return 0
+
+    _n=0
+    for _entry in "$_admin"/*; do
+        [ -f "$_entry" ] || continue
+        _name=${_entry##*/}
+        _link=$(sed -n '2p' "$_entry")
+        case $_link in
+            "$PREFIX"/*) ;;
+            *)
+                printf 'note: alternatives %s points at %s; left alone\n' \
+                    "$_name" "$_link" >&2
+                continue ;;
+        esac
+        [ -e "$_link" ] && continue
+        mkdir -p "$PREFIX/var/log" 2>/dev/null
+        # 三个目录都要显式给：这个二进制把 /opt/finx 编死在代码里，
+        # 不覆盖就会去改真正的前缀，而不是 $PREFIX。
+        "$_tool" --admindir "$_admin" --altdir "$PREFIX/etc/alternatives" \
+            --log "$PREFIX/var/log/alternatives.log" --auto "$_name" \
+            >/dev/null 2>&1 || die "cannot rebuild the alternatives link for $_name"
+        _n=$((_n + 1))
+    done
+    [ "$_n" -eq 0 ] || printf 'repaired %s broken alternatives link group(s)\n' "$_n"
+}
+
+repair_alternatives
+
 mkdir -p "$OUT" || die "cannot create $OUT"
 SEED=$OUT/seed.tar.gz
 MANIFEST=$OUT/manifest

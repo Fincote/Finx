@@ -510,6 +510,7 @@ install_from_seed() {
     fix_permissions "$PREFIX"
     resign_macho "$PREFIX"
     align_trees "$PREFIX" "$(host_distribution)"
+    repair_alternatives "$PREFIX"
     write_config "$PREFIX" "$(host_distribution)"
     run_scanpackages "$PREFIX"
 
