@@ -232,6 +232,32 @@ else
     failed "/opt/../opt/finx should be accepted after canonicalisation"
 fi
 
+# ---- 4c. 凭据不能出现在输出里 ------------------------------------------
+#
+# 镜像可以带账号（FINX_SEED_DOMAIN=https://user:pass@mirror/...），而安装器会把
+# 地址打印出来。终端输出会进 CI 日志、截图、issue —— 密码就跟着走了。
+
+r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "https://alice:s3cret@mirror.example/x"' _ "$HERE")
+if [ "$r_out" = "https://***:***@mirror.example/x" ]; then
+    pass "redact_url masks the userinfo and keeps the host"
+else
+    failed "redact_url did not mask a credential-bearing URL"
+fi
+
+r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "https://mirror.example/x"' _ "$HERE")
+if [ "$r_out" = "https://mirror.example/x" ]; then
+    pass "redact_url leaves a URL without credentials alone"
+else
+    failed "redact_url mangled a URL that has no credentials"
+fi
+
+r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "file:///tmp/seed/manifest"' _ "$HERE")
+if [ "$r_out" = "file:///tmp/seed/manifest" ]; then
+    pass "redact_url leaves a file: URL alone"
+else
+    failed "redact_url mangled a file: URL"
+fi
+
 # ---- 5. 校验失败必须中止且不留目录 --------------------------------------
 
 BAD=$ROOT/bad

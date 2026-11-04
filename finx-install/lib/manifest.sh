@@ -137,7 +137,7 @@ resolve_manifest() {
         MANIFEST_FILE=$FINX_TMP/manifest
         ARTIFACT_BASE=""
         fetch_one "$MANIFEST_URL" "$MANIFEST_FILE" quiet \
-            || die "$(t 'cannot download the seed manifest from' '下载种子清单失败：') $MANIFEST_URL"
+            || die "$(t 'cannot download the seed manifest from' '下载种子清单失败：') $(redact_url "$MANIFEST_URL")"
     fi
 
     [ -f "$MANIFEST_FILE" ] || die "manifest not found: $MANIFEST_FILE"
@@ -222,7 +222,7 @@ fetch_one() {
     # 第三个参数：quiet 表示文件很小（清单），不要画进度。
     quiet=${3:-}
 
-    info "GET $url"
+    info "GET $(redact_url "$url")"
 
     # 进度显示分两档：
     #   quiet       -sS，只留真正的错误。清单就两百字节，画个进度表很荒唐
@@ -274,7 +274,7 @@ fetch_artifact() {
     # 环境变量就能用，不必为每种布局各维护一份清单。
     if [ ! -s "$FINX_TMP/urls" ]; then
         printf '%s/%s\n' "$FINX_SEED_DOMAIN" "$SEED_NAME" > "$FINX_TMP/urls"
-        info "manifest has no url entries; falling back to $FINX_SEED_DOMAIN"
+        info "manifest has no url entries; falling back to $(redact_url "$FINX_SEED_DOMAIN")"
     fi
 
     tried=0
@@ -284,7 +284,7 @@ fetch_artifact() {
         if fetch_one "$url" "$ARTIFACT_FILE"; then
             return 0
         fi
-        warn "mirror failed: $url"
+        warn "mirror failed: $(redact_url "$url")"
     done < "$FINX_TMP/urls"
 
     die "$(t 'all mirror(s) failed for' '所有镜像都下载失败：') $SEED_NAME"

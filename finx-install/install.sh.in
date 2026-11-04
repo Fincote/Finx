@@ -431,7 +431,7 @@ resolve_method() {
     MANIFEST_URL=$DEFAULT_MANIFEST_URL
     # 探测最多要一两分钟（重试 + 超时），期间不能一声不响 —— 用户会以为卡死。
     info "$(t 'looking for a seed manifest' '正在查找种子清单')"
-    info "  $MANIFEST_URL"
+    info "  $(redact_url "$MANIFEST_URL")"
     probe_url "$MANIFEST_URL"
     case $? in
         0)
@@ -439,10 +439,10 @@ resolve_method() {
             # 清单在，但种子未必是给这台机器的（arch / darwin 不匹配）。允许换路，
             # 交给 resolve_manifest 判定后回退源码；--no-fallback 与显式来源不换。
             SEED_MAY_FALL_BACK=1
-            info "$(t 'seed, from' '种子，来自') $MANIFEST_URL" ;;
+            info "$(t 'seed, from' '种子，来自') $(redact_url "$MANIFEST_URL")" ;;
         1)
             MODE=source
-            warn "no seed manifest at $MANIFEST_URL yet; falling back to a source build"
+            warn "no seed manifest at $(redact_url "$MANIFEST_URL") yet; falling back to a source build"
             warn "that path needs the Xcode Command Line Tools and compiles tar and dpkg" ;;
         *)
             # 探不出来 ≠ 没有种子。源码那条路要去 SourceForge 下载，连不上
@@ -459,7 +459,7 @@ resolve_method() {
             printf '\n' >&2
             printf 'ERROR: cannot reach the seed manifest after %s attempt(s).\n' \
                 "${PROBE_ATTEMPTS:-?}" >&2
-            printf '         %s\n' "$MANIFEST_URL" >&2
+            printf '         %s\n' "$(redact_url "$MANIFEST_URL")" >&2
             printf '\n' >&2
             printf 'Nothing was installed.  This is a network problem, not a missing seed:\n' >&2
             printf 'that manifest is a small text file, and the seed behind it is larger.\n' >&2

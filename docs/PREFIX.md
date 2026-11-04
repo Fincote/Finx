@@ -20,6 +20,31 @@
 Fink 历史上因为要迁就不同 macOS 版本，在 `/sw` 与 `/opt/sw` 之间分叉过。这个分叉
 的代价是：每个二进制包都要针对每个前缀各打一份，镜像里的东西翻倍。Finx 取消它。
 
+### 安装器会当场拒绝别的落点
+
+从 `0.1.0-alpha-7c2ae649` 起，`finx-install/install.sh` 的 `--prefix` 只接受
+`/opt/finx`，其余在碰磁盘之前就退出（`enforce_prefix_policy`，见
+`finx-install/lib/extract.sh`）。
+
+这不是「严谨一点」的问题。安装器对**给它的那个目录**做三件事：
+
+| 步骤 | 落在 `/usr/local` 上会怎样 |
+| --- | --- |
+| `tar -xzf seed.tar.gz -C <前缀>` | 覆盖所有同名路径 |
+| 符号链接围栏判定失败时 | 清空前缀的顶层内容 |
+| `fix_permissions` | `chown -R root:wheel <前缀>` |
+
+第二条是我们为了安全加的（半装好的树比没装更危险）。对刚创建的前缀是对的；对
+`/usr/local` 就是把 Homebrew 删掉，再由第三步接管。
+
+判定按**物理路径**做，不是字符串：`--prefix=/opt/../usr/local` 与指向
+`/usr/local` 的符号链接都会被识别出来。反过来，`/opt/../opt/finx` 归一化之后
+确实是 `/opt/finx`，会放行 —— 否则守卫就成了「不许写 `..`」这条与真正意图无关的
+规则。
+
+`FINX_TEST` 沙箱里不设这条限制：那里的边界是测试根，前缀本来就在
+`$TEST_ROOT/opt/finx`，由 `apply_test_root` 负责判定它没有越界。
+
 ---
 
 ## 二、代码里怎么写

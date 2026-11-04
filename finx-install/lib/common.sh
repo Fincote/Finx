@@ -345,6 +345,16 @@ lower() {
 
 # 规范化路径：存在就 pwd -P，不存在就把最深的已存在祖先规范化后接回剩余部分。
 # macOS 上 /tmp 是指向 /private/tmp 的符号链接，不这么做比对会假阴性。
+# 把 URL 里的凭据抹掉再打印。
+#
+# 镜像可以带账号：FINX_SEED_DOMAIN=https://user:pass@mirror/finx。安装器会把
+# 它打印出来（GET 行、失败提示、清单地址），而终端输出会进 CI 日志、截图、
+# issue —— 密码就这么跟着走了。只抹 userinfo，其余原样保留，否则报错里看不出
+# 是哪个主机。
+redact_url() {
+    printf '%s\n' "$1" | sed -E 's|^([a-zA-Z][a-zA-Z0-9+.-]*://)[^/@]*@|\1***:***@|'
+}
+
 resolve_path() {
     target=$1
     current=$target
