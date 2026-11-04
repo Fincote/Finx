@@ -100,7 +100,9 @@ usage() {
     cat <<'USAGE'
 Usage: install.sh [options]
 
-  --prefix=DIR        install into DIR (default /opt/finx)
+  --prefix=DIR        install into DIR; DIR must be /opt/finx (the only
+                      supported location). Inside FINX_TEST the default is
+                      <test-root>/opt/finx and DIR must stay under it.
   --seed-dir=DIR      use a local manifest and seed; no network access
   --manifest-url=URL  absolute URL of the seed manifest
   --arch=ARCH         override the detected architecture (arm64 / x86_64)
@@ -368,6 +370,10 @@ main() {
 
     parse_args "$@"
     apply_test_root
+
+    # 在碰任何东西之前定下落点。放在 apply_test_root 之后，因为沙箱那条路
+    # 已经在前缀与测试根之间做过一次判定。
+    enforce_prefix_policy
 
     step "$(t 'Checking host' '正在检查主机')"
     detect_host

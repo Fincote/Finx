@@ -200,6 +200,38 @@ ln -sfn /tmp "$ROOT/link-out" 2>/dev/null
 check_fails "--prefix through a symlink is still confined" \
     "$INSTALL" --seed-dir="$ROOT" --prefix="$ROOT/link-out/finx-selftest-escape"
 
+# ---- 4b. 沙箱外只认 /opt/finx ------------------------------------------
+#
+# 这不是「装错地方」的问题。安装器有两条会大量删改内容的路径：解包会覆盖同名
+# 文件，符号链接围栏失败时会清空前缀的顶层内容。指着 /usr/local 跑一遍，
+# 代价是整份 Homebrew —— 先被覆盖，再被 chown -R root:wheel 接管。
+#
+# 判定必须按物理路径做。--prefix=/opt/../usr/local 在字符串上看着无害，
+# 实际落在 /usr/local；符号链接同理。
+
+for bad in /usr/local /opt /etc /usr/local/finx /opt/../usr/local "$HOME"; do
+    if env -u FINX_TEST "$INSTALL" --prefix="$bad" --accept-license >/dev/null 2>&1; then
+        failed "prefix $bad was accepted outside the sandbox"
+    else
+        pass "prefix $bad is refused outside the sandbox"
+    fi
+done
+
+ln -sfn /usr/local "$ROOT/link-system" 2>/dev/null
+if env -u FINX_TEST "$INSTALL" --prefix="$ROOT/link-system" --accept-license >/dev/null 2>&1; then
+    failed "a symlink to /usr/local was accepted as a prefix"
+else
+    pass "a symlink to /usr/local is refused as a prefix"
+fi
+
+# 归一化之后确实是 /opt/finx 的写法仍要放行，否则守卫会变成「不许写 ..」这种
+# 与真正意图无关的规则。
+if [ "$(env -u FINX_TEST PREFIX=/opt/../opt/finx bash -c '. "$1/lib/common.sh"; . "$1/lib/extract.sh"; enforce_prefix_policy; printf "%s" "$PREFIX"' _ "$HERE")" = /opt/finx ]; then
+    pass "/opt/../opt/finx canonicalises to /opt/finx and is allowed"
+else
+    failed "/opt/../opt/finx should be accepted after canonicalisation"
+fi
+
 # ---- 5. 校验失败必须中止且不留目录 --------------------------------------
 
 BAD=$ROOT/bad
