@@ -42,6 +42,11 @@
 #   --force             允许覆盖已存在的安装
 #   -h, --help          显示帮助
 
+# -e：任何未处理的失败都停。安装器不该在「某一步出错」之后继续往下走 ——
+# 真正的空心成功都是这么来的（装了但没有 dpkg、上传了零个文件）。
+# -E：让 ERR trap 在函数与子 shell 里也生效，否则 -e 在函数内的行为不一致。
+# 三处显式关掉：probe_url / fetch_one / verify 这类「失败是正常返回值」的地方。
+set -eE
 set -u
 set -o pipefail
 
@@ -348,16 +353,19 @@ main() {
     case ${FINX_LANG:-} in
         zh|zh_CN|zh-CN) ZH=1 ;;
     esac
+
+    print_banner
+
     parse_args "$@"
     apply_test_root
 
-    step "$(t 'Checking host' '检查主机')"
+    step "$(t 'Checking host' '正在检查主机')"
     detect_host
     [ -n "$ARCH_OVERRIDE" ] && HOST_ARCH=$ARCH_OVERRIDE
     info "macOS $HOST_MACOS_MAJOR, arch $HOST_ARCH, prefix $PREFIX"
     require curl
 
-    step "$(t 'Choosing install method' '选择安装方式')"
+    step "$(t 'Detecting the install method' '正在自动选择安装方式')"
     resolve_method
 
     case $MODE in
