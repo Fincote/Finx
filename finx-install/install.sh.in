@@ -78,6 +78,7 @@ fi
 PREFIX=/opt/finx
 PREFIX_EXPLICIT=0
 NO_PATH=0
+ACCEPT_LICENSE=0
 SEED_DIR=""
 MANIFEST_URL=${FINX_MANIFEST_URL:-}
 ARCH_OVERRIDE=""
@@ -107,6 +108,8 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --no-path           leave your shell startup file alone
+  --accept-license    state that you have read and accept the agreement;
+                      required when there is no terminal to ask (scripts, CI)
   --zh                print steps and errors in Chinese (for self-diagnosis;
                       tool output such as curl and compilers stays English)
   --verbose           stream the bootstrap output instead of logging it
@@ -163,6 +166,7 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --no-path)        NO_PATH=1 ;;
+            --accept-license) ACCEPT_LICENSE=1 ;;
             --zh)             ZH=1 ;;
             --verbose)        VERBOSE=1 ;;
             --force)          FORCE=1 ;;
@@ -359,6 +363,9 @@ main() {
     parse_args "$@"
     apply_test_root
 
+    # 许可协议必须在碰系统之前：拒签时无需回滚。
+    license_gate
+
     step "$(t 'Checking host' '正在检查主机')"
     detect_host
     [ -n "$ARCH_OVERRIDE" ] && HOST_ARCH=$ARCH_OVERRIDE
@@ -378,6 +385,11 @@ main() {
     setup_path
     info "$(t 'Package operations run as root, like MacPorts; finx asks for sudo itself.' \
              '装包操作以 root 运行（与 MacPorts 相同），finx 会自己调用 sudo。')"
+    printf '\n'
+    info "$(t 'Read LICENSE and COPYING again any time, in English or in Chinese:' \
+             'LICENSE 与 COPYING 随时可再读，中英各一版：')"
+    info "$(t '  https://finx.sh   the two file names at the bottom open them.' \
+             '  https://finx.sh   点开页面底部那两个文件名即可。')"
 }
 
 # 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，

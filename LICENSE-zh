@@ -1,0 +1,68 @@
+Finx — 许可证适用范围
+=====================
+
+本仓库包含两个 GPL 授权，分别适用于树里的不同部分。
+
+文件
+----
+
+    COPYING     GNU 通用公共许可证第二版（FSF 原文，未作改动）
+    COPYING-zh  同一份许可证的中文参考译本
+    LICENSE     本文件：说明树的哪一部分适用哪个授权
+    LICENSE-zh  本文件的中文版本
+
+GPL-2.0-only（仅第二版）
+------------------------
+
+    finx-install/         安装器源码，以及生成的 install.sh
+    scripts/              仓库检查与发布工具
+    base-files/pack.sh    载荷打包器
+    docs/                 文档
+    LICENSE               本文件
+
+GPL-2.0-or-later（第二版或任何更新的版本）
+------------------------------------------
+
+    bootstrap
+    setup.sh
+    install.sh
+    perlmod/Fink/**
+    10.9-libcxx/
+    base-files/           整个载荷，含它自带的一份 COPYING
+    mirror/
+    dpkg-checkall.sh
+    inject.pl
+    pre-build-test.sh
+    finx-virtual-pkgs.in
+
+第三方
+------
+
+    update/               autoconf / automake 辅助脚本
+    10.9-libcxx/*.patch   补丁文本，跟随上游项目
+
+读文件开头的声明
+----------------
+
+授权声明写在各文件开头的注释里。
+
+    …… either version 2 of the License, or (at your option) any later version
+        即 GPL-2.0-or-later
+
+    …… version 2 of the License.
+        即 GPL-2.0-only
+
+分发
+----
+
+合并后的作品只能按 GPL 第二版分发。
+
+新增或修改文件
+--------------
+
+新增文件需要带
+
+    Copyright (c) <2026> Sha0huaZhang <zsh@finx.sh>
+    …… version 2 of the License.
+
+从 Fink 继承下来的文件保留其原有措辞，只追加一行版权声明。

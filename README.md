@@ -130,4 +130,6 @@ is the only version both grants permit.
 
 Read the notice at the top of a file to tell which grant applies. The upstream
 GPL text is in [`COPYING`](./COPYING); the scope and how to tell them apart are
-in [`LICENSE`](./LICENSE).
+in [`LICENSE`](./LICENSE). Both have an unofficial Chinese rendering
+([`COPYING-zh`](./COPYING-zh), [`LICENSE-zh`](./LICENSE-zh)); the English text is
+the one that governs.

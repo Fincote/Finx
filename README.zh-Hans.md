@@ -126,4 +126,5 @@ make format             # 缩进检查（Perl 用 tab，shell 用 4 空格）
 合在一起分发时，整体只能是 **GPL 第二版**：两段授权唯一都能满足的交集就是它。
 
 看文件头就能判断属于哪一段，不必查表。上游 GPL 全文见 [`COPYING`](./COPYING)，
-范围说明与判定方法见 [`LICENSE`](./LICENSE)。
+范围说明与判定方法见 [`LICENSE`](./LICENSE)。两份文件都有中文参考译本
+（[`COPYING-zh`](./COPYING-zh)、[`LICENSE-zh`](./LICENSE-zh)），法律效力仍以英文原文为准。
