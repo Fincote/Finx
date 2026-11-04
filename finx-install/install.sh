@@ -9,6 +9,7 @@
 #
 
 FINX_BUNDLED=1
+set -eE
 set -u
 set -o pipefail
 
@@ -49,6 +50,15 @@ on_exit() {
     cleanup
     exit $rc
 }
+
+# ---------------------------------------------------------------------------
+# 颜色定义
+# ---------------------------------------------------------------------------
+
+RED_BOLD='\033[1;31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RESET='\033[0m'
 
 # ---------------------------------------------------------------------------
 # 下载源：全部由环境变量控制
@@ -1449,16 +1459,28 @@ main() {
     case ${FINX_LANG:-} in
         zh|zh_CN|zh-CN) ZH=1 ;;
     esac
+
+echo ""
+echo -e "${GREEN}███████╗██╗███╗   ██╗██╗  ██╗${RESET}"
+echo -e "${GREEN}██╔════╝██║████╗  ██║╚██╗██╔╝${RESET}"
+echo -e "${GREEN}█████╗  ██║██╔██╗ ██║ ╚███╔╝ ${RESET}"
+echo -e "${GREEN}██╔══╝  ██║██║╚██╗██║ ██╔██╗ ${RESET}"
+echo -e "${GREEN}██║     ██║██║ ╚████║██╔╝ ██╗${RESET}"
+echo -e "${GREEN}╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝${RESET}"
+echo ""
+echo -e "${GREEN}$(t 'Welcome to FINX!' '欢迎使用 FINX！')${RESET}"
+echo ""
+
     parse_args "$@"
     apply_test_root
 
-    step "$(t 'Checking host' '检查主机')"
+    step "$(t 'Checking host' '正在检查主机')"
     detect_host
     [ -n "$ARCH_OVERRIDE" ] && HOST_ARCH=$ARCH_OVERRIDE
     info "macOS $HOST_MACOS_MAJOR, arch $HOST_ARCH, prefix $PREFIX"
     require curl
 
-    step "$(t 'Choosing install method' '选择安装方式')"
+    step "$(t 'Detecting the install method' '正在自动选择安装方式')"
     resolve_method
 
     case $MODE in
