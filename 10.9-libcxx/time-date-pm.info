@@ -2,7 +2,10 @@ Package: time-date-pm
 Version: 2.35
 Revision: 1.1
 Essential: yes
-Source: mirror:cpan:authors/id/A/AT/ATOOMIC/TimeDate-%v.tar.gz
+CustomMirror: <<
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
+Source: mirror:custom:TimeDate-%v.tar.gz
 Source-MD5: a06d7f6ec7b24581f0564f0f70da1a86
 Type: perl
 UpdatePOD: true

@@ -3,7 +3,10 @@ Version: 1.37
 Revision: 1.1
 Essential: yes
 Depends: file-sharedir-pm
-Source: mirror:cpan:authors/id/G/GU/GUIDO/libintl-perl-%v.tar.gz
+CustomMirror: <<
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
+Source: mirror:custom:libintl-perl-%v.tar.gz
 Source-Checksum: SHA256(a49b08d56813789e5f03289a3f949459eafe9e40a1a9fc066c42c90009a322cf)
 Type: perl
 PatchFile: %n.patch

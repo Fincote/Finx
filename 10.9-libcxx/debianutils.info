@@ -7,9 +7,9 @@ Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 BuildDepends: finx (>= 0.1.0-alpha)
 Depends: base-files, sensible-utils
 CustomMirror: <<
-	Primary: http://ftp.debian.org/debian/pool/main/d/%n/
-	Secondary: http://downloads.sourceforge.net/fink/
-	Tertiary: https://launchpad.net/debian/+archive/primary/+sourcefiles/%n/%v/
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+	Secondary: http://ftp.debian.org/debian/pool/main/d/%n/
+	Tertiary: http://downloads.sourceforge.net/fink/
 <<
 Source: mirror:custom:%n_%v.tar.gz
 Source-MD5: c0cb076754d7f4eb1e3397d00916647f

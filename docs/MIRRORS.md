@@ -173,29 +173,51 @@ runner，所以 12 及以下只能自备机器跑 `scripts/ci_bootstrap.sh` 再�
 
 ## 三点七、源码包镜像
 
-bootstrap 需要的 22 个上游源码 tar 放在
-[`Fincote/Finx-source`](https://github.com/Fincote/Finx-source) 的 `src-1` 发布里，
-平铺存放：
+**树里全部 30 个包里，29 个的上游源码 tar 都放在
+[`Fincote/Finx-source`](https://github.com/Fincote/Finx-source) 的 `src-1` 发布里**，
+平铺存放，共 25 个文件：
 
 ```
-https://github.com/Fincote/Finx-source/releases/download/src-1/<文件名>
+https://github.com/Fincote/Finx-source/releases/download/src-1/<上游原名>
 ```
 
-包描述通过 `CustomMirror` 指向它。GitHub 的发布资产没有目录结构，所以那 20 个包的
-`Source:` 里原有的 `fink/` 路径前缀被去掉了 —— 否则会解析成
-`.../src-1/fink/<文件名>`，404。
+第 30 个是 `base-files`：它的源码由本仓库的 `base-files/pack.sh` 就地生成，从不下载。
 
-`base-files` 是唯一例外：它的源码由本仓库的 `base-files/pack.sh` 就地生成，
-从不下载，所以保持原样。
+包描述通过 `CustomMirror` 指向它。GitHub 的发布资产没有目录结构，所以 `Source:` 里
+原有的 `fink/` 路径前缀被去掉了 —— 否则会解析成 `.../src-1/fink/<文件名>`，404。
+
+### 为什么这里不按包名分 Release
+
+`Fincote/debs` 是一个包一个 Release（Bottle 形式），源码这边**不是**，理由是两者不同类：
+
+| | 二进制 | 源码 |
+| --- | --- | --- |
+| 平台变体 | 有（arch + Darwin）→ 必须进文件名 | 无 → 不需要消歧 |
+| 文件名唯一性 | 需要拼装 | 上游原名本来就全局唯一 |
+| 共用 | 不存在 | **4 个 tar 被两个包共用** |
+
+那 4 处共用：
+
+```
+dpkg_1.19.7.tar.gz          dpkg, dpkg-bootstrap
+tar-1.29.tar.bz2            tar, tar-bootstrap
+ncurses-5.9-20110507.tgz    ncurses, libncursesw5
+gettext-0.22.5.tar.gz       gettext-tools, libgettext8-shlibs
+```
+
+按包名分 tag 会把同一份字节存两遍。所以源码侧是**一个只增不删的扁平 Release**
+（要换代就 `src-2`），字节保持上游原样 —— 校验值因此等于上游公布的值。
 
 重新生成这份镜像：
 
 ```sh
-./scripts/fetch_sources.sh <目录>     # 只下 CustomMirror 指向我们的那些包
+./scripts/fetch_sources.sh <目录>     # 树里每一个包，含 CPAN 与 SourceForge 那些
 ```
 
 它会逐个核对 `Source-MD5` / `Source-Checksum`。镜像返回「200 + HTML 错误页」是
 发生过的事，光看 curl 退出码不够。
+
+`src-1` 还带 `SHA256SUMS`（25 个文件全在里面）与 `build.txt`（形态与由来）。
 
 ### 镜像组的顺序
 

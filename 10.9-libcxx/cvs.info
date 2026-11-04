@@ -7,8 +7,9 @@ Maintainer: Daniel Johnson <daniel@daniel-johnson.org>
 Conflicts: cvs-stable, cvs-proxy
 Replaces: cvs-stable, cvs-proxy
 CustomMirror: <<
-	Primary: http://ftpmirror.gnu.org/non-gnu/%n/source/feature/%v/
-	Secondary: http://downloads.sourceforge.net/fink/
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+	Secondary: http://ftpmirror.gnu.org/non-gnu/%n/source/feature/%v/
+	Tertiary: http://downloads.sourceforge.net/fink/
 <<
 Source: mirror:custom:%n-%v.tar.bz2
 Source-MD5: 956ab476ce276c2d19d583e227dbdbea
