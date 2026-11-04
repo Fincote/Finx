@@ -37,6 +37,7 @@ compiler_wrapper-10.7.in
 compiler_wrapper-10.9.in
 docs/OFFLINE.md
 docs/PACKAGE-DIST.md
+docs/PRIVILEGES.md
 docs/PREFIX.md
 dpkg-checkall.sh
 finx-dpkg-status-cleanup.in
