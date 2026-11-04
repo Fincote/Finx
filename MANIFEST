@@ -133,6 +133,7 @@ test/Command/du_sk.t
 test/Command/exports.t
 test/Command/failure.t
 test/Command/touch.t
+test/Config/can_save.t
 test/Config/exports.t
 test/Config/failure.t
 test/Config/flag.t
@@ -146,6 +147,7 @@ test/Engine/p1.info
 test/Engine/p2.info
 test/Engine/p3.info
 test/Engine/p4.info
+test/Engine/root_env.t
 test/Engine/unknown_command.t
 test/Finally/buildlocks.t
 test/Finally/finally.t

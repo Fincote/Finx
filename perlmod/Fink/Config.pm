@@ -607,6 +607,38 @@ are altered.
 
 =cut
 
+=item can_save
+
+  my $bool = $config->can_save;
+
+Whether this process would be able to save the configuration file.
+
+Some read-only commands reach code that writes the config when they run (that
+is how "finx plugins" used to die for non-root users: listing the selfupdate
+plugins calls SelfUpdate::git::system_check(), which stores GitPath). Those
+call sites should ask this first and keep the change in-process when the
+answer is no, instead of dying on a raw Perl error.
+
+This only answers "can I write", not "should I write". Commands such as
+configure must still really save and are not supposed to use this check.
+=cut
+
+sub can_save {
+	my $self = shift;
+	my $path = $self->{_path};
+
+	return 0 unless defined $path and length $path;
+	# save() 先读旧文件、再在同一个目录里写 .tmp 并 rename 覆盖，两个前提都得成立。
+	#
+	# 所以要判的是目录可写，不是文件可写：一个只读的配置文件在一个可写的
+	# 目录里照样存得进去（rename 只看目录权限）。真正的失败场景是 root
+	# 建好了 /opt/finx/etc，普通用户跑 finx —— 那时失败的是写 .tmp。
+	return 0 if -e $path and !(-r $path);
+	my ($dir) = $path =~ m{^(.*)/[^/]+$};
+	$dir = "." unless defined $dir and length $dir;
+	return -w $dir ? 1 : 0;
+}
+
 sub save {
 	my $self = shift;
 	my $path = $self->{_path};

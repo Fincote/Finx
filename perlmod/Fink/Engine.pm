@@ -397,6 +397,27 @@ sub process {
 	return $retval;;
 }
 
+### the environment that has to cross the sudo boundary
+
+# sudo 默认清空环境；这些变量必须自己送过去，否则提权之后下载会绕过
+# 代理（内网/镜像环境直接失败），或者找不到我们自己的模块。
+my @ROOT_ENV_VARS = qw/ PERL5LIB
+	http_proxy https_proxy ftp_proxy rsync_proxy all_proxy no_proxy
+	HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY /;
+
+# 返回一段可以嵌进命令行的 "/usr/bin/env A='x' B='y' "，没有变量时返回空串。
+sub root_env_prefix {
+	my $env = '';
+	foreach my $var (@ROOT_ENV_VARS) {
+		next unless defined $ENV{$var};
+		(my $val = $ENV{$var}) =~ s/'/'\\''/g;	# 代理口令里可能有单引号
+		$env .= "$var='$val' ";
+	}
+	return '' unless length $env;
+	chop $env;
+	return "/usr/bin/env $env";
+}
+
 ### restart as root (and not return!) if we are not already root
 
 sub restart_as_root {
@@ -420,12 +441,7 @@ sub restart_as_root {
 
 	my $method = $config->param_default("RootMethod", "sudo");
 	if ($method eq "sudo") {
-		my $env = '';
-		foreach (qw/ PERL5LIB /) {
-			# explicitly propagate env vars that sudo wipes
-			$env .= "$_='".$ENV{"$_"}."'" if defined $ENV{"$_"};
-		}
-		$env = "/usr/bin/env $env" if length $env;
+		my $env = root_env_prefix();
 		$cmd = "/usr/bin/sudo $env $cmd";
 	} elsif ($method eq "su") {
 		$cmd = "/usr/bin/su root -c '$cmd'";

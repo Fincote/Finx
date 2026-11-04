@@ -78,7 +78,9 @@ sub system_check {
 	}
 
 	$config->set_param("SvnPath", $svnpath);
-	$config->save;
+	# 只读配置下（普通用户跑 finx plugins）写不进去不算错：
+	# 路径已经在本进程里生效，落盘只是为了下次省掉探测。
+	$config->save if $config->can_save;
 
 	# Check for devtools, since folks won't be able to build without them.
 	return $class->devtools_check($vcs, $svnpath);
