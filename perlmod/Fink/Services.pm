@@ -2389,7 +2389,7 @@ sub _expand_help {
 		intro	=> sub {
 			my $first = shift;
 			require Fink::FinkVersion;
-			"Fink " . Fink::FinkVersion::fink_version() . "\n\n" .
+			"Finx " . Fink::FinkVersion::fink_version() . "\n\n" .
 				"Usage: finx$command $first\n" .
 				join '', map { "       finx$command $_\n" } @_;
 		},

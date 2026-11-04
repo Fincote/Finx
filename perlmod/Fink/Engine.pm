@@ -168,6 +168,61 @@ sub initialize {
 
 ### process command
 
+# 打错命令时的全部输出。刻意只有两行：把 usage 一起打出来，真正的提示就被
+# 淹掉了 —— 参考 MacWave 打错子命令时的样子。
+sub _unknown_command_message {
+	my $cmd = shift;
+	my $near = _nearest_command($cmd);
+	return "finx: unknown command '$cmd'"
+		. (defined $near ? ", did you mean '$near'?" : '.') . "\n"
+		. "Type 'finx --help' for a list of commands.\n";
+}
+
+# 只在看起来真是笔误时才给建议：要么是前缀关系（instal / install），要么
+# 编辑距离不超过 2。差得远就只说打错了，别乱猜。
+sub _nearest_command {
+	my $word = shift;
+	return undef if length($word) < 3;
+
+	my ($best, $best_score);
+	foreach my $name (sort keys %commands) {
+		my $score;
+		if (index($name, $word) == 0 || index($word, $name) == 0) {
+			$score = 0;
+		} elsif (abs(length($name) - length($word)) <= 2) {
+			$score = _edit_distance($word, $name);
+			next if $score > 2;
+		} else {
+			next;
+		}
+		if (!defined $best_score
+			|| $score < $best_score
+			|| ($score == $best_score && length($name) < length($best))) {
+			($best, $best_score) = ($name, $score);
+		}
+	}
+	return $best;
+}
+
+# Levenshtein 距离，两行滚动数组。只为上面的提示服务，输入都是命令名，
+# 长度不超过十几个字符。
+sub _edit_distance {
+	my ($a, $b) = @_;
+	my @prev = (0 .. length $b);
+	foreach my $i (1 .. length $a) {
+		my @cur = ($i);
+		foreach my $j (1 .. length $b) {
+			my $cost = substr($a, $i - 1, 1) eq substr($b, $j - 1, 1) ? 0 : 1;
+			my $v = $prev[$j] + 1;
+			$v = $cur[$j - 1] + 1 if $cur[$j - 1] + 1 < $v;
+			$v = $prev[$j - 1] + $cost if $prev[$j - 1] + $cost < $v;
+			$cur[$j] = $v;
+		}
+		@prev = @cur;
+	}
+	return $prev[length $b];
+}
+
 sub process {
 	my $self = shift;
 
@@ -183,8 +238,9 @@ sub process {
 		return;
 	}
 
-	# Pop up help text when arbitrary verbs are used.
-	exit &execute("finx --help", quiet=>1) if (not exists $commands{$cmd});
+	# 打错命令时只说一句。把整份帮助甩出来会把真正的提示淹掉，而且原来
+	# 这里以 0 退出 —— 脚本会把打错当成成功。
+	die _unknown_command_message($cmd) unless exists $commands{$cmd};
 
 	# Store original @ARGV in case we want to know how we were called.
 	# This is a stack (a ref to a list of refs to @ARGV) in case we
