@@ -33,7 +33,8 @@ The current distribution tree is `10.9-libcxx`, covering **macOS 10.9 and later*
 
 ## 🧩 Latest Version
 
-`0.1.0-alpha.git` — development tree, not a release.
+`1.0.0-beta1` — first public beta. Binary package distribution is not wired up
+yet, so packages beyond the seed build from source; see the release notes.
 
 ## 🧩 Install Finx
 

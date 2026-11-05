@@ -147,7 +147,7 @@ pre-1.0 and there is one line.
 
 | Version | Supported |
 | --- | --- |
-| `0.1.0-alpha` (current) | ✅ |
+| `1.0.0-beta1` (current) | ✅ |
 | anything older | ❌ |
 
 ## For maintainers

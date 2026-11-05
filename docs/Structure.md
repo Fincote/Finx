@@ -70,10 +70,10 @@ Fink::Configure::configure()   ← 你回答的那一串问题
 
 ```
 Fink::Bootstrap::fink_packagefiles()   ← 读 MANIFEST，列出要打进去的文件
-Fink::Bootstrap::create_tarball()      ← tar -cf /opt/finx/src/finx-0.1.0-alpha.git.tar <那些文件>
+Fink::Bootstrap::create_tarball()      ← tar -cf /opt/finx/src/finx-1.0.0-beta1.tar <那些文件>
 ```
 
-**注意这个 tar 是扁平的**（成员在顶层，没有 `finx-0.1.0-alpha.git/` 目录）。它走的是后面的 `inject_package`，不经过 `phase_unpack`，所以规则不同。
+**注意这个 tar 是扁平的**（成员在顶层，没有 `finx-1.0.0-beta1/` 目录）。它走的是后面的 `inject_package`，不经过 `phase_unpack`，所以规则不同。
 
 ### 第 4 步：生成 finx 自己的包描述
 
