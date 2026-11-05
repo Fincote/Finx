@@ -20,9 +20,27 @@ Source-Checksum: SHA256(0ad6c096dc04d5120581104760c01b8f4e97d4191d6c9ef79654fa3c
 CustomMirror: <<
 Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
 <<
-# 树里的 ncurses 是宽字符版本，头文件在 include/ncursesw 而不是 include/。
+# configure 里那句 `if test -z "$PKG_CONFIG"` 是**无条件**的（ncdu-1.22/configure:6162），
+# 它不在任何 PKG_CHECK_MODULES 的兜底分支里 —— 所以即使后面有 AC_CHECK_LIB 兜底，
+# 没有 pkg-config 也会直接 die。而树里刻意不带 pkg-config：ncurses 就是用
+# --without-pkg-config 编的（见 ncurses.info 的 DescPackaging），所以连 .pc 文件都没有。
+#
+# 这里给一个只应答版本查询的替身：--exists 一律返回 1，让 configure 走 AC_CHECK_LIB
+# 那条路；同时用 NCURSES_CFLAGS / NCURSES_LIBS 直接点名树里的宽字符版，
+# 否则它会去找窄字符的 -lncurses，而树里只有 libncursesw。
+#
+# 这两个变量是 configure 自己的（config.log 里可见），不是 Fink 的字段。
+CompileScript: <<
+	mkdir -p %b/helpers
+	printf '#!/bin/sh\ncase "$1" in --atleast-pkgconfig-version) exit 0 ;; *) exit 1 ;; esac\n' > %b/helpers/pkg-config
+	chmod 755 %b/helpers/pkg-config
+	PATH=%b/helpers:$PATH \
+	NCURSES_CFLAGS="-I%p/include/ncursesw" \
+	NCURSES_LIBS="-L%p/lib -lncursesw" \
+	./configure %c --disable-dependency-tracking
+	make
+<<
 SetCPPFLAGS: -I%p/include/ncursesw
-ConfigureParams: --disable-dependency-tracking
 # DESTDIR 用 %d（假根）而不是 %i：%c 已经带 --prefix=%p，所以 make install 会把
 # 文件放到 %d/opt/finx/...，正是 dpkg 期望的布局。写成 %i 会多嵌一层前缀。
 InstallScript: make install DESTDIR=%d
