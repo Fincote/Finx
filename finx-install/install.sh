@@ -959,13 +959,15 @@ extract_seed() {
     archive=$1
     target=$2
 
-    [ -f "$archive" ] || die "seed archive missing: $archive"
-    [ -d "$target" ] || die "target directory missing: $target"
-
+    # 试运行的守卫必须在文件检查之前：`--dry-run` 不下载、也不拷本地种子，
+    # ARTIFACT_FILE 那个文件根本不存在，先检查就会把试运行判成失败。
     if dry_run; then
         plan "$(t 'extract' '解开') $archive $(t 'into' '到') $target"
         return 0
     fi
+
+    [ -f "$archive" ] || die "seed archive missing: $archive"
+    [ -d "$target" ] || die "target directory missing: $target"
 
     tar -xzf "$archive" -C "$target" || die "failed to extract $archive"
 
@@ -1871,6 +1873,10 @@ resolve_method() {
     if [ "$ALLOW_FALLBACK" -eq 0 ]; then
         MODE=seed
         info "$(t 'seed, from the default manifest' '种子，来自默认清单')"
+        # 试运行不取它，但唯一的来源该让用户看见
+        if dry_run; then
+            info "  $(redact_url "$DEFAULT_MANIFEST_URL")"
+        fi
         return 0
     fi
 
