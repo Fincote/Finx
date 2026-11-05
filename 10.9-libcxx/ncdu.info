@@ -1,0 +1,29 @@
+Package: ncdu
+Version: 1.22
+Revision: 1
+Description: NCurses Disk Usage
+DescDetail: <<
+	A disk usage analyzer with an ncurses interface, aimed to be run on a
+	remote server where you don't have an entire graphical setup, but have
+	to do with a simple SSH connection. ncdu aims to be fast, simple and
+	easy to use, and should be able to run in any minimal POSIX-like
+	environment with ncurses installed.
+<<
+Homepage: https://dev.yorhel.nl/ncdu
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+License: BSD
+# 1.22 是最后一个 C 版本。2.0 起上游改用 Zig 重写，而 Zig 不在树里，且它的
+# 引导需要下载预编译二进制 —— 与「从源码构建」的模型冲突。要上 2.x，得先解决
+# 如何容纳预编译的构建工具，那是另一个决定，不该由一个软件包顺带做掉。
+Source: mirror:custom:%n-%v.tar.gz
+Source-Checksum: SHA256(0ad6c096dc04d5120581104760c01b8f4e97d4191d6c9ef79654fa3c691a176b)
+CustomMirror: <<
+Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
+# 树里的 ncurses 是宽字符版本，头文件在 include/ncursesw 而不是 include/。
+SetCPPFLAGS: -I%p/include/ncursesw
+ConfigureParams: --disable-dependency-tracking
+# DESTDIR 用 %d（假根）而不是 %i：%c 已经带 --prefix=%p，所以 make install 会把
+# 文件放到 %d/opt/finx/...，正是 dpkg 期望的布局。写成 %i 会多嵌一层前缀。
+InstallScript: make install DESTDIR=%d
+DocFiles: ChangeLog COPYING README
