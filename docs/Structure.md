@@ -207,7 +207,7 @@ resolve_method()   决定走种子还是源码
 | `Makefile` | `make test` / `format` / `structure` / `sources_check` / `payload_test` | 否 |
 | `MANIFEST` | **载荷清单**：打包 tar 时装哪些文件 | 它自己也在里面 |
 | `MANIFEST.SKIP` | 打包时**排除**哪些（生成物、``^10\.[^/]*/``、`mirror/` 等） | 否 |
-| `VERSION` / `REVISION` | 版本号 / 每个发行版的修订号 | 是 |
+| `VERSION` / `REVISION` | 版本号 / 每个发行版的修订号。两者的取用规则见 TECHNICAL-GUIDE 2.1 | 是 |
 | `Release` | apt 索引模板 | 是 |
 | `STYLE` | 2003 年的 Perl 代码风格原文 | 是（历史文档） |
 | `NEWS` / `AUTHORS` / `COPYING` / `COPYING-zh` / `LICENSE` / `LICENSE-zh` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档与许可文件，随包分发。`*-zh` 是中文参考译本，法律效力以英文原文为准 | 是 |

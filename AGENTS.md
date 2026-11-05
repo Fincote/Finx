@@ -163,7 +163,8 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh   # 手工装进 /tmp/finx-c
   前者的用途是生成包描述，后者由 bootstrap 单独 `cp`。`Bootstrap::check_files`
   查的是另一件事（源码树完整性），两者不同集，不要套包含关系。
   这条曾被我判断错，纠正过程见 TECHNICAL-GUIDE 10.5。
-- `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE 第一节。
+- `Release`、`REVISION`、`VERSION`：与发布流程绑定，改前先读 TECHNICAL-GUIDE
+  2.1（版本号两条来源、正式版本号必须配合改 `REVISION` 才能重新出包）。
 - `base-files/` 是从上游 `fink/base-files` 收进来的包源码，见
   [README](./base-files/README.md)。它与 `10.9-libcxx/base-files.info` 里写死的
   `Source-MD5` 绑定，改任何一个载荷文件后必须跑 `./base-files/pack.sh --update`，

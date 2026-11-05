@@ -7,7 +7,7 @@
 ## 目录
 
 1. [安装体系现状](#一安装体系现状)
-2. [finx 如何安装自己](#二fink-如何安装自己)
+2. [finx 如何安装自己](#二fink-如何安装自己) —— 含 2.1 版本号与修订号的来源
 3. [装包流水线](#三装包流水线)
 4. [依赖模型与一致性求解](#四依赖模型与一致性求解)
 5. [dpkg 定制](#五dpkg-定制)
@@ -104,6 +104,34 @@ finx 对自己没有特殊待遇 —— 它把自己变成一个包，然后按�
 因为 `finx` 声明了 `Essential: yes`，`selfupdate` 的
 `cmd_install(list_essential_packages())` 天然会把它自己包含进去，不需要专门的
 "升级自己"分支。
+
+### 2.1 包版本号与修订号从哪来
+
+`finx` 包的 `Version` / `Revision` 都不是手写的，`finx.info.in` 里是 `@VERSION@`
+与 `@REVISION@` 两个占位符，由 [get_version_revision](../perlmod/Fink/Bootstrap.pm:1129)
+在注入时算出来。它的输入只有两个文件，行为却分两条路（判据在
+[read_version_revision](../perlmod/Fink/Bootstrap.pm:1092)）：
+
+| `VERSION` 的内容 | 修订号取什么 | 例 |
+| --- | --- | --- |
+| 含 `cvs` / `svn` / `git` | **当前时间**，`YYYYMMDD.HHMM` | `0.1.0-alpha.git-20261104.0444` |
+| 其它（正式版本号） | `REVISION` 里 `<distribution>: <n>` 那一行的 `n` | `1.0.0-beta1-181`（`12.0: 181`） |
+
+这条规则有一个副作用，发布前必须知道：
+
+- **带 `git` 的版本号天然唯一。** alpha 阶段每次构建都得到不同的修订号，所以
+  同一个 `VERSION` 反复出包不会撞车 —— 那也正是当时把 `.git` 缀在后面的原因之一。
+- **正式版本号不唯一。** 从 `1.0.0-beta1` 起，任何机器上重打都会得到同一个
+  `finx-1.0.0-beta1-181`。**要重新出包，就必须先改 `REVISION` 里对应发行版那一行**
+  （例如 `12.0: 181` → `182`），否则新包与旧包版本串相同：`dpkg` 认为无事可做，
+  `selfupdate` 也不会升级自己。
+
+`VERSION` 是唯一源头：`setup.sh` 由它生成 `perlmod/Fink/FinkVersion.pm`（生成物，
+已 gitignore），[make_seed.sh](../scripts/make_seed.sh:132) 由它写种子清单的
+`release` 字段。所以改版本号之后**必须重打种子**，否则用户装完看到的还是旧版本号。
+
+树的 `.info` 里那 17 处 `BuildDepends: finx (>= 0.1.0-alpha)` 是下限，不是精确值 ——
+版本号往前走不会破坏它们。
 
 ---
 
