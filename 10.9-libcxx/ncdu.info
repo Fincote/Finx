@@ -12,6 +12,10 @@ DescDetail: <<
 Homepage: https://dev.yorhel.nl/ncdu
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 License: BSD
+# 链接的是树里宽字符版的 libncursesw（见下面的 NCURSES_LIBS）。这条必须手写：
+# Fink 不像 Debian 的 dpkg-shlibdeps 那样扫描 dylib 反推依赖，漏写不会有任何报错，
+# 只会让 `finx remove libncursesw5-shlibs` 在无人阻挡的情况下把 ncdu 弄坏。
+Depends: libncursesw5-shlibs
 # 1.22 是最后一个 C 版本。2.0 起上游改用 Zig 重写，而 Zig 不在树里，且它的
 # 引导需要下载预编译二进制 —— 与「从源码构建」的模型冲突。要上 2.x，得先解决
 # 如何容纳预编译的构建工具，那是另一个决定，不该由一个软件包顺带做掉。
