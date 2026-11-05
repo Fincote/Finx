@@ -557,6 +557,12 @@ require_write_access() {
         probe=$(nearest_existing_parent "$target")
     fi
     if [ ! -w "$probe" ] && [ "$(id -u)" -ne 0 ]; then
+        if dry_run; then
+            # 预演本来就不提权，也不该因为「要 sudo」停下来 —— 那正是它要告诉
+            # 用户的事。这里只说一句，然后继续打后面的步骤。
+            warn "$(t 'a real run would need root to write into' '真正安装需要 root 才能写入') $probe"
+            return 0
+        fi
         # 说清楚「怎么带 sudo」。其中管道那种最容易踩：`curl ... | sudo bash`
         # 而不是 `sudo curl ... | bash`（后者只有 curl 是 root，bash 不是）。
         printf 'ERROR: %s %s %s, %s\n' \
@@ -1559,8 +1565,10 @@ Usage: install.sh [options]
                       No network access at all: it prints the addresses it
                       would ask, and the plan for both outcomes (a seed answers
                       / none answers) instead of guessing. Host detection is
-                      real, because that part is local. Nothing under the
-                      prefix and no licence prompt.
+                      real, because that part is local. An existing
+                      installation, or a prefix this user cannot write, does
+                      not stop it: both are reported as what a real run would
+                      hit. Nothing under the prefix and no licence prompt.
   --ci                no interaction: the agreement is accepted automatically.
                       Required when there is no terminal to ask (scripts, CI).
                       --accept-license is an alias that says the same thing
@@ -1651,15 +1659,25 @@ check_target() {
         empty)
             warn "$PREFIX exists and is empty; continuing" ;;
         existing)
-            [ "$FORCE" -eq 1 ] || die "$PREFIX already holds an installation; re-run with --force to replace it"
-            warn "$(t 'replacing the existing installation in' '覆盖已安装的内容：') $PREFIX" ;;
+            if dry_run; then
+                # 开发者机器上本来就有一份安装，这是常态。预演在这里退出的话，
+                # 在这台机器上写 finx 的人永远看不到自己的计划。
+                warn "$(t 'dry run:' '试运行：') $PREFIX $(t 'already holds an installation; a real run would need --force' '已有一份安装，真正安装要加 --force')"
+            else
+                [ "$FORCE" -eq 1 ] || die "$PREFIX already holds an installation; re-run with --force to replace it"
+                warn "$(t 'replacing the existing installation in' '覆盖已安装的内容：') $PREFIX"
+            fi ;;
         *)
-            [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation.
+            if dry_run; then
+                warn "$(t 'dry run:' '试运行：') $PREFIX $(t 'is not a Finx installation; a real run would need --force' '不像一份 Finx 安装，真正安装要加 --force')"
+            else
+                [ "$FORCE" -eq 1 ] || die "$PREFIX is not empty and does not look like a Finx installation.
        This is usually what a source build leaves behind when it stops halfway.
        Inspect it, then either remove it or re-run with --force:
          sudo ls -la $PREFIX
          sudo rm -rf $PREFIX"
-            warn "$PREFIX is not a Finx installation; continuing because --force was given" ;;
+                warn "$PREFIX is not a Finx installation; continuing because --force was given"
+            fi ;;
     esac
 }
 

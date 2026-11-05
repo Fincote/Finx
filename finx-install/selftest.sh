@@ -19,7 +19,8 @@
 # finx-install/selftest.sh - 用 FINX_TEST 沙箱验证安装器本身
 #
 # 全程不联网、不写真实目录：所有产物都落在 $FINX_TEST 里。
-# 断言覆盖目录模式、管道模式、重复安装、越界前缀、校验失败五种情况。
+# 断言覆盖目录模式、管道模式、重复安装、越界前缀、校验失败五种情况，
+# 外加试运行完全不碰网络（假 curl 记账，一次都不许被调用）。
 #
 # 用法：
 #   ./finx-install/selftest.sh                             自建临时测试根，跑完删除
@@ -183,6 +184,26 @@ if grep -qx "Basepath: $ROOT/opt/finx" "$ROOT/opt/finx/etc/finx.conf" 2>/dev/nul
     pass "finx.conf records the sandbox prefix"
 else
     failed "finx.conf does not record the sandbox prefix"
+fi
+
+# ---- 2b. 已有安装 / 不像 finx 的前缀，都不该挡住试运行 ----------------
+#
+# 开发者机器上本来就有一份 /opt/finx，这是常态。check_target 若在 dry_run 下
+# 也 die，在这台机器上写 finx 的人就永远看不到自己的计划。
+
+if "$INSTALL" --dry-run --seed-dir="$ROOT" >"$ROOT/dry-existing.log" 2>&1; then
+    pass "--dry-run is not blocked by an existing installation"
+else
+    failed "--dry-run refused an existing installation: $(tail -2 "$ROOT/dry-existing.log" 2>/dev/null)"
+fi
+
+mkdir -p "$ROOT/junk-prefix" || exit 1
+printf 'not a finx install\n' > "$ROOT/junk-prefix/stray-file"
+if "$INSTALL" --dry-run --seed-dir="$ROOT" --prefix="$ROOT/junk-prefix" \
+        >"$ROOT/dry-junk.log" 2>&1; then
+    pass "--dry-run is not blocked by a non-Finx directory"
+else
+    failed "--dry-run refused a non-Finx prefix: $(tail -2 "$ROOT/dry-junk.log" 2>/dev/null)"
 fi
 
 # ---- 3. 重复安装必须被拒 -------------------------------------------------
@@ -694,6 +715,63 @@ if out=$(PROBE_VERBOSE=1 http_proxy=http://p.example:1 https_proxy=http://p.exam
     pass "proxy variables are passed through sudo"
 else
     failed "proxy variables did not reach the bootstrap command: $out"
+fi
+
+# ---- 试运行不许碰网络 -----------------------------------------------------
+#
+# 两个真实故障都出在这一段：
+#   1. 探测种子时连不上，跑完三轮超时重试，屏幕上两分钟没有一行字，用户以为
+#      卡死，按 Ctrl-C 走了。
+#   2. `--dry-run --from-source` 会真的下载源码并跑 bootstrap —— 说好只是
+#      预演，却动了东西。
+# 所以这里放一个只记账的假 curl：试运行时它一次都不该被调用。
+
+mkdir -p "$ROOT/fakebin"
+cat > "$ROOT/fakebin/curl" <<'FAKECURL'
+#!/bin/sh
+printf 'curl-called %s\n' "$*" >> "$FAKE_CURL_LOG"
+exit 7
+FAKECURL
+chmod 755 "$ROOT/fakebin/curl"
+
+export FAKE_CURL_LOG=$ROOT/curl.log
+rm -f "$FAKE_CURL_LOG"
+dry_out=$(PATH=$ROOT/fakebin:$PATH FINX_TEST=$ROOT/dry /bin/bash "$INSTALL" --dry-run 2>&1)
+dry_rc=$?
+
+if [ "$dry_rc" -eq 0 ] && [ ! -s "$FAKE_CURL_LOG" ]; then
+    pass "--dry-run does not touch the network"
+else
+    failed "--dry-run reached the network or failed (rc=$dry_rc)"
+fi
+
+if printf '%s' "$dry_out" | grep -q 'If a seed answers' \
+        && printf '%s' "$dry_out" | grep -q 'Otherwise: building from source' \
+        && printf '%s' "$dry_out" | grep -q 'releases/download/seed-'; then
+    pass "--dry-run lists the addresses it would ask and both outcomes"
+else
+    failed "--dry-run did not print both branch plans: $dry_out"
+fi
+
+rm -f "$FAKE_CURL_LOG"
+PATH=$ROOT/fakebin:$PATH FINX_TEST=$ROOT/dry-src /bin/bash "$INSTALL" --dry-run --from-source \
+    >/dev/null 2>&1
+src_rc=$?
+if [ "$src_rc" -eq 0 ] && [ ! -s "$FAKE_CURL_LOG" ]; then
+    pass "--dry-run --from-source does not download anything"
+else
+    failed "--dry-run --from-source reached the network or failed (rc=$src_rc)"
+fi
+
+# 第三个故障：extract_seed 曾经先查文件、后看 dry_run。试运行既不下载也不
+# 拷本地种子，那个文件根本不存在 —— 于是整条最该能离线走的 --seed-dir 预演
+# 走到「解包」就报错退出。
+if FINX_TEST=$ROOT /bin/bash "$INSTALL" --dry-run --seed-dir="$ROOT" \
+        --prefix="$ROOT/dry-seed" >"$ROOT/dry-seed.log" 2>&1 \
+        && grep -q 'nothing was changed' "$ROOT/dry-seed.log"; then
+    pass "--dry-run --seed-dir walks the whole plan"
+else
+    failed "--dry-run --seed-dir did not finish: $(tail -3 "$ROOT/dry-seed.log" 2>/dev/null)"
 fi
 
 # ---- 汇总 ---------------------------------------------------------------
