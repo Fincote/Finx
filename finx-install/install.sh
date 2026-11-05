@@ -1398,6 +1398,11 @@ fetch_source() {
     src_url=${SOURCE_URL:-$(default_source_url)}
     info "source $src_url"
 
+    if dry_run; then
+        plan "$(t 'download it and unpack the tree' '下载并解开源码树')"
+        return 0
+    fi
+
     SOURCE_ARCHIVE=$FINX_TMP/finx-source.tar.gz
     fetch_one "$src_url" "$SOURCE_ARCHIVE" \
         || die "cannot download the source archive from $src_url"
@@ -1430,6 +1435,14 @@ require_bootstrap_prerequisites() {
 # 跑 bootstrap。第一次自举会现编 tar 与 dpkg，慢是正常的。
 run_bootstrap() {
     target=$1
+
+    # 放在前置检查之前：试运行不该因为本机没有 Xcode CLT 就中断，那样会把后面
+    # 那一整段计划也吞掉。缺什么写进提示里就够了。
+    if dry_run; then
+        plan "$(t 'run the bootstrap, which compiles tar and dpkg (needs the Xcode Command Line Tools, 10-20 minutes)' \
+                 '运行自举，期间现编 tar 与 dpkg（需要 Xcode 命令行工具，10–20 分钟）')"
+        return 0
+    fi
 
     require_bootstrap_prerequisites
 
@@ -1541,11 +1554,11 @@ Usage: install.sh [options]
   --ref=REF           branch or commit for the default source archive (default: main)
   --no-fallback       fail when no seed is reachable instead of building from source
   --dry-run           work out what would happen, print it, and change nothing.
-                      Every step up to the first write is really performed
-                      (host detection, seed probing, manifest download into a
-                      temporary directory), so the report reflects this machine
-                      rather than the help text. Nothing under the prefix and
-                      no licence prompt.
+                      No network access at all: it prints the addresses it
+                      would ask, and the plan for both outcomes (a seed answers
+                      / none answers) instead of guessing. Host detection is
+                      real, because that part is local. Nothing under the
+                      prefix and no licence prompt.
   --ci                no interaction: the agreement is accepted automatically.
                       Required when there is no terminal to ask (scripts, CI).
                       --accept-license is an alias that says the same thing
@@ -1797,8 +1810,22 @@ main() {
     resolve_method
 
     case $MODE in
-        seed)   install_from_seed ;;
+        seed)
+            # 试运行且种子要联网才拿得到 → 走大纲；--seed-dir 是本地文件，照旧
+            # 走真实流程，那条路能报出真的种子名与大小。
+            if dry_run && [ -z "$SEED_DIR" ]; then
+                step "$(t 'Installing from a seed' '从种子安装')"
+                plan_seed_install
+            else
+                install_from_seed
+            fi ;;
         source) install_from_source ;;
+        # 只有试运行会走到这里：不联网就判不出有没有种子，两条分支都打出来。
+        unknown)
+            step "$(t 'If a seed answers: installing from a seed' '如果种子可用：从种子安装')"
+            plan_seed_install
+            step "$(t 'Otherwise: building from source' '否则：源码自举')"
+            install_from_source ;;
     esac
 
     # 装完了，但还没告诉用户「装好了」。MacWave 在同一个位置问，理由一样：
@@ -1828,6 +1855,10 @@ resolve_method() {
     if [ -n "$SEED_DIR" ] || [ -n "$MANIFEST_URL" ]; then
         MODE=seed
         info "$(t 'seed, from an explicit location' '种子，来自显式指定的位置')"
+        # 试运行不取清单，但这个地址是调用方给的，至少让它看见自己给了什么
+        if dry_run && [ -z "$SEED_DIR" ]; then
+            info "  $(redact_url "$MANIFEST_URL")"
+        fi
         return 0
     fi
 
@@ -1858,6 +1889,34 @@ resolve_method() {
     #
     # 最低到 21：更早的 Darwin 没有种子，也就没有往下试的意义。
     FINX_LOWEST_SEED_DARWIN=${FINX_LOWEST_SEED_DARWIN:-21}
+
+    # 试运行不访问网络，「有没有种子」因此没有答案 —— 只能把会试的地址按顺序
+    # 列出来，把两种分支的计划交给 main 打。
+    #
+    # 不许猜一个：猜 exists 是假的乐观，猜 absent 会让人白等十来分钟去编译源码。
+    # 而这一步又恰好是最慢的一段（连不上时要跑完超时重试），静默两分钟与卡死
+    # 在用户眼里是同一件事。
+    if dry_run; then
+        info "$(t 'dry run: the network is not touched, so this cannot be decided here' \
+                 '试运行：不访问网络，所以这里判不出结果')"
+        if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ] || [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
+            info "$(t 'would look for a seed manifest at' '将会查找种子清单：')"
+            info "  $(redact_url "$DEFAULT_MANIFEST_URL")"
+        else
+            info "$(t 'would look for a seed manifest at these addresses, stopping at the first answer:' \
+                     '将会按顺序查找这些种子清单，遇到第一个有应答的就停：')"
+            _cand=$FINX_HOST_DARWIN
+            case $_cand in
+                ''|*[!0-9]*|0) _cand=$FINX_LOWEST_SEED_DARWIN ;;
+            esac
+            while [ "$_cand" -ge "$FINX_LOWEST_SEED_DARWIN" ]; do
+                info "  $(redact_url "$FINX_SEED_BASE/seed-$_cand/manifest")"
+                _cand=$((_cand - 1))
+            done
+        fi
+        MODE=unknown
+        return 0
+    fi
     # 显式给了清单地址（--manifest-url 已在上面处理过）或 FINX_INDEX_DOMAIN，
     # 就不做「往下找」：调用方指定了来源，再换一个等于把他的指定丢掉。
     if [ -n "${FINX_DEFAULT_MANIFEST_URL:-}" ] || [ -n "${FINX_INDEX_DOMAIN_GIVEN:-}" ]; then
@@ -1957,6 +2016,27 @@ resolve_method() {
     esac
 }
 
+# 试运行专用：种子这条路会做什么。
+#
+# 为什么不调 install_from_seed：它的第一步是把清单取下来，而种子名、大小与
+# sha256 都写在清单里 —— 试运行不联网就一个也拿不到，只能编。所以这里按真实
+# 步骤写一份大纲，步骤名与 install_from_seed 一一对应，改那边时回来改这里。
+#
+# --seed-dir 不走这里：清单是本地文件，那条路能真解析出名字与大小。
+plan_seed_install() {
+    plan "$(t 'download the manifest and read the seed name, size and sha256 from it' \
+             '下载清单，从里面读出种子名、大小与 sha256')"
+    plan "$(t 'download that seed' '下载这份种子')"
+    plan "$(t 'check its sha256 and size' '校验 sha256 与大小')"
+    plan "$(t 'confirm the archive really contains' '确认归档里有') bin/finx bin/dpkg bin/dpkg-deb"
+    plan "$(t 'create' '建立') $PREFIX"
+    plan "$(t 'extract the archive into' '解开归档到') $PREFIX"
+    plan "$(t 'set ownership and modes, re-sign the Mach-O files, align the tree links, repair alternatives' \
+             '规范权限、重签 Mach-O、对齐 trees、修补 alternatives')"
+    plan "$(t 'write' '写入') $PREFIX/etc/finx.conf"
+    plan "$(t 'rebuild the package index in' '重建包索引') $PREFIX"
+}
+
 install_from_seed() {
     step "$(t 'Resolving seed manifest' '解析种子清单')"
     resolve_manifest
@@ -2014,7 +2094,12 @@ install_from_source() {
     step "$(t 'Bootstrapping' '自举')"
     run_bootstrap "$PREFIX"
 
-    INSTALLED_RELEASE=$(cat "$SOURCE_ROOT/VERSION" 2>/dev/null || echo unknown)
+    # 试运行没有真的下载，SOURCE_ROOT 是空的；`set -u` 下读它就是报错
+    if dry_run; then
+        INSTALLED_RELEASE=unknown
+    else
+        INSTALLED_RELEASE=$(cat "$SOURCE_ROOT/VERSION" 2>/dev/null || echo unknown)
+    fi
 }
 
 # 自检要单独测某些函数（redact_url、probe_url、finx_domain…），那需要把本文件
