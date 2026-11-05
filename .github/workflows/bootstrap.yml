@@ -283,6 +283,21 @@ jobs:
           # 装完之后 dpkg 必须认得它，否则「装上了」只是文件躺在那里
           "$PREFIX/bin/dpkg" -s tree | sed -n '1,6p'
 
+          # ncdu 是第二个试金石，问的是另一个问题：**依赖树里的库能不能解析**。
+          # tree 零依赖，所以它证明不了这件事。ncdu 链 libncursesw5，而那个包
+          # 是 bootstrap 自己装出来的 —— 编得过说明头文件与 dylib 都对得上；
+          # 跑得起来说明 install_name 解析正常（这里没有 DYLD_LIBRARY_PATH 帮忙）。
+          sudo "$PREFIX/bin/finx" -y install ncdu
+
+          [ -x "$PREFIX/bin/ncdu" ] || { echo "FAILED: bin/ncdu did not appear" >&2; exit 1; }
+          "$PREFIX/bin/ncdu" --version
+          # 不带参数会进 curses 界面，用 -o - 走「输出到文件」那条非交互路径
+          "$PREFIX/bin/ncdu" -o - "$PREFIX/etc" >/dev/null
+          "$PREFIX/bin/dpkg" -s ncdu | sed -n '1,6p'
+          # 依赖必须真的记在 dpkg 的知识里，而不只是文件能跑
+          "$PREFIX/bin/dpkg" -s ncdu | grep -q 'libncursesw5-shlibs' \
+              || { echo "FAILED: ncdu does not record its library dependency" >&2; exit 1; }
+
       - name: Publish the seed
         # 标签是 seed-<darwin>：安装器按 uname -r 自己拼出来，所以这个名字不能改。
         # 标题则要能分辨 —— 光写 "Seed" 的话三个种子的列表长得一模一样。
