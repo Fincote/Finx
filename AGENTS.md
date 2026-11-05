@@ -88,7 +88,7 @@ Finx 在 `/opt/finx`），命令名相同就必然混淆。没有 `fink` 兼容�
 make test          # manifest_check → structure → sources_check → test_setup → 跑完 test/ 全部测试
 ```
 
-- 基线：**52 个测试文件、1104 项断言**全通过。
+- 基线：**53 个测试文件、1116 项断言**全通过。
 - `make test` 会先跑 `manifest_check`，它校验两件事：仓库里每个文件都在 `MANIFEST`
   里（否则不会进载荷 tar），且生成物都被 `MANIFEST.SKIP` 排除。
   新增需要随程序分发的文件要登记进 `MANIFEST`；生成物则加进 `MANIFEST.SKIP` 与

@@ -178,6 +178,7 @@ test/SelfUpdate/subclasses.t
 test/Services/eval_conditional.t
 test/Services/execute_nonroot_okay.t
 test/Services/expand_percent.t
+test/Services/help_colors.t
 test/Services/prepare_script.t
 test/Services/spec2struct.t
 test/Services/version_cmp.t

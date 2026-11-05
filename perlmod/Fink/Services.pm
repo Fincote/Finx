@@ -2271,6 +2271,86 @@ the future
 
 our ($VALIDATE_OK, $VALIDATE_HELP, $VALIDATE_ERROR) = 0..20;
 
+# ---- 帮助文本的颜色 --------------------------------------------------------
+#
+# 只在「真的有人在看」时上色：输出不是终端（被重定向到文件或管道），或者
+# NO_COLOR 被设置，就一个字都不加。这不是洁癖 —— 逃逸码混进日志以后，用户
+# 贴报错求助时会变成一堆 ^[[36m，grep 也再也匹配不上。
+#
+# 配色照 MacWave 的 lib/help.py 定，两边语义一致：
+#
+#   节标题（Common commands: / Options:）  magenta
+#   子命令                                green
+#   旗标                                  cyan
+#   值占位符                              yellow
+#   程序名                                orange
+#
+# 环境变量：NO_COLOR=1 强制关；FINX_COLOR=1 或 CLICOLOR_FORCE=1 强制开
+# （截图、录屏时输出被重定向仍要颜色）；CLICOLOR=0 关。
+my %ANSI = (
+	section => "\033[35m",
+	cmd     => "\033[32m",
+	flag    => "\033[36m",
+	value   => "\033[33m",
+	prog    => "\033[38;5;208m",
+	bold    => "\033[1m",
+	reset   => "\033[0m",
+);
+
+my $color_state;	# [环境变量指纹, 开关]。指纹变了才重算 —— 测试要在同一个
+			# 进程里切换 NO_COLOR / FINX_COLOR，而 -t STDOUT 不会变。
+
+sub _color_enabled {
+	my @vars = qw(NO_COLOR CLICOLOR CLICOLOR_FORCE FINX_COLOR);
+	my $sig = join "\0", map { defined $ENV{$_} ? $ENV{$_} : "\0undef" } @vars;
+	return $color_state->[1]
+		if $color_state && $color_state->[0] eq $sig;
+
+	my $force = grep { defined $ENV{$_} && $ENV{$_} ne '' && $ENV{$_} ne '0' }
+		qw(FINX_COLOR CLICOLOR_FORCE);
+	my $deny = (defined $ENV{NO_COLOR} && $ENV{NO_COLOR} ne ''
+			&& $ENV{NO_COLOR} ne '0')
+		|| (defined $ENV{CLICOLOR} && $ENV{CLICOLOR} eq '0');
+
+	my $on;
+	if ($deny) {
+		$on = 0;
+	} elsif ($force) {
+		$on = 1;
+	} else {
+		$on = -t STDOUT ? 1 : 0;
+	}
+	$color_state = [$sig, $on];
+	return $on;
+}
+
+sub _paint {
+	my ($text, $role) = @_;
+	return $text if !defined $role || !exists $ANSI{$role};
+	return $text if !_color_enabled();
+	return $ANSI{$role} . $text . $ANSI{reset};
+}
+
+# 一行「标签」（命令名或旗标）。旗标带值时只把值那一段换成黄色 ——
+# 整行同色的话，`--logfile=FILE` 里哪部分是名字、哪部分要替换就看不清了。
+#
+# 缩进留在颜色外面：转义码包住空格没有任何视觉效果，却让 `cat -v` 的输出
+# 更难读，也让「这一行从第几列开始」这种检查多一步剥壳。
+sub _paint_label {
+	my ($text, $role, $value) = @_;
+	return $text if $text =~ /^\s*$/;
+	return $text if !_color_enabled();
+
+	my ($indent, $body) = $text =~ /^(\s*)(.*)$/;
+	if (defined $value && length $value) {
+		my $quoted = quotemeta $value;
+		if ($body =~ /^(.*?)([=\s])($quoted)$/) {
+			return $indent . _paint($1, $role) . $2 . _paint($3, 'value');
+		}
+	}
+	return $indent . _paint($body, $role);
+}
+
 # my $str = _get_option_usage $optitem;
 #
 # Get usage and for an option item. Does not include the description.
@@ -2291,11 +2371,15 @@ sub _get_option_usage {
 	return join ', ', @alts;
 }
 
-# my $str = _align_option_text $usage, $desc, $optlen;
+# my $str = _align_option_text $usage, $desc, $optlen, $role, $value;
 #
-# Aligns the usage and desc with other options
+# Aligns the usage and desc with other options.
+#
+# $role 决定标签用什么颜色（'cmd' 或 'flag'），$value 是旗标值的占位符名。
+# 补空格必须按**未上色**的长度算 —— 逃逸码会让 length() 长出五六个字符，
+# 于是列就对不齐了。
 sub _align_option_text {
-	my ($opttxt, $desctxt, $optlen) = @_;
+	my ($opttxt, $desctxt, $optlen, $role, $value) = @_;
 	my $ret = "";
 
 	# Word wrap things
@@ -2315,13 +2399,20 @@ sub _align_option_text {
 		my $optpart = shift @optlines;
 		my $descpart = shift @desclines;
 		last unless defined $optpart || defined $descpart;
-		$optpart = ' ' x $optlen unless defined $optpart;
 		$descpart = '' unless defined $descpart;
 
 		my $midpart = $first ? ' - ' : '   ';
 		$first = 0 if $first;
 
-		$ret .= sprintf "%-${optlen}s%s%s\n", $optpart, $midpart, $descpart;
+		if (!defined $optpart) {
+			$ret .= (' ' x $optlen) . $midpart . $descpart . "\n";
+			next;
+		}
+
+		my $pad = $optlen - length($optpart);
+		$pad = 0 if $pad < 0;
+		$ret .= _paint_label($optpart, $role, $value) . (' ' x $pad)
+			. $midpart . $descpart . "\n";
 	}
 
 	return $ret;
@@ -2349,7 +2440,8 @@ sub _get_option_help {
 	my $text = '';
 	for my $ropt (@realopts) {
 		my $usage = _get_option_usage($ropt);
-		$text .= _align_option_text($usage, $ropt->{help}, $optlen);
+		$text .= _align_option_text($usage, $ropt->{help}, $optlen,
+			'flag', $ropt->{value});
 	}
 	return $text;
 }
@@ -2383,15 +2475,24 @@ sub _expand_help {
 			$ret;
 		},
 		align	=> sub {
-			chomp (my $ret = _align_option_text(@_, $optlen));
+			# %align 自带第三参数 optspace（Config.pm 传 $comlen），没给才用默认宽度。
+			# 所以不能写成 _align_option_text(@_, $optlen, 'cmd')：那会多顶一位，
+			# 把全局 optwidth 当成 optspace、把 'cmd' 当成值占位符。
+			my ($otxt, $dtxt, $ospace) = @_;
+			$ospace = $optlen unless defined $ospace;
+			chomp (my $ret = _align_option_text($otxt, $dtxt, $ospace, 'cmd'));
 			$ret
 		},
 		intro	=> sub {
 			my $first = shift;
 			require Fink::FinkVersion;
-			"Finx " . Fink::FinkVersion::fink_version() . "\n\n" .
-				"Usage: finx$command $first\n" .
-				join '', map { "       finx$command $_\n" } @_;
+			my $prog = 'finx';
+			my $usage = _paint('Usage:', 'section') . ' '
+				. _paint($prog, 'prog') . $command;
+			_paint('Finx ' . Fink::FinkVersion::fink_version(), 'bold') . "\n\n" .
+				$usage . " $first\n" .
+				join '', map { '       ' . _paint($prog, 'prog')
+					. $command . " $_\n" } @_;
 		},
 	);
 
@@ -2404,6 +2505,14 @@ sub _expand_help {
 	"ge;
 # " <-- preceding s using " as delim confuses emacs syntax-highlight
 	$helpformat =~ s/%%/%/g;
+
+	# 节标题统一上色。放在最后一步：它们是模板里的普通文本（`Common commands:`
+	# 这类顶格、以冒号结尾的行），没有别的地方可以挂钩。限定顶格，所以缩进的
+	# 描述行不会被误伤。
+	if (_color_enabled()) {
+		$helpformat =~ s{^(\S[^\n:]*):$}{_paint("$1:", 'section')}gme;
+	}
+
 	return $helpformat;
 }
 
