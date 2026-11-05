@@ -24,7 +24,7 @@ Fink 历史上因为要迁就不同 macOS 版本，在 `/sw` 与 `/opt/sw` 之�
 
 从 `0.1.0-alpha-7c2ae649` 起，`finx-install/install.sh` 的 `--prefix` 只接受
 `/opt/finx`，其余在碰磁盘之前就退出（`enforce_prefix_policy`，见
-`finx-install/lib/extract.sh`）。
+`finx-install/install.sh`）。
 
 这不是「严谨一点」的问题。安装器对**给它的那个目录**做三件事：
 

@@ -88,11 +88,6 @@ jobs:
           make test_setup ARCHITECTURE="$FINX_ARCH"
           make perl_check
 
-      - name: "Check: standalone.sh in sync"
-        # 生成物：改了 finx-install/lib/ 或 install.sh 却忘了重建，
-        # 线上那条 curl | bash 跑的还是旧逻辑。
-        run: ./finx-install/build-bundle.sh --check
-
       - name: "Test: perl suite"
         run: make test ARCHITECTURE="$FINX_ARCH"
 

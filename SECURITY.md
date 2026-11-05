@@ -27,14 +27,14 @@ rests on a small number of guarantees; a break in any of them is a vulnerability
 
 | Guarantee | Where it lives |
 | --- | --- |
-| **A seed matches the manifest before anything is unpacked.** The `sha256` and byte size in the manifest are both checked; a mismatch aborts. There is no "warn and continue". | `finx-install/lib/manifest.sh` (`verify_file`) |
-| **A payload's links cannot leave the install root.** Every symbolic link is resolved and rejected unless it lands inside the prefix or in one of the exempt system locations. A refusal empties the prefix. | `finx-install/lib/links.sh`, `perlmod/Fink/Links.pm` |
-| **The install prefix is `/opt/finx`.** Anything else is refused before the disk is touched. | `finx-install/lib/extract.sh` (`enforce_prefix_policy`) |
-| **The prefix belongs to root, never to the caller.** | `finx-install/lib/extract.sh` (`fix_permissions`) |
+| **A seed matches the manifest before anything is unpacked.** The `sha256` and byte size in the manifest are both checked; a mismatch aborts. There is no "warn and continue". | `finx-install/install.sh` (`verify_file`) |
+| **A payload's links cannot leave the install root.** Every symbolic link is resolved and rejected unless it lands inside the prefix or in one of the exempt system locations. A refusal empties the prefix. | `finx-install/install.sh`, `perlmod/Fink/Links.pm` |
+| **The install prefix is `/opt/finx`.** Anything else is refused before the disk is touched. | `finx-install/install.sh` (`enforce_prefix_policy`) |
+| **The prefix belongs to root, never to the caller.** | `finx-install/install.sh` (`fix_permissions`) |
 | **Builds do not run as root.** Package builds run as `fink-bld` unless a package explicitly opts out. | `perlmod/Fink/Engine.pm`, `BuildAsNobody` |
-| **Credentials do not appear in output.** A mirror URL may carry a user and password; everything printed passes through `redact_url` first. | `finx-install/lib/common.sh` (`redact_url`) |
-| **Downloads come from the configured domain.** `FINX_INDEX_DOMAIN` / `FINX_SEED_DOMAIN` / `FINX_SOURCE_DOMAIN` / `FINX_DEB_DOMAIN` may be pointed elsewhere, but doing so never skips verification — the seed is still checked against the manifest. | `finx-install/lib/manifest.sh`, `docs/MIRRORS.md` |
-| **The prefix is not the user's to write.** A user-writable prefix would make `bin/dpkg` and `var/lib/dpkg/status` user-controlled root input, because dpkg runs `postinst` as real root. | `finx-install/lib/extract.sh` |
+| **Credentials do not appear in output.** A mirror URL may carry a user and password; everything printed passes through `redact_url` first. | `finx-install/install.sh` (`redact_url`) |
+| **Downloads come from the configured domain.** `FINX_INDEX_DOMAIN` / `FINX_SEED_DOMAIN` / `FINX_SOURCE_DOMAIN` / `FINX_DEB_DOMAIN` may be pointed elsewhere, but doing so never skips verification — the seed is still checked against the manifest. | `finx-install/install.sh`, `docs/MIRRORS.md` |
+| **The prefix is not the user's to write.** A user-writable prefix would make `bin/dpkg` and `var/lib/dpkg/status` user-controlled root input, because dpkg runs `postinst` as real root. | `finx-install/install.sh` |
 
 Each of these has a test that fails when the guarantee is removed. They are
 listed here so a report can point at one of them directly.
@@ -86,7 +86,7 @@ implementations, one exemption table:
 
 | Exit | Implementation | When |
 | --- | --- | --- |
-| Seed installer (`curl \| bash`) | `finx-install/lib/links.sh` | after extraction, before `resign_macho` |
+| Seed installer (`curl \| bash`) | `finx-install/install.sh` | after extraction, before `resign_macho` |
 | `finx install` of a `.deb` | `Fink::Links::offending_in_deb` | before `dpkg -i`, parsing `dpkg-deb -c` |
 | A built prefix | `Fink::Links::offending_in_tree` | `make structure` |
 

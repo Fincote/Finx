@@ -285,13 +285,7 @@ resolve_method()   决定走种子还是源码
 | 文件 | 作用 |
 | --- | --- |
 | `install.sh` | 入口：解析参数 → `resolve_method` → 走种子或源码 |
-| `lib/common.sh` | 日志、`die`、`FINX_TEST` 沙箱根 |
-| `lib/detect.sh` | 探测 arch / macOS 版本 |
-| `lib/manifest.sh` | 拉种子清单、校验 sha256、逐个 URL 回退 |
-| `lib/extract.sh` | 解压与 `dpkg -i` |
-| `lib/source.sh` | **源码回落**：取源码包、检查前置、跑 `./bootstrap` |
-| `install.sh` | **生成物**：把所有 lib 打平成一个文件，供 `curl \| bash`；用户下载的就是它 |
-| `build-bundle.sh` | 生成/校验 `install.sh` |
+| `install.sh` | **唯一源文件**，约 2000 行。日志与 `die`、探测 arch / macOS、拉种子清单并校验 sha256、解压与 `dpkg -i`、源码回落（取源码包、检查前置、跑 `./bootstrap`）全在里面。用户 `curl \| bash` 的就是它 |
 | `selftest.sh` | 沙箱断言，全程离线 |
 | `seed/manifest.example` | 种子清单样例 |
 | `README.md` | 设计与未做项 |
@@ -376,7 +370,7 @@ $dbpath    = $basepath/var/lib/finx       索引与锁
 | 改内置源码包的打包方式 | `base-files/pack.sh` | `--update` + `make sources_check` |
 | 新增要随程序分发的文件 | `MANIFEST` | `make manifest_check` |
 | 新增生成物 | **同时**改 `MANIFEST.SKIP` 与 `.gitignore` | `make structure` |
-| 改面向用户的安装器 | `finx-install/` | `./finx-install/build-bundle.sh` + `selftest.sh` |
+| 改面向用户的安装器 | `finx-install/install.sh` | `./finx-install/selftest.sh` |
 | 只改文档 | `docs/`、`*.md` | 无（`.md` 不打包） |
 
 ---

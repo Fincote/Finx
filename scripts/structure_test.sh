@@ -323,7 +323,7 @@ fi
 # `ln -s /opt/homebrew/...`，前缀里就会多出一条指向树外的链接 —— 它会被打进
 # 载荷 tar、被 chmod、被收尾步骤走遍，卸载时还会被顺着 rm -rf。
 #
-# 判定与 finx-install/lib/links.sh 同源（豁免表也同一份），改一处要改两处。
+# 判定与 finx-install/install.sh 同源（豁免表也同一份），改一处要改两处。
 for _prefix in "$WORK/tree-git.prefix" "$WORK/tree-manifest.prefix"; do
     [ -d "$_prefix" ] || continue
     _out=$(PERL5LIB="$REPO_ROOT/perlmod" /usr/bin/perl -MFink::Links -e '

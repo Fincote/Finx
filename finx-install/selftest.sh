@@ -226,7 +226,7 @@ fi
 
 # 归一化之后确实是 /opt/finx 的写法仍要放行，否则守卫会变成「不许写 ..」这种
 # 与真正意图无关的规则。
-if [ "$(env -u FINX_TEST PREFIX=/opt/../opt/finx bash -c '. "$1/lib/common.sh"; . "$1/lib/extract.sh"; enforce_prefix_policy; printf "%s" "$PREFIX"' _ "$HERE")" = /opt/finx ]; then
+if [ "$(env -u FINX_TEST PREFIX=/opt/../opt/finx bash -c 'FINX_SOURCE_ONLY=1; . "$1/install.sh"; enforce_prefix_policy; printf "%s" "$PREFIX"' _ "$HERE")" = /opt/finx ]; then
     pass "/opt/../opt/finx canonicalises to /opt/finx and is allowed"
 else
     failed "/opt/../opt/finx should be accepted after canonicalisation"
@@ -237,21 +237,21 @@ fi
 # 镜像可以带账号（FINX_SEED_DOMAIN=https://user:pass@mirror/...），而安装器会把
 # 地址打印出来。终端输出会进 CI 日志、截图、issue —— 密码就跟着走了。
 
-r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "https://alice:s3cret@mirror.example/x"' _ "$HERE")
+r_out=$(bash -c 'FINX_SOURCE_ONLY=1; . "$1/install.sh"; redact_url "https://alice:s3cret@mirror.example/x"' _ "$HERE")
 if [ "$r_out" = "https://***:***@mirror.example/x" ]; then
     pass "redact_url masks the userinfo and keeps the host"
 else
     failed "redact_url did not mask a credential-bearing URL"
 fi
 
-r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "https://mirror.example/x"' _ "$HERE")
+r_out=$(bash -c 'FINX_SOURCE_ONLY=1; . "$1/install.sh"; redact_url "https://mirror.example/x"' _ "$HERE")
 if [ "$r_out" = "https://mirror.example/x" ]; then
     pass "redact_url leaves a URL without credentials alone"
 else
     failed "redact_url mangled a URL that has no credentials"
 fi
 
-r_out=$(bash -c '. "$1/lib/common.sh"; redact_url "file:///tmp/seed/manifest"' _ "$HERE")
+r_out=$(bash -c 'FINX_SOURCE_ONLY=1; . "$1/install.sh"; redact_url "file:///tmp/seed/manifest"' _ "$HERE")
 if [ "$r_out" = "file:///tmp/seed/manifest" ]; then
     pass "redact_url leaves a file: URL alone"
 else
@@ -318,11 +318,7 @@ fi
 [ -f "$ROOT/piped/bin/finx" ] && pass "piped install landed in the sandbox" \
     || failed "piped install did not land in the sandbox"
 
-# ---- 8. 单文件必须与源同步 ----------------------------------------------
-
-check_ok "install.sh is not stale" "$HERE/build-bundle.sh" --check
-
-# ---- 9. 源码回落 ---------------------------------------------------------
+# ---- 8. 源码回落 ---------------------------------------------------------
 
 SRCROOT=$ROOT/fake-src
 mkdir -p "$SRCROOT/Finx-main" || exit 1
@@ -407,7 +403,61 @@ fi
 check_fails "an explicit seed for another architecture is still refused" \
     "$INSTALL" --manifest-url="file://$FOREIGN/manifest" --prefix="$ROOT/foreign-explicit"
 
-# ---- 11. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
+# ---- 11. 本机没有种子时往下找更老的一份 --------------------------------
+#
+# 二进制记的是构建时的 Darwin，低处编的能在高处跑、反之不行（docs/MIRRORS.md
+# 三点六）。所以 macOS 14（Darwin 23）上没有 seed-23 时，seed-21 完全可用。
+# 只认精确匹配的话，这些用户会被无谓地送去源码编译半小时 —— 而他们本不必。
+#
+# 用 file:// 当基址，造出「23 和 22 都没有、21 有」的布局。
+
+SLOW=$ROOT/seeds-low
+mkdir -p "$SLOW/seed-21" || exit 1
+cp "$ROOT/seed.tar.gz" "$SLOW/seed-21/" || exit 1
+cp "$ROOT/manifest"    "$SLOW/seed-21/" || exit 1
+
+LOWLOG=$ROOT/lowseed.log
+# 还得给 FINX_SEED_DOMAIN：清单里没有 url 行时种子从那里取，否则会去真实网络。
+if FINX_SEED_BASE="file://$SLOW" FINX_SEED_DOMAIN="file://$SLOW/seed-21" \
+        FINX_LOWEST_SEED_DARWIN=21 \
+        "$INSTALL" --prefix="$ROOT/lowered" >"$LOWLOG" 2>&1; then
+    pass "a system without its own seed uses an older build"
+else
+    failed "the downward search did not find seed-21"
+fi
+
+if [ -f "$ROOT/lowered/bin/finx" ]; then
+    pass "the older seed installed into the sandbox"
+else
+    failed "the older seed did not install"
+fi
+
+if grep -q 'seed-21' "$LOWLOG"; then
+    pass "the log names the seed it settled on"
+else
+    failed "the log does not say which seed was used"
+fi
+
+# 一份都没有时仍然回退源码，而且不该试到 21 以下
+EMPTY=$ROOT/seeds-none
+mkdir -p "$EMPTY" || exit 1
+NONELOG=$ROOT/noseed.log
+if FINX_SEED_BASE="file://$EMPTY" FINX_SEED_DOMAIN="file://$EMPTY" \
+        FINX_LOWEST_SEED_DARWIN=21 \
+        "$INSTALL" --source-url="file://$ROOT/finx-src.tar.gz" \
+        --prefix="$ROOT/noseed" >"$NONELOG" 2>&1; then
+    pass "with no seed at any level the source path takes over"
+else
+    failed "the source fallback did not run when no seed exists"
+fi
+
+if [ -s "$ROOT/noseed/marker" ]; then
+    pass "bootstrap ran after exhausting the seeds"
+else
+    failed "bootstrap did not run after exhausting the seeds"
+fi
+
+# ---- 12. 多镜像回退（用 file:// 离线模拟真实下载路径） -------------------
 
 MIRROR=$ROOT/mirror
 mkdir -p "$MIRROR" || exit 1
@@ -443,9 +493,9 @@ check_fails "unreachable manifest is refused" \
 
 # ---- 收尾的 PATH 写入 ----------------------------------------------------
 #
-# 安装器的收尾会往 shell 启动文件里追加一行。这件事在主流程里被 FINX_TEST
-# 挡掉了（沙箱不许碰真的 $HOME），所以在这里用假 HOME 单独测：
-# 写对文件、重复运行不重复追加、--no-path 不写。
+# 安装器的收尾**默认不动** shell 启动文件；只有加 --path 才写。这件事在主流程里
+# 被 FINX_TEST 挡掉了（沙箱不许碰真的 $HOME），所以在这里用假 HOME 单独测：
+# 默认不写、--path 写对文件、重复运行不重复追加、--no-path 仍然不写。
 
 FAKEHOME="$ROOT/fakehome"
 mkdir -p "$FAKEHOME"
@@ -470,8 +520,8 @@ target_rc() {
 RC=$(target_rc)
 
 run_setup_path() {
-    _no_path=$1
-    HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" NO_PATH="$_no_path" \
+    _write=$1
+    HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" WRITE_PATH="$_write" \
         sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
 }
 
@@ -481,15 +531,24 @@ count_lines() {
     wc -l < "$1" | tr -d ' \n'
 }
 
+# 默认：不写。这是本版改的行为 —— 启动文件属于用户，不属于安装器。
+rm -f "$RC"
 run_setup_path 0
-if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$RC" 2>/dev/null; then
-    pass "installer puts finx on PATH in $(basename "$RC")"
+if [ ! -f "$RC" ]; then
+    pass "the installer leaves the shell startup file alone by default"
 else
-    failed "installer did not write the PATH line to $RC"
+    failed "the installer wrote to $RC without being asked"
+fi
+
+run_setup_path 1
+if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$RC" 2>/dev/null; then
+    pass "--path puts finx on PATH in $(basename "$RC")"
+else
+    failed "--path did not write the PATH line to $RC"
 fi
 
 before=$(count_lines "$RC")
-run_setup_path 0
+run_setup_path 1
 after=$(count_lines "$RC")
 if [ "$before" = "$after" ]; then
     pass "rerunning does not append the PATH line twice"
@@ -498,7 +557,7 @@ else
 fi
 
 rm -f "$RC"
-run_setup_path 1
+run_setup_path 0
 if [ ! -f "$RC" ]; then
     pass "--no-path leaves the shell configuration untouched"
 else
@@ -513,14 +572,14 @@ fi
 domain_ok() {
     FINX_INDEX_DOMAIN="$1" FINX_SEED_DOMAIN=https://ok.example \
         FINX_SOURCE_DOMAIN=https://ok.example FINX_DEB_DOMAIN=https://ok.example \
-        sh -c '. "$1/finx-install/lib/common.sh"; printf "%s\n" "$FINX_INDEX_DOMAIN"' _ "$HERE/.."
+        sh -c 'FINX_SOURCE_ONLY=1; . "$1/finx-install/install.sh"; printf "%s\n" "$FINX_INDEX_DOMAIN"' _ "$HERE/.."
 }
 
 # FINX_DEB_DOMAIN 与另外三个走同一套校验，但要单独确认它真的被读进来 ——
 # 变量名拼错时 finx_domain 根本不会被调用，于是「设了没用」而没人发现。
 deb_domain() {
     FINX_DEB_DOMAIN="$1" \
-        sh -c '. "$1/finx-install/lib/common.sh"; printf "%s\n" "$FINX_DEB_DOMAIN"' _ "$HERE/.."
+        sh -c 'FINX_SOURCE_ONLY=1; . "$1/finx-install/install.sh"; printf "%s\n" "$FINX_DEB_DOMAIN"' _ "$HERE/.."
 }
 
 if [ "$(domain_ok 'https://mirror.example/finx/')" = "https://mirror.example/finx" ]; then
@@ -560,14 +619,14 @@ else
     failed "loopback http was refused"
 fi
 
-out=$(FINX_CONNECT_TIMEOUT=abc sh -c '. "$1/finx-install/lib/common.sh"' _ "$HERE/.." 2>&1) && rc=0 || rc=$?
+out=$(FINX_CONNECT_TIMEOUT=abc sh -c 'FINX_SOURCE_ONLY=1; . "$1/finx-install/install.sh"' _ "$HERE/.." 2>&1) && rc=0 || rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'FINX_CONNECT_TIMEOUT'; then
     pass "a non-numeric FINX_CONNECT_TIMEOUT is refused"
 else
     failed "a non-numeric FINX_CONNECT_TIMEOUT was accepted"
 fi
 
-out=$(FINX_CONNECT_TIMEOUT=7 sh -c '. "$1/finx-install/lib/common.sh"; printf "%s" "$FINX_CONNECT_TIMEOUT"' _ "$HERE/.." 2>&1)
+out=$(FINX_CONNECT_TIMEOUT=7 sh -c 'FINX_SOURCE_ONLY=1; . "$1/finx-install/install.sh"; printf "%s" "$FINX_CONNECT_TIMEOUT"' _ "$HERE/.." 2>&1)
 if [ "$out" = "7" ]; then
     pass "FINX_CONNECT_TIMEOUT is honoured"
 else
@@ -587,11 +646,9 @@ fi
 
 cat > "$ROOT/run_bootstrap_probe.sh" <<'PROBE'
 set -u -o pipefail
-. "$1/finx-install/lib/common.sh"
-. "$1/finx-install/lib/detect.sh"
-. "$1/finx-install/lib/manifest.sh"
-. "$1/finx-install/lib/extract.sh"
-. "$1/finx-install/lib/source.sh"
+FINX_SOURCE_ONLY=1; . "$1/finx-install/install.sh"
+# install.sh 顶层把 VERBOSE 写成 0（刻意不听环境变量），source 之后必须显式设。
+VERBOSE=${PROBE_VERBOSE:-0}
 SOURCE_ROOT=$2
 target=/nowhere
 require_bootstrap_prerequisites() { :; }
@@ -626,7 +683,7 @@ else
 fi
 
 # sudo 默认重置环境；不显式转发，配了代理的用户会卡在源码自举的下载阶段。
-if out=$(VERBOSE=1 http_proxy=http://p.example:1 https_proxy=http://p.example:1 \
+if out=$(PROBE_VERBOSE=1 http_proxy=http://p.example:1 https_proxy=http://p.example:1 \
         /bin/bash "$ROOT/run_bootstrap_probe.sh" "$HERE/.." "$ROOT/stub-src" 2>&1) \
         && printf '%s' "$out" | grep -q 'env http_proxy=http://p.example:1 https_proxy=http://p.example:1' \
         && printf '%s' "$out" | grep -q 'PROBE-OK'; then

@@ -15,6 +15,8 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 | `FINX_INDEX_DOMAIN` | 不设则用 GitHub Releases 的 `seed` 标签 | 种子**清单**：`<域名>/manifest` |
 | `FINX_SEED_DOMAIN` | `https://finx.sh/finx/seed` | 清单里没写 `url` 时的种子**归档**：`<域名>/<文件名>` |
 | `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | 源码归档：`<域名>/tar.gz/<ref>` |
+| `FINX_SEED_BASE` | `https://github.com/Fincote/Finx/releases/download` | 种子的基址：`<基址>/seed-<Darwin>/manifest` |
+| `FINX_LOWEST_SEED_DARWIN` | `21` | 往下找种子时试到哪一档为止 |
 | `FINX_DEB_DOMAIN` | `https://github.com/Fincote/debs/releases/download` | 预编译 `.deb`：`<域名>/<包名>/<包名>@<版本>-<修订>.darwin<Darwin>-<架构>.deb` |
 | `FINX_SOURCE_REF` | `main` | 源码的分支/标签/提交，等同 `--ref` |
 | `FINX_CONNECT_TIMEOUT` | `30` | 连不上的等待秒数。**只管连接**，不管下完要多久 |
@@ -170,6 +172,31 @@ https://github.com/Fincote/Finx/releases/download/seed-<本机 Darwin>/manifest
 
 **要支持更老的系统，就得在更老的机器上构建。** GitHub 已移除 `macos-12` 及更早的
 runner，所以 12 及以下只能自备机器跑 `scripts/ci_bootstrap.sh` 再手动上传。
+
+### 本机没有对应版本的种子时，往下找
+
+二进制记的是**构建时**的 Darwin：低处编的能在高处跑，反之不行。所以 macOS 14
+（Darwin 23）上没有 `seed-23` 时，`seed-21` 完全可用 —— 安装器会逐个往下试：
+
+```
+Darwin 23 → seed-23（没有）→ seed-22（没有）→ seed-21（有）✓
+```
+
+三个终止条件：
+
+| 探测结果 | 动作 |
+| --- | --- |
+| 有清单 | 用它 |
+| 服务端明确回 404 | 试下一档 |
+| 连不上／超时 | **停** —— 这不是「没有」而是「问不到」，再试只会让用户多等几轮超时 |
+
+试到 `FINX_LOWEST_SEED_DARWIN`（默认 21）为止。
+
+**显式指定来源时不做这个搜索**：给了 `--manifest-url` 或 `FINX_INDEX_DOMAIN` 就只试
+那一个 —— 调用方说了用哪份，再换一个等于把他的指定丢掉。
+
+这个机制让种子的覆盖面变成「**最低那一版决定一切**」：有了 `seed-21`，
+Darwin 21 以上全都有种子可用，不必每个版本各编一份。
 
 ## 三点七、源码包镜像
 
@@ -338,10 +365,8 @@ url https://.../seed.tar.gz      ← 可选
 
 ```sh
 make test                          # 含 structure / sources_check
-./finx-install/selftest.sh          # 域名校验、超时、sudo 代理转发的断言
-./finx-install/build-bundle.sh      # 改了 lib/ 必须重建 install.sh
-./finx-install/build-bundle.sh --check   # 只校验产物与源同步
+./finx-install/selftest.sh         # 域名校验、超时、sudo 代理转发、往下找种子
 ```
 
-改了 `finx-install/lib/` 里的东西却忘了重建 `install.sh`，用户拿到的还是旧的
-单文件 —— `--check` 与 CI 都会拦住这件事。
+`finx-install/install.sh` 是唯一源文件，没有生成步骤 —— 改了推上去就生效。
+`selftest.sh` 是它唯一的防线，尤其是那 166 处命令替换在 `set -eE` 下的行为。

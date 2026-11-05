@@ -42,7 +42,6 @@ curl -fsSL .../finx-install/install.sh | sudo bash -s -- --prefix=/opt/finx
 从仓库直接跑（开发、离线自测）：
 
 ```
-./finx-install/build-bundle.sh   # 先重建，见第三节
 ./finx-install/install.sh        # 真装到 /opt/finx
 ./finx-install/selftest.sh       # 离线自测，不碰 /opt/finx
 ```
@@ -79,35 +78,36 @@ curl -fsSL .../finx-install/install.sh | sudo bash -s -- --prefix=/opt/finx
 
 ```
 finx-install/
-├── install.sh            模块化入口：解析参数、编排七个阶段
-├── install.sh            生成物：自包含单文件，用户下载的就是它
-├── build-bundle.sh       把 install.sh.in + lib/*.sh 打平成 install.sh
+├── install.sh            唯一源文件，用户下载的就是它
 ├── selftest.sh           沙箱自测：全程离线，不碰真实目录
-├── lib/
-│   ├── common.sh         输出、错误、trap、临时目录、sha256、测试根
-│   ├── detect.sh         宿主探测（macOS 版本 / 架构）、目标目录状态、写权限
-│   ├── manifest.sh       清单解析、多镜像下载与续传、体积与 sha256 校验
-│   ├── extract.sh        解包、权限归一、Mach-O ad-hoc 重签名、写配置、重建索引
-│   └── source.sh         源码回落：取源码树、检查前置条件、跑 bootstrap
 └── seed/
     └── manifest.example  清单格式参考
 ```
 
-## 三、`install.sh` 是生成物
+`install.sh` 内部按职责分段，段名就是注释里的分隔线，顺序也是执行顺序：
 
-`install.sh.in` + `lib/*.sh` 是**唯一事实来源**，`install.sh` 由
-[`build-bundle.sh`](./build-bundle.sh) 打平生成：
+| 段 | 内容 |
+| --- | ---- |
+| 输出与错误 | `say` / `info` / `warn` / `die`、`t` 双语、`redact_url`、trap、临时目录、sha256 |
+| 宿主探测 | macOS 版本 / 架构、目标目录状态、写权限 |
+| 清单 | 解析、多镜像下载与续传、体积与 sha256 校验 |
+| 解包 | 解包、权限归一、Mach-O ad-hoc 重签名、写配置、重建索引 |
+| 链接 | 载荷符号链接的落点校验（豁免表与 `perlmod/Fink/Links.pm` 必须一致） |
+| 源码回落 | 取源码树、检查前置条件、跑 bootstrap |
 
-```
-./finx-install/build-bundle.sh           # 重新生成
-./finx-install/build-bundle.sh --check   # 只校验是否同步（CI 用）
-```
+## 三、只有一个文件
 
-为什么产物要提交进仓库：`/bin/bash -c "$(curl -fsSL ...)"` 只拿得到一个文件，
-被管道执行时既没有可靠的 `$0`，也没有同级目录可以 `source`。
+`/bin/bash -c "$(curl -fsSL ...)"` 只拿得到一个文件，被管道执行时既没有可靠的
+`$0`，也没有同级目录可以 `source` —— 安装器不能拆成多个 `.sh`。
 
-改完 `lib/` 里的任何文件后必须重新生成，否则线上那条命令跑的还是旧逻辑。
-`--check` 就是防这个漂移的。
+这里曾经有过相反的做法：`install.sh.in` 模板 + `lib/*.sh`，由 `build-bundle.sh`
+拼成 `install.sh`，CI 用 `--check` 防漂移。已经拆掉。2000 行在一个文件里是可以
+维护的，而那套机制的真实代价不是几个脚本，是**改了产物会被下次构建静默覆盖**——
+手改和脚本输出指向同一个文件，出错时不提示。现在只有一处可改，那个失败模式不存在。
+
+单文件下有两个自己造的坑要提防：一是 `set -eE` 与「返回非零是正常信号」的函数
+之间的冲突（`probe_url` 因此改用 `PROBE_RESULT` 传结果、不传退出码），二是有
+166 处命令替换，任何一处的失败都会终止整个安装。`selftest.sh` 是这两条的唯一防线。
 
 ## 四、阶段
 

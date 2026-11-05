@@ -25,8 +25,8 @@
         "*.info": "properties"
     },
     "editor.rulers": [],
-    // make test_setup 与 build-bundle 的产物不进搜索：它们要么由源文件生成，
-    // 要么在 .gitignore 里。finx-install/standalone.sh 是例外，它是提交进仓库的。
+    // make test_setup 与 setup.sh 的产物不进搜索：它们要么由源文件生成，
+    // 要么在 .gitignore 里。
     "search.exclude": {
         "**/compiler_wrapper*": true,
         "**/dpkg-lockwait": true,

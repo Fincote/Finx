@@ -277,7 +277,7 @@ dpkg 自己的锁不够，Fink 在前面加一层 [lockwait.in](../lockwait.in)�
 ### 8.4 manifest 与校验
 
 清单是**行取向的纯文本**，不是 JSON —— 安装阶段不该依赖 `jq`，而 `awk` 一行就能取字段，
-diff 与签名也都更方便。字段与解析器见 [`finx-install/lib/manifest.sh`](../finx-install/lib/manifest.sh)。
+diff 与签名也都更方便。字段与解析器见 [`finx-install/install.sh`](../finx-install/install.sh)。
 
 ```
 schema  1
@@ -348,7 +348,7 @@ sub restart_as_root {
 | `$prefix/src/*.tar`、`--force` 时的 .deb | dpkg 以 root 解包并执行其中的脚本 |
 
 所以安装器以 root 运行时统一把整棵前缀归一为 `root:wheel`
-（[extract.sh](../finx-install/lib/extract.sh) 的 `fix_permissions`）；非 root 只可能发生在
+（[extract.sh](../finx-install/install.sh) 的 `fix_permissions`）；非 root 只可能发生在
 `FINX_TEST` 沙箱或用户自己的前缀里，此时**不碰归属**，只告警。
 
 **真正免密码的路是换前缀，不是 chown。** 参照 MacWave 的用户级安装
@@ -376,11 +376,8 @@ sub restart_as_root {
 
 ```
 finx-install/
-├── install.sh            模块化入口
-├── install.sh            生成物：自包含单文件，供 curl | bash
-├── build-bundle.sh       打平脚本（带 --check 防漂移）
-├── selftest.sh           FINX_TEST 沙箱自测
-├── lib/{common,detect,manifest,extract}.sh
+├── install.sh           唯一源文件，约 2000 行，供 curl | bash
+├── selftest.sh          FINX_TEST 沙箱自测
 └── seed/manifest.example
 ```
 
@@ -390,9 +387,17 @@ finx-install/
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/install.sh)"
 ```
 
-单文件必须提交进仓库，因为 `curl | bash` 只拿得到一个文件，被管道执行时既没有可靠的 `$0`，
-也没有同级目录可以 `source`。代价是**改完 `lib/` 必须重新生成**，由 `build-bundle.sh --check`
-在 CI 里兜住漂移。
+单文件是**唯一源文件**，直接编辑它。`curl | bash` 只拿得到一个文件，被管道执行时既没有可靠的
+`$0`，也没有同级目录可以 `source` —— 所以安装器不能拆成多个 `.sh`。
+
+这里曾经有过相反的选择：`install.sh.in` 模板 + `lib/*.sh` 模块，由 `build-bundle.sh` 拼成单文件，
+CI 用 `--check` 防漂移。那套已拆掉。2000 行在一个文件里是可以直接维护的，而「模板 + 生成物 +
+同步校验」的真实代价不是那几个脚本，是**改了产物会被下次构建静默覆盖** —— 人的手改和脚本的
+输出指向同一个文件，出错时没有任何提示。现在只有一处可改，那个失败模式就不存在了。
+
+单文件下要自己守两条纪律：模块边界靠注释分段（而不是文件系统），以及 `set -eE` 与「返回非零是
+正常信号」的函数之间的冲突必须显式处理（例如 `probe_url` 用 `PROBE_RESULT` 传结果、不传退出码）。
+`selftest.sh` 是这两条唯一的防线。
 
 **根目录的 `install.sh` 不改名。** 它不是孤立脚本名，而是「每个包的安装阶段脚本」这一约定的
 成员 —— `.info` 的 `InstallScript` 写的是相对构建目录的 `./install.sh`，四个包共用：
@@ -428,7 +433,7 @@ GitHub Releases 的资产是另一套存储：**单文件上限 2 GiB**，公开
 
 单点。种子是**用户机器上第一个要拿到的东西**，它取不到，整条安装就停在第一步 ——
 而那时用户手上还没有 Finx，也就没有别的手段可用。所以必须至少有一个不需要我们
-运维的兜底，且清单里两条 `url` 都写全（`finx-install/lib/manifest.sh` 的
+运维的兜底，且清单里两条 `url` 都写全（`finx-install/install.sh` 的
 `fetch_artifact` 会逐条尝试，只有全部失败才中止）。
 
 反过来也不能只靠 Releases：它在部分网络里不可达，而这恰恰是要自建镜像的原因。
@@ -669,7 +674,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 ### 9.1 CI：一条流水线，就是 `Verify: all` 的线上版
 
 `.github/workflows/verify.yml` 覆盖了 `.vscode/tasks.json` 里 `Verify: all` 的
-**全部六步，顺序也一致**，另外加两条只对 CI 有意义的断言（下表的 0 与 7）。
+**全部五步，顺序也一致**，另外加两条只对 CI 有意义的断言（下表的 0 与 6）。
 这样本机与线上出结论的地方总是同一处：
 
 | # | 步骤 | 失败意味着 |
@@ -678,10 +683,9 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | 1 | `bash -n` 全部 `git ls-files '*.sh'` | 引号或 `if/fi` 不配对 |
 | 2 | `make format` | 缩进不合 `STYLE` |
 | 3 | `make test_setup` + `perl -c` 全部模块 | 模块有语法错（必须先 test_setup，否则报的是「找不到模块」） |
-| 4 | `build-bundle.sh --check` | 改了 `finx-install/lib/` 却没重建 `install.sh` |
-| 5 | `make test` | 1059 项断言里有失败 |
-| 6 | `./finx-install/selftest.sh` | 安装器沙箱的断言里有一条不成立 |
-| 7 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |
+| 4 | `make test` | 1059 项断言里有失败 |
+| 5 | `./finx-install/selftest.sh` | 安装器沙箱的断言里有一条不成立 |
+| 6 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |
 
 三条与"为什么这么设"有关的决定：
 
@@ -889,7 +893,7 @@ lib/innocent.dylib -> /Users/someone/.ssh/id_rsa
 
 | 出口 | 实现 | 检查时机 |
 | --- | --- | --- |
-| 种子安装器（`curl \| bash`） | [`finx-install/lib/links.sh`](../finx-install/lib/links.sh) | 解包之后、`resign_macho` 之前；拒绝时清空前缀内容 |
+| 种子安装器（`curl \| bash`） | [`finx-install/install.sh`](../finx-install/install.sh) | 解包之后、`resign_macho` 之前；拒绝时清空前缀内容 |
 | `finx install` 装 `.deb` | [`perlmod/Fink/Links.pm`](../perlmod/Fink/Links.pm) `offending_in_deb` | `dpkg -i` 之前，解析 `dpkg-deb -c`，不额外解包 |
 | 构建出的前缀 | 同上 `offending_in_tree`，挂在 `make structure` | 装完立即查，早于打包 |
 

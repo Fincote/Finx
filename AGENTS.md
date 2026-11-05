@@ -151,10 +151,9 @@ FINX_TEST=/tmp/finx-check ./finx-install/install.sh   # 手工装进 /tmp/finx-c
 - **不要**把 `/opt/finx` 或任何系统前缀 `chown` 给调用安装器的用户。
   `finx install` 的 `rootflag` 是 1，chown 免不了密码；而 dpkg 以真 root 执行 `postinst`，
   用户可写的前缀等于把 root 交出去。理由与替代方案见 TECHNICAL-GUIDE 8.6。
-- `finx-install/install.sh`：生成物，不要手改。改 `finx-install/lib/` 或
-  `finx-install/install.sh` 后必须跑 `./finx-install/build-bundle.sh`，否则线上那条
-  `curl | bash` 跑的还是旧逻辑。`build-bundle.sh --check` 负责发现漂移。
-- **载荷符号链接的豁免表不能随手加路径。** `finx-install/lib/links.sh` 与
+- `finx-install/install.sh`：**唯一源文件**，直接编辑。用户 `curl | bash` 的就是它，
+  改了推上去就等于上线，中间没有生成步骤。自检跑 `./finx-install/selftest.sh`。
+- **载荷符号链接的豁免表不能随手加路径。** `finx-install/install.sh` 与
   `perlmod/Fink/Links.pm` 各有一份，必须一致。开口子要同时满足「SIP 连 root 都
   拒绝写」与「那里不含隐私文件」—— 加一条 `/opt/homebrew` 就等于允许载荷读遍
   用户在那个目录下的一切。理由见 TECHNICAL-GUIDE 10.6。

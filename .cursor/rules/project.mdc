@@ -30,18 +30,18 @@ CI 才能发现」的几条前置，其余一律去读 AGENTS.md。
 
 | 文件 | 谁生成 |
 | --- | --- |
-| `finx-install/install.sh` | `./finx-install/build-bundle.sh`（改 `lib/` 或 `install.sh.in` 后必须重跑） |
 | `perlmod/Fink.pm`、`FinkVersion.pm` | `./setup.sh` |
 | 根目录 `compiler_wrapper*`、`pathsetup.sh`、`postinstall.pl` 等 | `./setup.sh` |
 
-`build-bundle.sh --check` 会发现漂移。**忘了重跑，线上那条 `curl \| bash` 跑的还是旧逻辑。**
+`finx-install/install.sh` 曾经是生成物，模板机制已经拆掉：它是唯一源文件，改完直接
+推就是上线。`finx-install/selftest.sh` 是它唯一的防线。
 
 ## 四、五条代价很高的坑
 
 1. **`InstallScript` 必须写 `%i` 不能写 `%p`。** 构建以 `fink-bld` 运行，`%p` 归 root，
    往 `%p/bin` 装东西会 EACCES（`make: *** [install] Error 71`）。唯一例外是声明了
    `BuildAsNobody: false` 的包（`tar`、`dpkg`）。
-2. **载荷的符号链接不能跳出前缀。** 豁免表只有八处，`finx-install/lib/links.sh` 与
+2. **载荷的符号链接不能跳出前缀。** 豁免表只有八处，`finx-install/install.sh` 与
    `perlmod/Fink/Links.pm` 各一份，**必须一致**。开口子要同时满足「SIP 保护」与
    「不含隐私文件」—— 加一条 `/opt/homebrew` 就等于允许载荷读遍那个目录。
 3. **`manifest_check` 红着的时候别往下改代码。** 它一红，`make test` 第一步就退出，

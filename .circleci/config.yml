@@ -109,10 +109,6 @@ jobs:
             echo "perl syntax OK"
 
       - run:
-          name: "Check: install.sh in sync"
-          command: ./finx-install/build-bundle.sh --check
-
-      - run:
           name: "Test: perl suite"
           command: make test ARCHITECTURE="$(uname -m)"
 

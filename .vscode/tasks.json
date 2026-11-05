@@ -24,7 +24,7 @@
             "label": "Check: shell syntax",
             "detail": "bash -n 覆盖安装器与仓库里的 shell 脚本",
             "type": "shell",
-            "command": "for f in finx-install/install.sh finx-install/build-bundle.sh finx-install/selftest.sh finx-install/lib/*.sh install.sh setup.sh mirror/install.sh pre-build-test.sh dpkg-checkall.sh; do bash -n \"$f\" || { echo \"FAILED: $f\"; exit 1; }; done && echo 'shell syntax OK'",
+            "command": "for f in finx-install/install.sh finx-install/selftest.sh install.sh setup.sh mirror/install.sh pre-build-test.sh dpkg-checkall.sh; do bash -n \"$f\" || { echo \"FAILED: $f\"; exit 1; }; done && echo 'shell syntax OK'",
             "problemMatcher": []
         },
         {
@@ -39,20 +39,6 @@
             "detail": "perl -c 覆盖全部模块。必须先 test_setup，否则 perlmod/Fink/FinkVersion.pm 还不存在",
             "type": "shell",
             "command": "make test_setup && for f in perlmod/Fink.pm perlmod/Fink/*.pm perlmod/Fink/*/*.pm; do out=$(perl -Iperlmod -c \"$f\" 2>&1) || { echo \"FAILED: $f\"; echo \"$out\"; exit 1; }; done && echo 'perl syntax OK'",
-            "problemMatcher": []
-        },
-        {
-            "label": "Check: standalone.sh in sync",
-            "detail": "改了 finx-install/lib 或 install.sh 之后没重新打包，这里会红",
-            "type": "shell",
-            "command": "./finx-install/build-bundle.sh --check",
-            "problemMatcher": []
-        },
-        {
-            "label": "Build: standalone.sh",
-            "detail": "把 install.sh + lib/*.sh 打平成可 curl 的单文件，产物需要提交",
-            "type": "shell",
-            "command": "./finx-install/build-bundle.sh",
             "problemMatcher": []
         },
         {
@@ -71,13 +57,12 @@
         },
         {
             "label": "Verify: all",
-            "detail": "提交前跑这一条：语法、产物同步、两套测试",
+            "detail": "提交前跑这一条：语法、缩进、两套测试",
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Check: shell syntax",
                 "Check: indentation",
                 "Check: perl syntax",
-                "Check: standalone.sh in sync",
                 "Test: perl suite",
                 "Test: payload tree",
                 "Test: installer selftest"
