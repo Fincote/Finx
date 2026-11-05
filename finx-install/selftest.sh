@@ -491,11 +491,11 @@ fi
 check_fails "unreachable manifest is refused" \
     "$INSTALL" --manifest-url="file://$ROOT/missing/manifest" --prefix="$ROOT/nomanifest"
 
-# ---- 收尾的 PATH 写入 ----------------------------------------------------
+# ---- 收尾的 PATH 提示 ----------------------------------------------------
 #
-# 安装器的收尾**默认不动** shell 启动文件；只有加 --path 才写。这件事在主流程里
-# 被 FINX_TEST 挡掉了（沙箱不许碰真的 $HOME），所以在这里用假 HOME 单独测：
-# 默认不写、--path 写对文件、重复运行不重复追加、--no-path 仍然不写。
+# 安装器**不写**用户的启动文件，也没有 --path 这样的开关。收尾只打印一条
+# 用户可以自己执行的命令（`echo '...' >> ~/.zprofile`）。这里断言三件事：
+# 选对文件、打印出来的那一行内容对、以及源文件里确实没有任何写文件的代码。
 
 FAKEHOME="$ROOT/fakehome"
 mkdir -p "$FAKEHOME"
@@ -506,62 +506,66 @@ path_probe() {
     awk '/^login_shell_name\(\) \{/,/^\}/' "$INSTALL"
     awk '/^shell_rc_path\(\) \{/,/^\}/' "$INSTALL"
     awk '/^shell_source_line\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^shell_append_line\(\) \{/,/^\}/' "$INSTALL"
     awk '/^print_path_help\(\) \{/,/^\}/' "$INSTALL"
-    awk '/^setup_path\(\) \{/,/^\}/' "$INSTALL"
+    awk '/^explain_path\(\) \{/,/^\}/' "$INSTALL"
 }
 
-# 写哪个文件由「这个人的登录 shell」决定，而那要问 Directory Services ——
-# 所以不能在测试里假设 .zprofile。这里用安装器自己的 shell_rc_path 算出
-# 它会选哪个文件，再断言那一行在里面。CI 的 runner 与本地用户 shell 不同，
+# 哪个文件由「这个人的登录 shell」决定，而那要问 Directory Services ——
+# 所以不能在测试里假设 .zprofile。这里用安装器自己的 shell_rc_path 算出来，
+# 再断言打印内容里出现的是同一个文件。CI 的 runner 与本地用户 shell 不同，
 # 写死文件名会在其中一边必然失败。
 target_rc() {
-    HOME="$FAKEHOME" SHELL=/bin/zsh sh -c "$(path_probe); shell_rc_path $FAKEHOME"
+    HOME="$FAKEHOME" SHELL=/bin/zsh sh -c "$(path_probe); shell_rc_path"
 }
 RC=$(target_rc)
+RC_NAME=$(basename "$RC")
 
-run_setup_path() {
-    _write=$1
-    HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" WRITE_PATH="$_write" \
-        sh -c "$(path_probe); info(){ :; }; warn(){ :; }; setup_path" >/dev/null 2>&1
+helptext() {
+    HOME="$FAKEHOME" SHELL=/bin/zsh PREFIX="$ROOT/opt/finx" ZH="${1:-0}" \
+        sh -c "$(path_probe); info(){ :; }; warn(){ :; }; explain_path" 2>&1
 }
 
-# macOS 的 `wc -l < file` 会补前导空格，直接比较字符串会永远不相等。
-count_lines() {
-    [ -f "$1" ] || { echo 0; return; }
-    wc -l < "$1" | tr -d ' \n'
-}
+OUT=$(helptext 0)
 
-# 默认：不写。这是本版改的行为 —— 启动文件属于用户，不属于安装器。
-rm -f "$RC"
-run_setup_path 0
-if [ ! -f "$RC" ]; then
-    pass "the installer leaves the shell startup file alone by default"
+if printf '%s' "$OUT" | grep -qF "echo 'test -r $ROOT/opt/finx/bin/init.sh && . $ROOT/opt/finx/bin/init.sh' >> $RC"; then
+    pass "the installer prints a command that appends the PATH line to $RC_NAME"
 else
-    failed "the installer wrote to $RC without being asked"
+    failed "the append command is missing or malformed (rc=$RC)"
 fi
 
-run_setup_path 1
-if grep -qF "test -r $ROOT/opt/finx/bin/init.sh" "$RC" 2>/dev/null; then
-    pass "--path puts finx on PATH in $(basename "$RC")"
+if printf '%s' "$OUT" | grep -qF ". $ROOT/opt/finx/bin/init.sh"; then
+    pass "the help says how to load finx in the current shell"
 else
-    failed "--path did not write the PATH line to $RC"
+    failed "no source line for the current shell"
 fi
 
-before=$(count_lines "$RC")
-run_setup_path 1
-after=$(count_lines "$RC")
-if [ "$before" = "$after" ]; then
-    pass "rerunning does not append the PATH line twice"
+if printf '%s' "$OUT" | grep -qF -- "--path"; then
+    failed "the help still mentions a --path flag"
 else
-    failed "PATH line was appended again ($before -> $after)"
+    pass "the help does not offer to write the file for you"
 fi
 
-rm -f "$RC"
-run_setup_path 0
-if [ ! -f "$RC" ]; then
-    pass "--no-path leaves the shell configuration untouched"
+# 打印不该有任何副作用 —— 假 HOME 下连文件都不该出现。
+if [ -z "$(ls -A "$FAKEHOME" 2>/dev/null)" ]; then
+    pass "printing the help creates nothing in the fake home"
 else
-    failed "--no-path still wrote to the shell configuration"
+    failed "printing the help left files behind in $FAKEHOME"
+fi
+
+# 中文版同样要给出那条可复制的命令，而不是只说「自己配」。
+if ZHTEXT=$(helptext 1) && printf '%s' "$ZHTEXT" | grep -qF ">> $RC"; then
+    pass "the Chinese help carries the same append command"
+else
+    failed "the Chinese help has no append command"
+fi
+
+# 最后一道：源文件里不能有任何写启动文件的代码。这条是防回归，不是风格洁癖 ——
+# 一旦有人把 append 加回来，卸载就得靠字符串匹配去猜用户文件里哪一行是自己写的。
+if grep -qF -e 'WRITE_PATH' -e '--no-path' -e '>> "$rc"' "$INSTALL"; then
+    failed "install.sh still contains code that writes a shell startup file"
+else
+    pass "install.sh has no code path that writes a shell startup file"
 fi
 
 # ---- 下载源的环境变量 ----------------------------------------------------

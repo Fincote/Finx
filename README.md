@@ -67,12 +67,15 @@ After it finishes:
 . /opt/finx/bin/init.sh
 ```
 
-The installer already added it to your shell startup file. To redo that step
-later (or after changing your shell), use:
+The installer does not edit your shell startup files. It prints the one line to
+add; to make `finx` available in every new terminal, run it yourself:
 
 ```bash
-/opt/finx/bin/pathsetup.sh
+echo 'test -r /opt/finx/bin/init.sh && . /opt/finx/bin/init.sh' >> ~/.zprofile
 ```
+
+(zsh reads `~/.zprofile`; bash reads `~/.bash_profile`, or `~/.profile` when
+that does not exist; csh/tcsh read `~/.login`.)
 
 ## 🧩 Using Finx
 

@@ -24,8 +24,8 @@ curl -fsSL https://raw.githubusercontent.com/Fincote/Finx/HEAD/finx-install/inst
 带参数时，`--` 之后的都传给安装器：
 
 ```
-curl -fsSL .../finx-install/install.sh | sudo bash -s -- --no-path
 curl -fsSL .../finx-install/install.sh | sudo bash -s -- --prefix=/opt/finx
+curl -fsSL .../finx-install/install.sh | sudo bash -s -- --zh
 ```
 
 `install.sh` 就是**可以直接下载的那一个文件** —— 没有 npm 式的安装步骤，也不
@@ -260,22 +260,26 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh
 - **一个真的 Mach-O**（用 `cc` 现场编）。否则 `resign_macho` 只会打印 `re-signed 0`，
   签名分支等于从没执行过。断言要求它确实被重签，且 `codesign -v` 通过。
   机器上没有 `cc` 时明说跳过，不假装通过。
-- **`init.sh` 与 `pathsetup.sh`**。收尾提示会让用户 `source` 前者，并指向后者
-  做持久化；假种子缺了它们，那条提示就是空话。
+- **`init.sh`**。收尾提示会让用户 `source` 它；假种子缺了它，那条提示就是空话。
 
-收尾**会**把 `init.sh` 那一行写进用户的 shell 启动文件 —— 否则 `curl | bash`
-装完之后 `finx` 根本不在 PATH 上，等于断在最后一步。
+收尾**不会**写用户的 shell 启动文件。它只打印两条命令：当前 shell 立即生效的
+`. /opt/finx/bin/init.sh`，以及可以自己执行的
+`echo '…' >> ~/.zprofile`。原因与 MacWave 相同：
 
-三个安全约束：
+- 卸载要把它摘掉，只能靠字符串匹配去猜，猜错就是删掉别人的行；
+- 前缀变了或重装到别处，用户文件里留的是旧路径，安装器没法判断那一行还是
+  不是自己写的；
+- 于是升级与卸载完全不必碰用户的文件。
 
-- **按 `$SHELL` 选文件**：zsh → `.zprofile`、bash → `.bash_profile`（存在才是它，
-  否则 `.profile`）、csh/tcsh → `.cshrc`。
-- **以 root 跑时写调用者的家目录**：`curl | sudo bash` 下 `$HOME` 是 `/var/root`，
-  所以用 `$SUDO_USER` + `dscl` 解析真实家目录，写完把属主改回去。
-- **幂等**：那一行已存在就不重复追加。写失败则退回打印精确指令。
+选文件这一点仍然要小心，所以有三条约束：
 
-`--no-path` 关掉这一步。`FINX_TEST` 沙箱下**强制**关闭 —— 否则跑一次自测就会改掉
-开发者本人的 `.zprofile`；写 PATH 那条逻辑由 `selftest.sh` 用假 HOME 单独测。
+- **按登录 shell 选文件**：zsh → `~/.zprofile`、bash → `~/.bash_profile`
+  （不存在则 `~/.profile`）、csh/tcsh → `~/.login`。都是**登录** shell 读的
+  那个 —— PATH 是登录级的东西，写进 `.zshrc` 会被每个交互 shell 重复 prepend。
+- **打印用 `~` 而不是展开后的路径**：安装器可能以 root 跑，那时它的 `$HOME`
+  是 `/var/root`，而这条命令要在用户自己的 shell 里执行。
+- **只打印，不写**。`selftest.sh` 断言打印内容里含那条完整命令、假 HOME 下
+  一个文件都没多，并且源文件里不存在任何写启动文件的代码（防回归）。
 
 下载路径也真的走了一遍：多镜像那组用 `file://` URL 模拟，第一个地址指向不存在的文件，
 断言安装仍然成功、且日志里报告了那次镜像失败。

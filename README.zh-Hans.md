@@ -67,11 +67,13 @@ cd finx
 . /opt/finx/bin/init.sh
 ```
 
-安装器已经把它写进你的 shell 启动文件了。以后要重做这一步（比如换了 shell），用：
+安装器不会改你的 shell 启动文件。它会把需要执行的那一行打印出来，想让每个新终端都能用 `finx`，自己跑一次：
 
 ```bash
-/opt/finx/bin/pathsetup.sh
+echo 'test -r /opt/finx/bin/init.sh && . /opt/finx/bin/init.sh' >> ~/.zprofile
 ```
+
+（zsh 读 `~/.zprofile`；bash 读 `~/.bash_profile`，没有这个文件时读 `~/.profile`；csh/tcsh 读 `~/.login`。）
 
 ## 🧩 使用 Finx
 

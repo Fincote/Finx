@@ -179,8 +179,8 @@ step() {
 
 # 许可协议确认。
 #
-# 位置与 MacWave 一致：装完了，但还没告诉用户「装好了」，也还没碰 shell 的
-# 启动文件。先宣告成功再因为不同意而删掉，是最难看的顺序。
+# 位置与 MacWave 一致：装完了，但还没告诉用户「装好了」。先宣告成功再因为
+# 不同意而删掉，是最难看的顺序。
 #
 # 三道门，按顺序：
 #   1. --ci（或 --accept-license）→ 自动同意并说明（给脚本与自动化用）
@@ -446,11 +446,6 @@ apply_test_root() {
 
     # 沙箱里装的都是假东西，源码自举那条路不该向用户要 root
     IN_TEST_ROOT=1
-
-    # 沙箱也绝不能碰真的 shell 配置。FINX_TEST 只管前缀与 TMPDIR，而收尾
-    # 会往 $HOME 的启动文件里写 PATH —— 不拦的话，跑一次自测就改了开发者
-    # 本人的 .zprofile。写 PATH 那条逻辑由 selftest 用假 HOME 单独测。
-    NO_PATH=1
 
     if [ "${PREFIX_EXPLICIT:-0}" -eq 1 ]; then
         prefix_real=$(resolve_path "$PREFIX")
@@ -1512,7 +1507,6 @@ run_bootstrap() {
 # 的规范化放在校验里，所以参数解析阶段拿到的是用户原样写的东西。
 PREFIX=/opt/finx
 PREFIX_EXPLICIT=0
-WRITE_PATH=0
 DRY_RUN=0
 CI=0
 ACCEPT_LICENSE=0
@@ -1550,13 +1544,8 @@ Usage: install.sh [options]
                       Every step up to the first write is really performed
                       (host detection, seed probing, manifest download into a
                       temporary directory), so the report reflects this machine
-                      rather than the help text. Nothing under the prefix, no
-                      shell startup file, no licence prompt.
-  --path              add finx to PATH in your shell startup file.
-                      Default is NOT to touch it: the file belongs to you, not
-                      to this installer, and a line appended in the wrong place
-                      is hard to notice and harder to undo.
-  --no-path           the default; accepted so old invocations keep working
+                      rather than the help text. Nothing under the prefix and
+                      no licence prompt.
   --ci                no interaction: the agreement is accepted automatically.
                       Required when there is no terminal to ask (scripts, CI).
                       --accept-license is an alias that says the same thing
@@ -1616,8 +1605,6 @@ parse_args() {
             --ref)            shift; [ $# -gt 0 ] || die "--ref needs a value"; SOURCE_REF=$1 ;;
             --no-fallback)    ALLOW_FALLBACK=0 ;;
             --dry-run|--dryrun|-n) DRY_RUN=1 ;;
-            --path)           WRITE_PATH=1 ;;
-            --no-path)        WRITE_PATH=0 ;;
             --ci|--CI)        CI=1 ;;
             --accept-license) CI=1; ACCEPT_LICENSE=1 ;;
             --zh)             ZH=1 ;;
@@ -1661,26 +1648,25 @@ check_target() {
     esac
 }
 
-# 装完之后 finx 还不在 PATH 上 —— 子进程改不了父 shell 的环境变量，
-# 所以只有两条路：让用户自己 source，或写进 shell 的启动文件。
-#
-# 这里不自动写启动文件。这个安装器的典型用法是 `curl ... | bash`，
-# 在用户没看清的情况下改 .zprofile 是坏做法，而且改错了很难发现。
-# 所以：按用户的登录 shell 给出**精确到文件**的那一行，用户可以复制粘贴；
-# 想让它代劳的，指向随包安装的 pathsetup.sh。
 # ---------------------------------------------------------------------------
 # 让 finx 在当前 shell 与今后的 shell 里都能直接用
 # ---------------------------------------------------------------------------
 #
-# 脚本改不了父 shell 的 PATH —— 子进程影响不了父进程。所以能做的只有两件：
-# 写进 shell 的启动文件（持久），以及告诉用户这一句怎么 source（当次生效）。
+# 脚本改不了父 shell 的 PATH —— 子进程影响不了父进程。安装器能做的是打印
+# 两条命令：当次生效的 source，和追加进启动文件的那一行。**它自己不动手**。
 #
-# 写启动文件有个必须小心的前提：安装器可能以 root 跑（`curl | sudo bash`），
-# 那时 $HOME 是 /var/root。往 root 的 .zprofile 里加东西既没用又有害。
-# 所以先解析出「真正在用的那个用户」的家目录（$SUDO_USER + Directory
-# Services），写完之后再把属主改回去。
+# 不替用户写启动文件，理由与 MacWave 相同：
+#   - 卸载要把它摘掉，只能靠字符串匹配去猜，猜错就是删掉别人的行；
+#   - 前缀变了或重装到别处，用户文件里留的是旧路径，安装器没法判断那一行
+#     还是不是自己写的；
+#   - 升级与卸载于是完全不必碰用户的文件。
+#
+# 剩下要小心的是「选哪个文件」：安装器可能以 root 跑（`curl | sudo bash`），
+# 那时 $HOME 是 /var/root，而用户要在自己的 shell 里执行这条命令 —— 所以打印
+# 时一律用 ~，不用展开后的路径。
 
-# 正在以 root 跑时，找出调用者的家目录；否则就是 $HOME。
+# 正在以 root 跑时，找出调用者的家目录；否则就是 $HOME。只用来判断某个
+# 启动文件是否存在，不往任何地方写。
 target_home() {
     if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
         # 不能写 ~/$SUDO_USER —— 那会拿到 /var/root/xxx。要问 Directory Services。
@@ -1697,9 +1683,8 @@ target_home() {
 login_shell_name() {
     # 先问 Directory Services 要「这个人的登录 shell」，而不是看 $SHELL。
     #
-    # sudo 会把 SHELL 换成 root 的（通常是 /bin/sh），于是 zsh 用户被写进了
-    # ~/.profile —— 他们的 shell 根本不读那个文件，装完等于没配 PATH。
-    # 实测踩过。
+    # sudo 会把 SHELL 换成 root 的（通常是 /bin/sh），于是 zsh 用户被告知去改
+    # ~/.profile —— 他们的 shell 根本不读那个文件，照着做等于没配。实测踩过。
     _user=${SUDO_USER:-}
     if [ -z "$_user" ] || [ "$_user" = root ]; then
         _user=$(id -un 2>/dev/null)
@@ -1714,25 +1699,29 @@ login_shell_name() {
     basename "${SHELL:-/bin/zsh}"
 }
 
-# 该往哪个启动文件里写。zsh 用 .zprofile（登录 shell 会读），bash 优先
-# .bash_profile（存在才是它），csh 用 .cshrc。
+# 该往哪个启动文件里加。返回 ~/... 而不是展开后的路径：这条命令会原样打印
+# 给用户复制，在用户自己的 shell 里 ~ 才是对的那个家目录。
+#
+# zsh 用 .zprofile、bash 用 .bash_profile（存在才是它）、csh 用 .login ——
+# 都是**登录** shell 读的那个。PATH 是登录级的东西：写进 .zshrc 会在每个
+# 交互 shell 再 prepend 一遍，`zsh -l` 套一层就堆一次；而 .zshrc 在非交互
+# shell 里根本不读，`ssh host cmd` 与 cron 就看不见。
 shell_rc_path() {
-    home=$1
     case $(login_shell_name) in
-        zsh)  printf '%s/.zprofile\n' "$home" ;;
+        zsh)  printf '~/.zprofile\n' ;;
         bash)
-            if [ -f "$home/.bash_profile" ]; then
-                printf '%s/.bash_profile\n' "$home"
+            if [ -f "$(target_home 2>/dev/null || printf '%s' "$HOME")/.bash_profile" ]; then
+                printf '~/.bash_profile\n'
             else
-                printf '%s/.profile\n' "$home"
+                printf '~/.profile\n'
             fi ;;
-        csh|tcsh) printf '%s/.cshrc\n' "$home" ;;
-        *)    printf '%s/.profile\n' "$home" ;;
+        csh|tcsh) printf '~/.login\n' ;;
+        *)    printf '~/.profile\n' ;;
     esac
 }
 
-# 要写进去的那一行。带 test -r 是为了在 finx 被删掉之后不会让每个新
-# shell 都报一次错。
+# 建议用户加进启动文件的那一行。带 test -r 是为了在 finx 被删掉之后不会让
+# 每个新 shell 都报一次错。
 shell_source_line() {
     case $(login_shell_name) in
         csh|tcsh) printf 'test -r %s/bin/init.csh && source %s/bin/init.csh\n' "$PREFIX" "$PREFIX" ;;
@@ -1740,88 +1729,48 @@ shell_source_line() {
     esac
 }
 
-# 只打印，不写。写失败、或用户明确不要时用。
+# 用户复制一次就够的那条命令。那一行里没有单引号，所以外面套单引号是安全的。
+shell_append_line() {
+    printf "echo '%s' >> %s\n" "$(shell_source_line)" "$(shell_rc_path)"
+}
+
+# 只打印，不写。
 print_path_help() {
     printf '\n'
     if [ "${ZH:-0}" -eq 1 ]; then
         printf '在当前这个 shell 里立即生效：\n'
         printf '    . %s/bin/init.sh\n' "$PREFIX"
         printf '\n'
-        printf '要长期生效，把下面这行加进 shell 启动文件：\n'
-        printf '    %s\n' "$(shell_source_line)"
+        printf '要让每个新终端都有 finx，执行下面这一行（安装器不会替你做）：\n'
+        printf '    %s\n' "$(shell_append_line)"
         printf '\n'
-        printf '或者加 --path 重跑一次安装器，它会替你写进启动文件。\n'
+        printf '然后当前这个终端执行：\n'
+        printf '    . %s\n' "$(shell_rc_path)"
         printf '\n'
         printf '注意：finx 用自己的前缀，不会遮蔽 /sw 下可能已存在的 Fink 安装。\n'
     else
         printf 'To use finx in this shell now:\n'
         printf '    . %s/bin/init.sh\n' "$PREFIX"
         printf '\n'
-        printf 'To make it permanent, add this line to your shell startup file:\n'
-        printf '    %s\n' "$(shell_source_line)"
+        printf 'To have finx on PATH in every new terminal, run this yourself:\n'
+        printf '    %s\n' "$(shell_append_line)"
         printf '\n'
-        printf 'Or re-run this installer with --path to have it done for you.\n'
+        printf 'Then in this terminal:\n'
+        printf '    . %s\n' "$(shell_rc_path)"
         printf '\n'
         printf 'Note: finx uses its own prefix, so it never shadows a Fink\n'
         printf 'installation that may already be present under /sw.\n'
     fi
 }
 
-# 默认**不**写。要写就加 --path。
-#
-# 为什么默认反过来：那个启动文件是用户的，不是安装器的。写错位置（写成
-# .bashrc 而用户用登录 shell、或写进 root 的 .zprofile）很难被发现，而一旦
-# 写进去，用户下次打开终端就多了一行不知道哪来的东西。装在 /opt/finx 的
-# 工具不缺这一步 —— init.sh 一行就能手动 source。
-setup_path() {
+# 收尾。没有开关 —— 这里没有任何写文件的路径，只有打印。
+explain_path() {
     if dry_run; then
-        if [ "$WRITE_PATH" -eq 1 ]; then
-            plan "$(t 'add finx to PATH in' '把 finx 加进 PATH：') $(shell_rc_path "$(target_home 2>/dev/null || echo '~')")"
-        else
-            plan "$(t 'leave your shell configuration alone' '不动你的 shell 配置')"
-        fi
-        print_path_help
-        return 0
-    fi
-
-    if [ "$WRITE_PATH" -ne 1 ]; then
-        info "$(t 'leaving your shell configuration alone' '不动你的 shell 配置')"
-        print_path_help
-        return 0
-    fi
-
-    home=$(target_home) || {
-        warn "cannot determine the invoking user's home directory"
-        print_path_help
-        return 0
-    }
-
-    rc=$(shell_rc_path "$home")
-    line=$(shell_source_line)
-
-    # 幂等：已经有了就别重复追加。
-    if grep -qxF "$line" "$rc" 2>/dev/null; then
-        info "$(t 'PATH setup already present in' 'PATH 已配置在') $rc"
-    elif printf '\n# Finx: put finx on PATH\n%s\n' "$line" >> "$rc" 2>/dev/null; then
-        info "$(t 'added finx to PATH in' '已把 finx 加入 PATH：') $rc"
-        # 以 root 写进别人的文件后要把属主还回去，否则那个用户今后改不了它。
-        if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
-            chown "$SUDO_USER" "$rc" 2>/dev/null \
-                || warn "could not chown $rc back to $SUDO_USER"
-        fi
+        plan "$(t 'leaving your shell startup files alone' '不动你的 shell 启动文件')"
     else
-        warn "could not write $rc"
-        print_path_help
-        return 0
+        info "$(t 'leaving your shell startup files alone' '不动你的 shell 启动文件')"
     fi
-
-    printf '\n'
-    if [ "${ZH:-0}" -eq 1 ]; then
-        printf 'finx 已在新的终端里可用。当前这个终端需要手动加载：\n'
-    else
-        printf 'finx is now on PATH for new shells. For this one, run:\n'
-    fi
-    printf '    . %s/bin/init.sh\n' "$PREFIX"
+    print_path_help
 }
 
 main() {
@@ -1852,9 +1801,8 @@ main() {
         source) install_from_source ;;
     esac
 
-    # 装完了，但还没告诉用户「装好了」，也还没碰 shell 的启动文件。
-    # MacWave 在同一个位置问，理由一样：先宣告成功、再因为不同意而删掉，
-    # 是最难看的顺序。
+    # 装完了，但还没告诉用户「装好了」。MacWave 在同一个位置问，理由一样：
+    # 先宣告成功、再因为不同意而删掉，是最难看的顺序。
     printf '\n'
     license_gate
 
@@ -1864,7 +1812,7 @@ main() {
     else
         info "$(t 'Finx' 'Finx') ${INSTALLED_RELEASE:-unknown} $(t 'installed in' '已安装到') $PREFIX"
     fi
-    setup_path
+    explain_path
     info "$(t 'Package operations run as root, like MacPorts; finx asks for sudo itself.' \
              '装包操作以 root 运行（与 MacPorts 相同），finx 会自己调用 sudo。')"
     printf '\n'
