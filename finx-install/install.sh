@@ -1769,30 +1769,38 @@ shell_append_line() {
 
 # 只打印，不写。
 print_path_help() {
-    printf '\n'
+    echo ""
     if [ "${ZH:-0}" -eq 1 ]; then
-        printf '在当前这个 shell 里立即生效：\n'
-        printf '    . %s/bin/init.sh\n' "$PREFIX"
-        printf '\n'
-        printf '要让每个新终端都有 finx，执行下面这一行（安装器不会替你做）：\n'
-        printf '    %s\n' "$(shell_append_line)"
-        printf '\n'
-        printf '然后当前这个终端执行：\n'
-        printf '    . %s\n' "$(shell_rc_path)"
-        printf '\n'
-        printf '注意：finx 用自己的前缀，不会遮蔽 /sw 下可能已存在的 Fink 安装。\n'
+        echo "若要在当前这个 shell 里立即生效，执行下列命令："
+        echo ""
+        echo -e "${YELLOW}    . $PREFIX/bin/init.sh${RESET}"
+        echo ""
+        echo "执行下列命令将 finx 添加到 PATH："
+        echo ""
+        echo -e "${YELLOW}    $(shell_append_line)${RESET}"
+        echo ""
+        echo "然后执行："
+        echo ""
+        echo -e "${YELLOW}    . $(shell_rc_path)${RESET}"
+        echo ""
+        echo "注意：finx 用自己的前缀，不会遮蔽 /sw 下可能已存在的 Fink 安装。"
+        echo ""
     else
-        printf 'To use finx in this shell now:\n'
-        printf '    . %s/bin/init.sh\n' "$PREFIX"
-        printf '\n'
-        printf 'To have finx on PATH in every new terminal, run this yourself:\n'
-        printf '    %s\n' "$(shell_append_line)"
-        printf '\n'
-        printf 'Then in this terminal:\n'
-        printf '    . %s\n' "$(shell_rc_path)"
-        printf '\n'
-        printf 'Note: finx uses its own prefix, so it never shadows a Fink\n'
-        printf 'installation that may already be present under /sw.\n'
+        echo "To use finx in this shell now:"
+        echo ""
+        echo -e "${YELLOW}    . $PREFIX/bin/init.sh${RESET}"
+        echo ""
+        echo "To add finx to PATH in every new terminal, run:"
+        echo ""
+        echo -e "${YELLOW}    $(shell_append_line)${RESET}"
+        echo ""
+        echo "Then run:"
+        echo ""
+        echo -e "${YELLOW}    . $(shell_rc_path)${RESET}"
+        echo ""
+        echo "Note: finx uses its own prefix, so it never shadows a Fink"
+        echo "installation that may already be present under /sw."
+        echo ""
     fi
 }
 
@@ -1860,13 +1868,13 @@ main() {
         info "$(t 'Finx' 'Finx') ${INSTALLED_RELEASE:-unknown} $(t 'installed in' '已安装到') $PREFIX"
     fi
     explain_path
-    info "$(t 'Package operations run as root, like MacPorts; finx asks for sudo itself.' \
-             '装包操作以 root 运行（与 MacPorts 相同），finx 会自己调用 sudo。')"
+    printf '%s\n' "$(t 'Package operations run as root, like MacPorts; finx asks for sudo itself.' \
+                      '装包操作以 root 运行（与 MacPorts 相同），finx 会自己调用 sudo。')"
     printf '\n'
-    info "$(t 'Read LICENSE and COPYING again any time, in English or in Chinese:' \
-             'LICENSE 与 COPYING 随时可再读，中英各一版：')"
-    info "$(t '  https://finx.sh   the two file names at the bottom open them.' \
-             '  https://finx.sh   点开页面底部那两个文件名即可。')"
+    printf '%s\n' "$(t 'Read LICENSE and COPYING again any time, in English or in Chinese:' \
+                      'LICENSE 与 COPYING 随时可再读，中英各一版：')"
+    printf '%s\n' "$(t 'https://finx.sh   the two file names at the bottom open them.' \
+                      'https://finx.sh   点开页面底部那两个文件名即可。')"
 }
 
 # 种子优先，取不到再退回源码。显式给了 --seed-dir / --manifest-url 时不回落，
