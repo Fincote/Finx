@@ -1,3 +1,4 @@
+# -*- mode: Perl; tab-width: 4; -*-
 #
 # Fink - a package manager that downloads source and installs it
 # Copyright (c) 2026 Sha0huaZhang <zsh@finx.sh>
