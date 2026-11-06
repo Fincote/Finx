@@ -29,6 +29,12 @@ use lib "@BASEPATH@/lib/perl5";	# Be careful to use the right libs
 # Load Fink
 use Fink;
 
+# Ctrl+C 的处理（见 Fink::CLI 的「中断」一节）：句柄只 die 一个固定字符串，
+# 捕获它的地方打一行「已取消」并以 130 退出。装在解析选项之前 —— 否则在
+# `finx --help`、拼写检查这些路径上按 Ctrl+C 仍然是一个没有解释的提示符。
+require Fink::CLI;
+Fink::CLI::install_interrupt_handler();
+
 # read the options
 require Fink::Config;
 my @args_left = Fink::Config->parse_options(@ARGV);
@@ -36,7 +42,17 @@ my @args_left = Fink::Config->parse_options(@ARGV);
 # create the command-processing engine
 require Fink::Engine;
 my $engine = Fink::Engine->new_with_config($Fink::Config::config);
-exit $engine->process(\@ARGV, @args_left);
+
+# 走到这里的中断，都是 Engine 自己没接住的（例如它已经在 scanpackages 里）。
+my $retval;
+{
+	eval { $retval = $engine->process(\@ARGV, @args_left); };
+	if (my $err = $@) {
+		exit Fink::CLI::report_interrupt() if Fink::CLI::interrupted($err);
+		die $err;   # 别的错误原样抛出去
+	}
+}
+exit $retval;
 
 # vim: ts=4 sw=4 noet
 

@@ -135,6 +135,7 @@ test/Base/param_boolean.t
 test/CLI/capture.t
 test/CLI/color_tokens.t
 test/CLI/diagnostics.t
+test/CLI/interrupt.t
 test/CLI/mirror.t
 test/Command/cat.t
 test/Command/chowname.t

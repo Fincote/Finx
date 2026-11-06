@@ -46,7 +46,9 @@ BEGIN {
 					  &prompt &prompt_boolean &prompt_selection
 					  &print_optionlist
 					  &get_term_width &should_skip_prompt
-					  &word_wrap &capture);
+					  &word_wrap &capture
+					  &install_interrupt_handler &report_interrupt
+					  &interrupted);
 }
 our @EXPORT_OK;
 
@@ -230,6 +232,51 @@ sub die_breaking {
 	my $msg = shift;
 	print_breaking_stderr $msg;
 	die "\n";
+}
+
+=item interruption (Ctrl+C)
+
+  Fink::CLI::install_interrupt_handler();     # once, at process start
+  ...
+  exit Fink::CLI::report_interrupt();         # when an interrupt is caught
+
+The default SIGINT handler ends perl immediately and leaves nothing on the
+screen: the user is left with a half-built directory and an unexplained prompt
+that looks exactly like a finished command. A shell script can tell the two
+apart from C<$?> (130); a person cannot.
+
+So: install one handler that does exactly one thing (die with a fixed string),
+and where that string is caught, print one line and exit 130 (128 + SIGINT).
+Same shape as MacWave's wave.py.
+
+C<$INTERRUPT> is that fixed string. Do not change its wording:
+C<Fink::Scanpackages> matches /User interrupt/ to tell "the user stopped this"
+apart from a real error it should downgrade to a warning.
+
+=cut
+
+our $INTERRUPT = "User interrupt.\n";
+
+sub install_interrupt_handler {
+	$SIG{INT} = sub { die $INTERRUPT };
+	return 1;
+}
+
+# $@ 是不是那次中断？调用方不必知道 $INTERRUPT 的内容，也不必把包变量抄到
+# 词法变量里（只在程序里出现一次的包变量会被 `use warnings` 当成笔误报出来，
+# 那条警告会打在每次运行的 stderr 上）。
+sub interrupted {
+	my $err = shift;
+	return defined $err && $err =~ /^\Q$INTERRUPT\E/;
+}
+
+# 打一句「已取消」并返回要用的退出码。放在 STDERR：它不是命令的正常输出，
+# `finx install > log` 的人也该看到。
+sub report_interrupt {
+	my $mark = eval { require Fink::Color; Fink::Color::prog_mark() };
+	$mark = '🧩' unless defined $mark;
+	print_breaking_stderr("$mark Operation cancelled by user.");
+	return 130;
 }
 
 =item rejoin_text

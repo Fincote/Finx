@@ -202,6 +202,41 @@ FINX_COLOR=1 perl scripts/color_preview.pl | cat -v            # 看真实转义
 
 ---
 
+### Ctrl+C 也是一条消息
+
+默认的 SIGINT 作用在 perl 上是「当场结束」：屏幕上什么都不留，用户看到的是编译
+到一半的目录和一个没有解释的提示符 —— 与「命令跑完了」长得一样。Shell 脚本能靠
+`$?` 分辨（130），人不能。
+
+所以统一成一句话加一个退出码，与 MacWave 的 `wave.py` 一致：
+
+```
+$ finx install ncdu
+   ...
+^C
+🧩 Operation cancelled by user.        ← 走 STDERR
+$ echo $?
+130
+```
+
+实现分三层，缺一层就会漏：
+
+| 层 | 做什么 |
+| --- | --- |
+| `finx.in`（进程开头） | `Fink::CLI::install_interrupt_handler()` —— 只做一件事：`die "User interrupt.\n"` |
+| `Engine::process`（命令执行块） | 外面本来就有 `local $SIG{INT}`；捕获后 `Fink::CLI::interrupted($@)` 判一下，是中断就 `exit report_interrupt()` |
+| `finx.in`（兜底） | Engine 没接住的（例如已经在 `scanpackages` 里）由顶层的 `eval` 接住，同样 `exit 130` |
+
+`interrupted()` 存在的原因：`$@` 里那个字符串要在三处比较，而**只在程序里出现一次
+的包变量**会被 `use warnings` 当成笔误，打一条 `Name "…" used only once` 到每次
+运行的 stderr 上。
+
+中断**不算失败**：不走 `Failed:` 分支，也不触发 `finkDoneFailed` 通知 —— 用户主动
+停下不该被报成错误。`$INTERRUPT` 的措辞也别改，`Fink::Scanpackages` 用
+`/User interrupt/` 区分「用户停的」与「真出错，可以降级成警告」。
+
+---
+
 ## 八、什么时候不上色
 
 输出不是终端（重定向、管道、CI 日志）时，标记会被**删掉**而不是留下转义码 —— 否则贴进 issue 的日志全是 `^[[33m`，`grep` 也匹配不上。

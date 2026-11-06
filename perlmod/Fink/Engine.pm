@@ -330,6 +330,13 @@ sub process {
 	my $proc_rc = { '$@' => $@, '$?' => $? };  # save for later
 	my $retval = 0;
 
+	# Ctrl+C 不是失败：打一句「已取消」，以 130 退出（128 + SIGINT），与
+	# MacWave 的 wave.py 一致。放在这里而不是让它走下面的 Failed 分支 ——
+	# 用户主动停下，不该被报成 ERROR，更不该触发失败通知。
+	if (Fink::CLI::interrupted($proc_rc->{'$@'})) {
+		exit Fink::CLI::report_interrupt();
+	}
+
 	# Scan packages before we print any error message
 	Fink::PkgVersion::scanpackages();
 
