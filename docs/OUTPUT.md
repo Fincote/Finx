@@ -180,7 +180,65 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 八、还没上色的地方（知道就行，别以为是 bug）
+## 八、打错命令 / 打错旗标
+
+两条路，同一个形状（照 MacWave 的 `print_error_help`），渲染都在 `Fink::Help`：
+
+| 场合 | 入口 | 渲染 |
+| --- | --- | --- |
+| 子命令名打错 | `Engine::process` 的 `_unknown_command_message` | `Fink::Help::unknown_command_message` |
+| 旗标打错 | `Services::get_options` 的 `_unknown_option_exit` | `Fink::Help::unknown_option_message` |
+
+两段提示都由三部分组成：**回显用户真实输入的那一行**、用 `^` 指住出错的词、
+给改法（猜得到才给）。猜不到也照样回显并指出是哪个词 —— 那是唯一的定位信息。
+**任何情况下都不打印整篇帮助**：几十行会把有用的两行冲掉，想知道全部命令的人
+自己会敲 `finx -h`。
+
+```
+$ finx instll jq
+finx: Error: Unknown command or argument.
+
+   finx instll jq
+        ^^^^^^
+
+finx: Did you mean: finx install jq
+
+   instll is not a command. The one you want is install.
+
+   For the full list: finx -h
+```
+
+```
+$ finx mirror --jsons=1
+finx: Error: illegal option --jsons for `finx mirror`
+
+   finx mirror --jsons=1
+               ^^^^^^^
+
+   Next: Did you mean --json?
+
+   finx mirror --help lists the flags this command accepts
+```
+
+颜色与普通消息同一套 `%PALETTE`：`Error:` 行与出错的那个词、脱字符用 `error`，
+改法里的正确写法用 `ok`，指路用的命令名用 `cmd`。旗标错误**只给旗标名**上色和
+打 `^`，`=12s` 的值部分留着原样 —— 错的是名字，不是值。
+
+回显用的是用户真实输入（含全局旗标，如 `finx -v instll`），取自
+`Fink::Config` 的 `_ARGV_stack`；拿不到时才退化成「命令 + 参数」。
+
+`^` 的缩进按**未上色**的长度算（逃逸码零宽但计入 `length`），这条有测试钉着
+（`test/Engine/unknown_command.t`、`test/Engine/unknown_option.t`）。
+
+### 一个没改的取舍：Getopt 的前缀缩写仍然有效
+
+`Getopt::Long` 默认允许无歧义缩写，所以 `finx --verbos` 会被当成 `--verbose`，
+轮不到「打错旗标」这条提示。要严格就加 `no_auto_abbrev`，但那会让现存脚本里
+的缩写失效，所以没动。
+
+---
+
+## 九、还没上色的地方（知道就行，别以为是 bug）
 
 | 位置 | 为什么没有 |
 | --- | --- |
@@ -195,7 +253,7 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 九、一次改动的检查清单
+## 十、一次改动的检查清单
 
 ```sh
 perl scripts/color_preview.pl | cat        # 关闭时无转义码

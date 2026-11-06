@@ -2277,13 +2277,22 @@ sub get_options {
 	my $die = Fink::Help::paint("finx$command: unknown option", 'error') . "\n"
 		. "Type '" . Fink::Help::paint("finx$command --help", 'cmd')
 		. "' for more information.\n";
+
+	# Getopt 自己会往 STDERR 打印 "Unknown option: xxx"。那句话没有上下文、也
+	# 不告诉你该敲什么，所以先收起来：知道是哪个旗标打错之后，交给
+	# _unknown_option_exit 打一份带命令回显和脱字符的提示。
+	my @getopt_warnings;
+	my $parsed = 1;
 	{
 		local @ARGV = @$args;
 		Getopt::Long::Configure(qw(bundling ignore_case require_order no_getopt_compat prefix_pattern=(--|-)));
-		GetOptions( map { @$_{qw(spec dest)} } @optitems )
-			or die $die;
-		@$args = @ARGV;
+		local $SIG{__WARN__} = sub { push @getopt_warnings, $_[0] };
+		$parsed = GetOptions( map { @$_{qw(spec dest)} } @optitems );
+		@$args = @ARGV if $parsed;
 	}
+	_unknown_option_exit($command, $args, \@optitems, \@getopt_warnings)
+		unless $parsed;
+	die $die unless $parsed;
 
 	my $val = &{$optional{validate}}();
 	unless ($wanthelp || $val == $VALIDATE_HELP) {
@@ -2295,6 +2304,48 @@ sub get_options {
 		@optional{qw(helpformat optwidth)});
 
 	exit 0;
+}
+
+# 打错旗标时的整段提示，形状与打错命令时一致（渲染都在 Fink::Help）。
+#
+# 只在 Getopt 报的是 "Unknown option" 时给这份提示；其它失败（缺少参数、缩写
+# 有歧义）原样走旧的 die —— 那些话 Getopt 说得已经够清楚，硬改成「旗标拼错」
+# 反而误导。
+#
+# @$args 此时仍是用户的原始输入：上面只在解析成功时才回写。
+sub _unknown_option_exit {
+	my ($command, $args, $optitems, $warnings) = @_;
+
+	my ($bad) = map { /Unknown option:\s*(\S+)/ ? $1 : () } @$warnings;
+	return unless defined $bad;
+
+	# 出事的那一整段（--connect-time=12s），值部分也要原样回显。
+	my $token;
+	foreach my $word (@$args) {
+		if ($word =~ /^--/ && lc $word =~ /^--\Q$bad\E(=|$)/i) { $token = $word; last }
+		if ($word =~ /^-([^-].*)/ && index(lc $1, lc $bad) >= 0) { $token = $word; last }
+	}
+	$token = "--$bad" unless defined $token;
+
+	# 候选：本条命令认的全部旗标，长写法带 --、单字母带 -
+	my @candidates;
+	foreach my $opt (@$optitems) {
+		push @candidates, map {
+			length($_) == 1 ? "-$_" : "--$_"
+		} @{ $opt->{names} };
+	}
+	my $near = Fink::Help::nearest_name(
+		length($bad) > 1 ? "--$bad" : "-$bad", @candidates);
+
+	# 回显用用户真实输入（含全局旗标），拿不到时退化成命令 + 参数。
+	my $argv = ['finx', ($command =~ /\S/ ? $command : ()), @$args];
+	my $stack = eval { Fink::Config::get_option('_ARGV_stack') };
+	if ($stack && ref $stack eq 'ARRAY' && @$stack) {
+		$argv = ['finx', @{ $stack->[-1] }];
+	}
+
+	print STDERR Fink::Help::unknown_option_message($command, $argv, $token, $near);
+	exit 1;
 }
 
 =item find_subpackages

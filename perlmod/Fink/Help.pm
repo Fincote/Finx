@@ -32,7 +32,9 @@ use Fink::CLI qw(&word_wrap &get_term_width);
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(&color_enabled &paint &paint_label &option_usage
-					&align_option_text &option_help &expand_help &new_option);
+					&align_option_text &option_help &expand_help &new_option
+					&edit_distance &nearest_name
+					&unknown_command_message &unknown_option_message);
 
 =head1 NAME
 
@@ -360,6 +362,191 @@ sub expand_help {
 	}
 
 	return $helpformat;
+}
+
+# ---------------------------------------------------------------------------
+# 打错命令 / 打错旗标时的提示
+# ---------------------------------------------------------------------------
+#
+# 形状照 MacWave 的 lib/help.py（print_error_help）：先回显**用户真实输入的
+# 那一行**，用 ^ 指住出错的那个词，再给改法。两件事与「猜不猜得到」无关：
+#
+#   1. 回显命令行。猜得到时它让人看清错的是哪个词；猜不到时它是唯一的定位信息。
+#   2. **绝不打印整篇帮助**。那几十行会在终端里滚过一整屏，把真正有用的两行
+#      （错在哪个词、该敲什么）推到看不见的地方 —— 想知道全部命令的人自己会敲
+#      `finx -h`。所以这里只留一条指向它的提示。
+#
+# 颜色与普通消息同一套：出错的那个词、脱字符、Error 行用 error，改法里的正确
+# 写法用 ok，指路用的命令名用 cmd。
+
+# 编辑距离，两行滚动数组。输入都是命令名或旗标名，长度不超过二十几个字符。
+sub edit_distance {
+	my ($a, $b) = @_;
+	return length($a) > length($b)
+		? edit_distance($b, $a) : _edit_distance_into($a, $b);
+}
+
+sub _edit_distance_into {
+	my ($a, $b) = @_;
+	# $a 是短的那个，只为了少分配一行
+	my @prev = (0 .. length $b);
+	foreach my $i (1 .. length $a) {
+		my @cur = ($i);
+		foreach my $j (1 .. length $b) {
+			my $cost = substr($a, $i - 1, 1) eq substr($b, $j - 1, 1) ? 0 : 1;
+			my $v = $prev[$j] + 1;
+			$v = $cur[$j - 1] + 1 if $cur[$j - 1] + 1 < $v;
+			$v = $prev[$j - 1] + $cost if $prev[$j - 1] + $cost < $v;
+			$cur[$j] = $v;
+		}
+		@prev = @cur;
+	}
+	return $prev[length $b];
+}
+
+# 从候选里挑一个最像的。只在两种情况下认：前缀关系（instal / install、
+# --connect-time / --connect-timeout），或者编辑距离不超过 2（instll / install）。
+# 差得远就不猜 —— 猜错比不猜更糟，用户照着改还会再撞一次。
+sub nearest_name {
+	my ($word, @candidates) = @_;
+	return undef if !defined $word || length($word) < 3;
+
+	my ($best, $best_score);
+	foreach my $name (@candidates) {
+		my $score;
+		if (index($name, $word) == 0 || index($word, $name) == 0) {
+			$score = 0;
+		} elsif (abs(length($name) - length($word)) <= 2) {
+			$score = edit_distance($word, $name);
+			next if $score > 2;
+		} else {
+			next;
+		}
+		if (!defined $best_score
+			|| $score < $best_score
+			|| ($score == $best_score && length($name) < length($best))) {
+			($best, $best_score) = ($name, $score);
+		}
+	}
+	return $best;
+}
+
+# 回显命令行 + 脱字符行。
+#
+#   $indent     行首缩进
+#   \@words     要回显的词
+#   $bad        出错的下标
+#   $span       标红的长度（只标旗标名时用，值部分留着原样）；undef = 整个词
+#
+# 返回两行（都以换行结尾）。缩进与脱字符都按**未上色**的长度算 —— 逃逸码零宽
+# 但计入 length，混进来 ^ 就会错位。
+sub _replay_and_caret {
+	my ($indent, $words, $bad, $span) = @_;
+	my @shown;
+	foreach my $i (0 .. $#$words) {
+		my $word = $words->[$i];
+		if ($i != $bad) {
+			push @shown, $word;
+			next;
+		}
+		if (defined $span) {
+			my ($name, $rest) = $word =~ /^([^=]*)(=.*)?$/;
+			push @shown, paint($name, 'error') . (defined $rest ? $rest : '');
+		} else {
+			push @shown, paint($word, 'error');
+		}
+	}
+
+	my $before = $indent . join(' ', @{$words}[0 .. $bad - 1]);
+	$before .= ' ' if $bad > 0;
+	my $width = defined $span ? $span : length($words->[$bad]);
+
+	return $indent . join(' ', @shown) . "\n"
+		. paint((' ' x length($before)) . ('^' x $width), 'error') . "\n";
+}
+
+=item unknown_command_message
+
+  my $text = unknown_command_message(\@argv, $cmd, $near);
+
+打错子命令时的整段提示。C<\@argv> 是用户真实输入（不含程序名），C<$cmd> 是
+被当成命令的那个词，C<$near> 是猜出来的正确命令（猜不到传 undef）。
+
+=cut
+
+sub unknown_command_message {
+	my ($argv, $cmd, $near) = @_;
+	my @words = @{ $argv || [$cmd] };
+	$cmd = '' unless defined $cmd;
+
+	# 指住用户当成命令的那个词。找不到（比如 argv 与 $cmd 对不上）就退回到
+	# 第一个不以 - 开头的词，至少还能定位。
+	my $bad;
+	foreach my $i (0 .. $#words) {
+		if ($words[$i] eq $cmd) { $bad = $i; last }
+	}
+	if (!defined $bad) {
+		foreach my $i (0 .. $#words) {
+			if ($words[$i] !~ /^-/) { $bad = $i; last }
+		}
+	}
+
+	my $text = paint('finx: Error: Unknown command or argument.', 'error') . "\n\n";
+	$text .= _replay_and_caret('   ', \@words, $bad) . "\n" if defined $bad;
+
+	if (defined $near && length $near) {
+		my @fixed = @words;
+		$fixed[$bad] = $near if defined $bad;
+		my $shown = join ' ', map {
+			$_ eq $near ? paint($_, 'ok') : $_
+		} @fixed;
+		$text .= paint('finx: Did you mean:', 'bold') . " $shown\n\n";
+		$text .= '   ' . paint($cmd, 'warn') . ' is not a command. '
+			. 'The one you want is ' . paint($near, 'ok') . ".\n\n";
+	}
+	$text .= '   For the full list: ' . paint('finx -h', 'cmd') . "\n";
+	return $text;
+}
+
+=item unknown_option_message
+
+  my $text = unknown_option_message($command, \@argv, $token, $near);
+
+参数打错时的整段提示。C<$command> 是当前子命令（全局选项时为空串），
+C<\@argv> 是用户真实输入（不含程序名），C<$token> 出事的那一整段
+（如 C<--connect-time=12s>），C<$near> 是猜出来的旗标（猜不到传 undef）。
+
+只给旗标名上色与打 ^，值部分（C<=12s>）留着原样 —— 让人一眼看出错的是名字，
+不是值。
+=cut
+
+sub unknown_option_message {
+	my ($command, $argv, $token, $near) = @_;
+	my @words = @{ $argv || [] };
+	my $cmd = defined $command ? $command : '';
+	$cmd =~ s/^\s+//;
+
+	my $bad;
+	foreach my $i (0 .. $#words) {
+		if ($words[$i] eq $token) { $bad = $i; last }
+	}
+	my ($span) = $token =~ /^([^=]*)/;
+	$span = length $token unless defined $span && length $span;
+
+	my $for = length $cmd ? "for `finx $cmd`" : 'for `finx`';
+	my $text = paint("finx: Error: illegal option $span $for", 'error')
+		. "\n\n";
+	$text .= _replay_and_caret('   ', \@words, $bad, length $span)
+		. "\n" if defined $bad;
+
+	if (defined $near && length $near) {
+		$text .= '   ' . paint('Next:', 'bold')
+			. ' Did you mean ' . paint($near, 'ok') . "?\n\n";
+	}
+	$text .= '   ' . paint(length $cmd ? "finx $cmd --help" : 'finx --help', 'cmd')
+		. ' lists the flags ' . (length $cmd ? 'this command' : 'finx')
+		. " accepts\n";
+	return $text;
 }
 
 1;
