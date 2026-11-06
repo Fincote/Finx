@@ -54,28 +54,10 @@ use strict;
 use warnings;
 
 # 上游 vendored 的文件：不是我们写的，改缩进等于把将来的合并变成一片冲突。
-#
-# update/ltmain.sh 是 1996-1999 年的 FSF libtool 脚本，2 空格缩进。它一旦有了
-# shebang 就会被这里按 shell 规则检查（判定只看 shebang），于是报三千多处违规。
-# 试过 `--fix`：结果是**空白合法、结构错乱** —— 例如
-#
-#       for arg
-#       do
-#     case "$arg" in
-#     -c)
-#         mode=compile
-#     ...
-#       done
-#
-# 循环体缩进比 for 还浅。它按「层」换算时把 case/esac 与 for/do 算成了同一层。
-# 手改 4054 行 FSF 代码没有收益，所以和它的三个兄弟一起排除。
-#
-# 想让它参与检查，先决定「按上游原样保留」还是「当成我们自己的文件重排」。
 my %EXCLUDED = map { $_ => 1 } qw(
 	update/config.guess
 	update/config.sub
 	update/ltconfig
-	update/ltmain.sh
 	perlmod/Fink/Tie/IxHash.pm
 	perlmod/Fink/Text/DelimMatch.pm
 	perlmod/Fink/Text/ParseWords.pm

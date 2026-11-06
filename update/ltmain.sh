@@ -1,4 +1,3 @@
-#!/bin/bash
 # ltmain.sh - Provide generalized library-building support services.
 # NOTE: Changing this file will not affect anything until you rerun ltconfig.
 #
