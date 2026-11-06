@@ -230,29 +230,32 @@ resolve_method()   决定走种子还是源码
 | `STYLE` | 2003 年的 Perl 代码风格原文 | 是（历史文档） |
 | `NEWS` / `AUTHORS` / `COPYING` / `COPYING-zh` / `LICENSE` / `LICENSE-zh` / `README*` / `INSTALL*` / `USAGE*` / `TODO` | 历史文档与许可文件，随包分发。`*-zh` 是中文参考译本，法律效力以英文原文为准 | 是 |
 
-### `perlmod/`：全部 Perl 模块（42 个文件）
+### `perlmod/`：全部 Perl 模块（48 个文件）
 
 装到 `/opt/finx/lib/perl5/`。按职责分：
 
 | 模块 | 行数 | 干什么 |
 | --- | --- | --- |
-| `PkgVersion.pm` | 6364 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
-| `Engine.pm` | 3265 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
-| `Services.pm` | 2871 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁 |
-| `Validation.pm` | 2556 | `.info` 字段校验（含"不许硬编码前缀"那条） |
+| `PkgVersion.pm` | 6386 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
+| `Engine.pm` | 3522 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
+| `Services.pm` | 2701 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
+| `Validation.pm` | 2557 | `.info` 字段校验（含"不许硬编码前缀"那条） |
 | `VirtPackage.pm` | 2484 | 虚拟包：把系统能力（SDK、perl、openssl…）伪装成包 |
 | `Package.pm` | 1363 | 所有包的集合：索引、查找、`Essential` 判定 |
-| `Config.pm` | 1219 | `finx.conf` 读写 + 路径推导（`$basepath`/`$buildpath`/`$dbpath`…） |
-| `Bootstrap.pm` | 1177 | 自举三阶段、`check_host`、打 tar、`inject_package` |
+| `Config.pm` | 1257 | `finx.conf` 读写 + 路径推导（`$basepath`/`$buildpath`/`$dbpath`…） |
+| `Bootstrap.pm` | 1195 | 自举三阶段、`check_host`、打 tar、`inject_package` |
 | `SysState.pm` | 997 | 探测系统状态（架构、SDK 路径等） |
-| `CLI.pm` | 761 | 与用户交互：提问、进度条、着色输出 |
-| `Configure.pm` | 767 | `finx configure` 的那一串问题 |
+| `CLI.pm` | 770 | 与用户交互：提问、进度条、`print_breaking`（带颜色标记时转入 `Fink::Color` 折行） |
+| `Configure.pm` | 768 | `finx configure` 的那一串问题 |
 | `Scanpackages.pm` | 671 | 纯 Perl 的 `.deb` 扫描器，生成 `Packages` |
 | `SelfUpdate.pm` | 553 | 更新包描述树（命令分发到 `SelfUpdate/*.pm`） |
 | `NetAccess.pm` | 475 | 下载（curl/axel/wget 后端） |
 | `Mirror.pm` | 434 | 镜像列表解析：`mirror:gnu:` 这类写法展开成真 URL |
 | `Command.pm` | 417 | 用 Perl 模拟 `cat`/`cp`/`mkdir_p`/`rm_rf` 等 |
+| `Help.pm` | 365 | `--help` 的渲染：展开 `helpformat` 模板、折行、按角色上色 |
 | `Notify.pm` | 355 | 带外通知（Growl / Syslog / XTerm / Say） |
+| `Color.pm` | 341 | 唯一的调色板 `%PALETTE`，以及字符串里的 `${name}` 标记 |
+| `Domains.pm` | 331 | 所有对外地址的唯一来源（`FINX_*_DOMAIN` → 内置默认） |
 | `Base.pm` | 286 | 最基础的参数处理基类 |
 | `Checksum.pm` | 253 | MD5 / SHA1 / SHA256 |
 | `Finally.pm` | 226 | 作用域结束自动清理（类似 RAII） |
@@ -277,7 +280,7 @@ resolve_method()   决定走种子还是源码
 
 **注意：这个目录不进载荷 tar**（被 `MANIFEST.SKIP` 的 `^10\.[^/]*/` 排除），它是运行期 `cp` 到 `/opt/finx/finx/dists/...` 的。
 
-### `mirror/`：镜像列表（25 个文件）
+### `mirror/`：镜像列表（18 个文件）
 
 `mirror:gnu:`、`mirror:sourceforge:` 这类写法在这里展开成候选 URL 列表。同样不进载荷 tar。
 

@@ -31,6 +31,7 @@ use Fink::Services qw(&latest_version &sort_versions
 					  &call_queue_clear &call_queue_add
 					  &dpkg_lockwait &aptget_lockwait &store_rename &get_options
 					  $VALIDATE_HELP &apt_available &ensure_fink_bld &select_legal_path);
+use Fink::Help;
 use Fink::CLI qw(&print_breaking &print_breaking_stderr
 				 &prompt_boolean &prompt_selection
 				 &get_term_width &die_breaking);
