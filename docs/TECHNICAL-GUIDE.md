@@ -654,7 +654,7 @@ phase one 下载与 phase two 编译 —— 包括 dpkg 1.19.7 与 tar 1.29 这�
 
 ## 九、测试
 
-套件在 `test/`，Test::Harness 驱动。**基线：55 个测试文件、1176 项断言。**
+套件在 `test/`，Test::Harness 驱动。**基线：56 个测试文件、1192 项断言。**
 
 ```
 make test        # manifest_check → test_setup → 跑完 test/ 全部测试
@@ -711,7 +711,7 @@ FINX_TEST=/tmp/finx-check ./finx-install/selftest.sh     # 指定根，保留结
 | 1 | `bash -n` 全部 `git ls-files '*.sh'` | 引号或 `if/fi` 不配对 |
 | 2 | `make format` | 缩进不合 `STYLE` |
 | 3 | `make test_setup` + `perl -c` 全部模块 | 模块有语法错（必须先 test_setup，否则报的是「找不到模块」） |
-| 4 | `make test` | 1176 项断言里有失败 |
+| 4 | `make test` | 1192 项断言里有失败 |
 | 5 | `./finx-install/selftest.sh` | 安装器沙箱的断言里有一条不成立 |
 | 6 | `git status --porcelain` 必须为空 | 有生成物没进 `.gitignore`：它会被误提交，或让下次 `manifest_check` 莫名变红 |
 

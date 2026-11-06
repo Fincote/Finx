@@ -117,6 +117,7 @@ scripts/color_preview.pl
 scripts/fetch_sources.sh
 scripts/format_check.pl
 scripts/help_preview.pl
+scripts/install_preview.pl
 scripts/license_check.sh
 scripts/make_seed.sh
 scripts/payload_test.sh
@@ -163,6 +164,7 @@ test/Links/links.t
 test/FinkVersion/exports.t
 test/FinkVersion/version.t
 test/Help/help_colors.t
+test/Install/preview_matches_source.t
 test/Mirror/exports.t
 test/Notify/exports.t
 test/Package/duplicate_fullname_trees/epoch1/finkinfo/duplicate-fullname.info

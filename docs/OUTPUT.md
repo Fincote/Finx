@@ -135,7 +135,32 @@ FINX_COLOR=1 perl scripts/help_preview.pl --width 60 | cat -v
 
 ---
 
-## 六、什么时候不上色
+## 六、一眼看完安装流程的输出
+
+改「安装时说什么」最烦的是每一步都要真装一遍才知道好不好看。`scripts/install_preview.pl`
+把 `finx install <pkg>` 的输出**按顺序重放**：不联网、不提权、不写文件。
+
+```sh
+perl scripts/install_preview.pl                # 按终端宽度重放
+perl scripts/install_preview.pl --width 60     # 调折行用这个
+perl scripts/install_preview.pl --fail         # 追加「编译失败」那一段
+FINX_COLOR=1 perl scripts/install_preview.pl | cat -v   # 看真实转义码
+```
+
+它复用的是真实的 `print_breaking` 与 `${name}` 标记，所以折行、缩进、颜色与真机
+一致；编出来的只是「命令本身」（`tar` / `patch` / `make` / `dpkg`）—— 那一层是
+子进程输出，本来就不归我们管。
+
+脚本里的文案是抄来的，靠 `test/Install/preview_matches_source.t` 两头钉住：关键词
+既要在 `Engine.pm` / `PkgVersion.pm` / `Services.pm` 里，也要在预览输出里。改了真
+代码而没同步预览，测试会红。
+
+想看**真实**的计划（不是重放），用 `finx install --dry-run <pkg>`：它会解依赖并打印
+摘要，然后停下。
+
+---
+
+## 七、什么时候不上色
 
 输出不是终端（重定向、管道、CI 日志）时，标记会被**删掉**而不是留下转义码 —— 否则贴进 issue 的日志全是 `^[[33m`，`grep` 也匹配不上。
 
@@ -155,7 +180,7 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 七、还没上色的地方（知道就行，别以为是 bug）
+## 八、还没上色的地方（知道就行，别以为是 bug）
 
 | 位置 | 为什么没有 |
 | --- | --- |
@@ -170,11 +195,12 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 八、一次改动的检查清单
+## 九、一次改动的检查清单
 
 ```sh
 perl scripts/color_preview.pl | cat        # 关闭时无转义码
 perl scripts/help_preview.pl --width 60    # 帮助的排版/折行
+perl scripts/install_preview.pl --fail     # 安装流程的全部输出
 FINX_COLOR=1 perl scripts/color_preview.pl | cat -v   # 打开时颜色对得上
 make test                                  # 含 test/CLI/color_tokens.t
 make format                                # Perl 用 tab，shell 用 4 空格
