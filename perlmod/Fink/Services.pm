@@ -2271,71 +2271,25 @@ the future
 
 our ($VALIDATE_OK, $VALIDATE_HELP, $VALIDATE_ERROR) = 0..20;
 
-# ---- 帮助文本的颜色 --------------------------------------------------------
+# ---- 文本颜色 --------------------------------------------------------------
 #
-# 只在「真的有人在看」时上色：输出不是终端（被重定向到文件或管道），或者
-# NO_COLOR 被设置，就一个字都不加。这不是洁癖 —— 逃逸码混进日志以后，用户
-# 贴报错求助时会变成一堆 ^[[36m，grep 也再也匹配不上。
+# 配色的定义、${name} 标记的展开、以及「什么时候不上色」的判定，全部在
+# Fink::Color 里 —— 这个文件与 CLI 都要用，谁也不能反过来依赖谁，所以单独一个模块。
 #
-# 配色照 MacWave 的 lib/help.py 定，两边语义一致：
-#
-#   节标题（Common commands: / Options:）  magenta
-#   子命令                                green
-#   旗标                                  cyan
-#   值占位符                              yellow
-#   程序名                                orange
-#
-# 环境变量：NO_COLOR=1 强制关；FINX_COLOR=1 或 CLICOLOR_FORCE=1 强制开
-# （截图、录屏时输出被重定向仍要颜色）；CLICOLOR=0 关。
-my %ANSI = (
-	section => "\033[35m",
-	cmd     => "\033[32m",
-	flag    => "\033[36m",
-	value   => "\033[33m",
-	prog    => "\033[38;5;208m",
-	bold    => "\033[1m",
-	reset   => "\033[0m",
-);
-
-my $color_state;	# [环境变量指纹, 开关]。指纹变了才重算 —— 测试要在同一个
-			# 进程里切换 NO_COLOR / FINX_COLOR，而 -t STDOUT 不会变。
+# 这里只保留两个薄包装：_paint 按「角色」整段上色（帮助渲染按角色调用），
+# _color_enabled 供同文件的模板处理查询开关。改颜色请去 Fink::Color 的 %PALETTE。
 
 sub _color_enabled {
-	my @vars = qw(NO_COLOR CLICOLOR CLICOLOR_FORCE FINX_COLOR);
-	my $sig = join "\0", map { defined $ENV{$_} ? $ENV{$_} : "\0undef" } @vars;
-	return $color_state->[1]
-		if $color_state && $color_state->[0] eq $sig;
-
-	my $force = grep { defined $ENV{$_} && $ENV{$_} ne '' && $ENV{$_} ne '0' }
-		qw(FINX_COLOR CLICOLOR_FORCE);
-	my $deny = (defined $ENV{NO_COLOR} && $ENV{NO_COLOR} ne ''
-			&& $ENV{NO_COLOR} ne '0')
-		|| (defined $ENV{CLICOLOR} && $ENV{CLICOLOR} eq '0');
-
-	my $on;
-	if ($deny) {
-		$on = 0;
-	} elsif ($force) {
-		$on = 1;
-	} else {
-		$on = -t STDOUT ? 1 : 0;
-	}
-	$color_state = [$sig, $on];
-	return $on;
+	require Fink::Color;
+	return Fink::Color::enabled();
 }
 
 sub _paint {
 	my ($text, $role) = @_;
-	return $text if !defined $role || !exists $ANSI{$role};
-	return $text if !_color_enabled();
-	return $ANSI{$role} . $text . $ANSI{reset};
+	require Fink::Color;
+	return Fink::Color::paint($text, $role);
 }
 
-# 一行「标签」（命令名或旗标）。旗标带值时只把值那一段换成黄色 ——
-# 整行同色的话，`--logfile=FILE` 里哪部分是名字、哪部分要替换就看不清了。
-#
-# 缩进留在颜色外面：转义码包住空格没有任何视觉效果，却让 `cat -v` 的输出
-# 更难读，也让「这一行从第几列开始」这种检查多一步剥壳。
 sub _paint_label {
 	my ($text, $role, $value) = @_;
 	return $text if $text =~ /^\s*$/;

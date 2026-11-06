@@ -2314,8 +2314,11 @@ sub real_install {
 	}
 
 	# display list of requested packages
+	#
+	# ${...} 是 Fink::Color 的标记：写的人是「这句话是什么」，不是「哪个转义码」。
+	# 关闭上色时标记会被删干净，所以这里不需要额外的开关判断。
 	if ($showlist && not $forceoff) {
-		$s = "The following ";
+		$s = "\${bold}The following ";
 		if ($#requested > 0) {
 			$s .= scalar(@requested)." packages";
 		} else {
@@ -2331,9 +2334,9 @@ sub real_install {
 		} elsif ($op == $OP_REINSTALL) {
 			$s .= "reinstalled";
 		}
-		$s .= ":";
+		$s .= ":\${reset}";
 		&print_breaking($s);
-		&print_breaking(join(" ",@requested), 1, " ");
+		&print_breaking("\${pkg}" . join(" ", @requested) . "\${reset}", 1, " ");
 	}
 	unless ($forceoff) {
 		# find the packages we're likely to remove
@@ -2343,13 +2346,13 @@ sub real_install {
 		if ($#additionals >= 0 || @removals) {
 			if ($#additionals >= 0 and not $fetch_only) {
 				if ($#additionals > 0) {
-					&print_breaking("The following ".scalar(@additionals).
-							" additional packages $to_be installed:");
+					&print_breaking("\${bold}The following ".scalar(@additionals).
+							" additional packages $to_be installed:\${reset}");
 				} else {
-					&print_breaking("The following additional package ".
-							"$to_be installed:");
+					&print_breaking("\${bold}The following additional package ".
+							"$to_be installed:\${reset}");
 				}
-				&print_breaking(join(" ",@additionals), 1, " ");
+				&print_breaking("\${pkg}" . join(" ", @additionals) . "\${reset}", 1, " ");
 			}
 			if (@removals and not $fetch_only) {
 				my $number = scalar(@removals) > 1

@@ -174,7 +174,16 @@ sub print_breaking {
 
 	# at this point we have either a single line or only the last
 	# line of a multiline, so wrap and print
-	my @lines = word_wrap $s, $width, $prefix1, $prefix2;
+	#
+	# 带 ${yellow} 这类颜色标记（或已经展开的转义码）时改走 Fink::Color：
+	# 标记是零宽的，直接交给 word_wrap 会按字面长度算，长消息会窄一截。
+	my @lines;
+	if ($s =~ /\$\{[a-z][a-z0-9_-]*\}|%\{[a-z][a-z0-9_-]*\}|\033\[[0-9;]*m/) {
+		require Fink::Color;
+		@lines = Fink::Color::wrap_marked($s, $width, $prefix1, $prefix2);
+	} else {
+		@lines = word_wrap $s, $width, $prefix1, $prefix2;
+	}
 	for (my $i = 0; $i < $#lines; ++$i) {
 		print "$lines[$i]\n";
 	}

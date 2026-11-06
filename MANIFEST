@@ -36,6 +36,7 @@ compiler_wrapper-10.6.in
 compiler_wrapper-10.7.in
 compiler_wrapper-10.9.in
 docs/OFFLINE.md
+docs/OUTPUT.md
 docs/PACKAGE-DIST.md
 docs/PRIVILEGES.md
 docs/PREFIX.md
@@ -71,6 +72,7 @@ perlmod/Fink/Checksum.pm
 perlmod/Fink/Checksum/MD5.pm
 perlmod/Fink/Checksum/SHA1.pm
 perlmod/Fink/Checksum/SHA256.pm
+perlmod/Fink/Color.pm
 perlmod/Fink/Command.pm
 perlmod/Fink/Config.pm
 perlmod/Fink/Configure.pm
@@ -110,6 +112,7 @@ perlmod/Fink/VirtPackage.pm
 postinstall.pl.in
 pre-build-test.sh
 scripts/ci_bootstrap.sh
+scripts/color_preview.pl
 scripts/fetch_sources.sh
 scripts/format_check.pl
 scripts/license_check.sh
@@ -128,6 +131,7 @@ test/Base/param.t
 test/Base/param_boolean.t
 test/CLI/capture.t
 test/CLI/mirror.t
+test/CLI/color_tokens.t
 test/Command/cat.t
 test/Command/chowname.t
 test/Command/commands.t
