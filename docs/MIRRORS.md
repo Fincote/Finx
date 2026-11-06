@@ -265,6 +265,67 @@ SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来�
 那种情况只能用种子（`--seed-dir`）或 U 盘预置源码，见
 [`OFFLINE.md`](./OFFLINE.md)。
 
+## 三点八、仓库里的 `mirror/` 是什么
+
+`mirror/` 是 **bootstrap 期间的镜像数据**，不是包的源码。这一点容易看错，说清楚：
+
+`bootstrap` 里有一行 `$Fink::Config::libpath = $homebase`（`bootstrap:769`）——
+把 `libpath` 指到源码树根，于是 `Fink::Configure::configure()` 读的
+`$libpath/mirror/_keys` 与 `_list` 就是**仓库里的这两份**。缺一个就直接
+`die "File ... not found. Please install the fink-mirrors package"`。
+
+而 `fink-mirrors` 这个包本身构建的是**上游 tar 包**
+（`Fincote/Finx-source/src-1/fink-mirrors-0.43.0.1.tar.gz`，字节与上游一致），
+它把数据装到 `lib/finx/mirror/`。所以：
+
+| 位置 | 谁在用 | 改它有用吗 |
+| --- | --- | --- |
+| 仓库 `mirror/*`（除三个脚本） | bootstrap 的 configure、`Mirror.pm` 找 `mirror:<名字>:` | 有用，但只影响自举那一刻 |
+| 仓库 `mirror/{inject.pl,install.sh,postinstall.pl.in}` | **没有人** —— 构建用的是 tar 包里那三份 | 没用。`fink-mirrors.info` 的 `CompileScript` 就地做 `lib/fink` → `lib/finx` 的改写 |
+| 装好的 `$prefix/lib/finx/mirror/*` | `finx configure`、`Mirror.pm`、`SelfUpdate` | 有用，来源是 tar 包 |
+
+三个脚本留在仓库里只是给人对照上游，它们已经有 `user warnings;` 这种拼写错误
+（`inject.pl:29`，运行即 `warnings->user` 报错）而长期没人发现，正说明没人跑过。
+
+### 每个文件的旧用途
+
+删掉的四个 CVS/网站地址文件与一个 2003 年的待办：
+
+| 文件 | 旧用途 | 为什么删 |
+| --- | --- | --- |
+| `TODO` | Fink 镜像管理者的待办（"contact Atlanta to write a LOCAL"） | 2003 年的；这些镜像站与 Finx 无关 |
+| `cvs-repository` / `anonymous-cvs` / `developer-cvs` | `finx selfupdate-cvs` 的仓库地址 | Finx 不自举 CVS；`SelfUpdate::CVS` 里读这三个文件时都有 `-f` 守卫，缺了不影响 |
+| `website` | `selfupdate-point` 拼下载地址时用的官网 | `SelfUpdate/point.pm:91` 内置了 `https://www.finkproject.org`，文件缺失即用它 |
+| `_urls` | 上面四个文件在 `lib/finx/URL/` 里的登记表 | 只登记了这四项，随它们一起删 |
+| `apt` | Fink 二进制分发（`bindist.finkmirrors.net`）的 apt 仓库列表 | Finx 的二进制分发是 `Fincote/debs`；这个域名早已不服务。已同时从 `_list` 的 `Order:` 里摘掉 |
+
+留下的都是**通用上游镜像列表**，随 `.info` 里的 `mirror:<名字>:` 被按需取用：
+
+| 文件 | 对应 |
+| --- | --- |
+| `_list` | 列表注册表；`Order:` 一行决定 `finx configure` 会问哪几组 |
+| `_keys` | configure 界面用的地区 / 国家键 |
+| `master` | Fink master 镜像（`distfiles.*.finkmirrors.net`），`MirrorOrder` 决定先后 |
+| `rsync` | `selfupdate-rsync` 的镜像 |
+| `gnu` `gnome` `gimp` `kde` `apache` `debian` `freebsd` `ctan` `cpan` `sourceforge` | 各自上游项目的镜像 |
+
+**当前树里没有任何包用到上表最后一行的名字** —— 30 个包全部走
+`mirror:custom:`（指向 `Finx-source`），唯一一处 `mirror:gnu:` 是
+`libiconv.info:16` 里被注释掉的那行。它们留着是为了以后收 GNU / CPAN 那类包时
+不必重新造数据。
+
+### 改 `mirror/` 时的硬约束
+
+`_list` 的 `Order:` 与目录里的文件**必须一一对应**：`configure()` 对 `Order` 里的
+每个名字都调 `read_properties_multival("$libpath/mirror/$name")`，而那个函数在
+文件缺失时**直接 `die`**（`Services.pm:384`）。所以删一个列表文件，必须同时从
+`Order:` 里摘掉它 —— 否则下一次 `bootstrap` 会死在镜像选择那一步。
+
+`postgresql` 是个例外：它有标题行，但本来就**不在 `Order:` 里**（上游留下的
+不一致），`configure` 从不问它。文件留着，`.info` 用 `mirror:postgresql:` 时仍可解析。
+
+---
+
 ## 四、只有地址能被替换，校验不能
 
 这一条是底线，写在这里反复强调：
