@@ -55,6 +55,7 @@ my %PALETTE = (
 	yellow  => "\033[33m",
 	orange  => "\033[38;5;208m",
 	# 语义别名：写消息时用这些，读起来是「这是什么」而不是「这是什么颜色」
+	step    => "\033[1;38;5;25m",   # 步骤标题的「==>」，与 install.sh 的 BOLD_BLUE 同值
 	cmd     => "\033[32m",
 	flag    => "\033[36m",
 	value   => "\033[33m",
@@ -76,6 +77,8 @@ FINX_COLOR=1 perl scripts/color_preview.pl | cat -v   # 强制上色并露出转
 ```
 
 `%PALETTE` 是唯一的定义处：`Services::_paint`、帮助渲染、`print_breaking` 都从这里取。
+
+唯一的例外是 `finx-install/install.sh` —— 它是纯 bash，加载不了 Perl 模块，只能用自己那几个 shell 常量。其中 `BOLD_BLUE`（`==>`）与这里的 `step` 是同一个值，改一处别忘了改另一处；`test/CLI/color_tokens.t` 钉住了 `step` 的值。
 
 ---
 

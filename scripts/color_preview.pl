@@ -41,7 +41,7 @@ require Fink::Color;
 my @tokens = Fink::Color::tokens();
 my %palette = Fink::Color::palette();
 
-my @semantic_names = qw(cmd flag value section prog pkg error warn ok);
+my @semantic_names = qw(step cmd flag value section prog pkg error warn ok);
 my %is_semantic = map { $_ => 1 } @semantic_names;
 
 my @semantic = grep { $is_semantic{$_} } @tokens;
@@ -70,7 +70,7 @@ sub dump_group {
 dump_group('basic', @basic);
 dump_group('semantic', @semantic);
 
-print "a real message, wrapped by the same code print_breaking uses:\n\n";
+print "\na real message, wrapped by the same code print_breaking uses:\n\n";
 
 my $message = '${warn}WARNING${reset}: ${pkg}ncdu${reset} does not record '
 	. 'its library dependency, so ${cmd}finx remove${reset} '
@@ -78,6 +78,9 @@ my $message = '${warn}WARNING${reset}: ${pkg}ncdu${reset} does not record '
 foreach my $line (Fink::Color::wrap_marked($message, 72, '', '  ')) {
 	print "  $line\n";
 }
+
+print "\nstep heading, the way install.sh prints it:\n\n";
+print '  ', Fink::Color::colorize('${step}==>${reset} ${bold}Checking host${reset}'), "\n";
 
 print "\nraw escapes (what actually lands on the terminal):\n";
 foreach my $name (@tokens) {

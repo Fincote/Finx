@@ -24,7 +24,7 @@
 #   3. 未知标记不能把 ${...} 原样漏给用户。
 
 use strict;
-use Test::More tests => 19;
+use Test::More tests => 20;
 
 require Fink::Color;
 require Fink::CLI;
@@ -123,6 +123,8 @@ my $ESC = "\033";
 	my %tokens = map { $_ => 1 } Fink::Color::tokens();
 	ok($tokens{yellow} && $tokens{cmd} && $tokens{error},
 		'both basic and semantic names are registered');
+	is($palette{step}, "\033[1;38;5;25m",
+		'step uses the same blue as install.sh\'s BOLD_BLUE');
 	force_off();
 	is(Fink::Color::enabled(), 0, 'NO_COLOR turns colour off');
 	clear_env();
