@@ -13,6 +13,7 @@
 | **我们的话** | `print_breaking` 打印的摘要、警告、错误 | 可以（`${name}` 标记） | 调用点的字符串 + `Fink::Color` |
 | **外部命令的回显** | `execute` 把要跑的命令打出来（`sudo … sh -c …`）、失败时的 `### execution of … failed` | 无 | `perlmod/Fink/Services.pm` 的 `execute` |
 | **子进程自己的话** | 编译器、`make`、`dpkg -i`、`curl` 进度条、`patch` | 无，也不该有 | 不归我们管 |
+| **帮助** | `finx --help` / `finx <cmd> --help` | 有，但走另一套 | `perlmod/Fink/Help.pm` |
 
 第三层是直通的：`execute` 用 `system()`，子进程直接继承终端 fd。想给它上色等于去改 gcc 的输出，不做。能做的是**把它收进日志**（`--log-output`），屏幕上只留摘要。
 
@@ -38,9 +39,10 @@ sed -n '2317,2362p' perlmod/Fink/Engine.pm
 
 | 输出 | 位置 |
 | --- | --- |
-| 安装/更新摘要、additional packages、可能被临时移除的包 | `perlmod/Fink/Engine.pm` 的 `real_install`，约 `:2317`–`:2362` |
+| 安装/更新摘要、additional packages、可能被临时移除的包 | `perlmod/Fink/Engine.pm` 的 `real_install`，约 `:2320`–`:2365` |
 | 阶段失败（`phase compile: foo failed`） | `perlmod/Fink/PkgVersion.pm:5697` `package_error` |
-| 每条外部命令的回显与失败 | `perlmod/Fink/Services.pm:609`–`:630`（`execute` 内） |
+| 每条外部命令的回显与失败 | `perlmod/Fink/Services.pm:613`–`:635`（`execute` 内） |
+| `--help` 的排版、对齐、宽度 | `perlmod/Fink/Help.pm` 的 `align_option_text`；模板在各 `cmd_*` 的 `helpformat` |
 
 ---
 
@@ -99,7 +101,41 @@ FINX_COLOR=1 perl scripts/color_preview.pl | cat -v   # 强制上色并露出转
 
 ---
 
-## 五、什么时候不上色
+## 五、帮助是另一条路：`Fink::Help`
+
+`finx --help` **不经过** `print_breaking`，所以它既没有 `${name}` 标记，也不吃
+`wrap_marked` 的折行。整条链是：
+
+```
+Config.pm::parse_options        ← 全局帮助的选项表 + helpformat（:263）
+Engine::cmd_*                   ← 子命令各自的 get_options(..., helpformat => …)
+  └ Fink::Services::get_options ← 只用 Getopt 解析，然后 print expand_help(...)
+      └ Fink::Help::expand_help ← 展开 %intro/%all/%opts/%align
+          ├ option_help         ← 一个选项 → usage + 描述
+          ├ option_usage        ← -f, --full=VALUE
+          ├ align_option_text   ← 按终端宽度折行、按未上色长度补空格
+          └ paint / paint_label ← 按角色取 %PALETTE 里的转义码
+```
+
+设计上分成两个模块：**解析**在 `Fink::Services::get_options`，**渲染**在
+`Fink::Help`（对应 MacWave 的 `lib/help.py`）。帮助的颜色是直接产出转义码
+（`paint`），所以模板本身保持纯文本。
+
+调排版时不必跑真实命令：
+
+```sh
+perl scripts/help_preview.pl                 # 按终端宽度渲染一份假帮助
+perl scripts/help_preview.pl --width 40      # 折行最窄的样子
+perl scripts/help_preview.pl | grep -c $'\033'   # 关闭上色时应为 0
+FINX_COLOR=1 perl scripts/help_preview.pl --width 60 | cat -v
+```
+
+两个常调的旋钮：全局的 `optwidth => 23`（`Config.pm`），命令表的
+`$comlen = 14`（`Config.pm`）。
+
+---
+
+## 六、什么时候不上色
 
 输出不是终端（重定向、管道、CI 日志）时，标记会被**删掉**而不是留下转义码 —— 否则贴进 issue 的日志全是 `^[[33m`，`grep` 也匹配不上。
 
@@ -119,7 +155,7 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 六、还没上色的地方（知道就行，别以为是 bug）
+## 七、还没上色的地方（知道就行，别以为是 bug）
 
 | 位置 | 为什么没有 |
 | --- | --- |
@@ -134,10 +170,11 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 七、一次改动的检查清单
+## 八、一次改动的检查清单
 
 ```sh
 perl scripts/color_preview.pl | cat        # 关闭时无转义码
+perl scripts/help_preview.pl --width 60    # 帮助的排版/折行
 FINX_COLOR=1 perl scripts/color_preview.pl | cat -v   # 打开时颜色对得上
 make test                                  # 含 test/CLI/color_tokens.t
 make format                                # Perl 用 tab，shell 用 4 空格

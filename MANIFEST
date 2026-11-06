@@ -82,6 +82,7 @@ perlmod/Fink/Finally.pm
 perlmod/Fink/Finally/BuildConflicts.pm
 perlmod/Fink/Finally/Buildlock.pm
 perlmod/Fink/FinkVersion.pm.in
+perlmod/Fink/Help.pm
 perlmod/Fink/Links.pm
 perlmod/Fink/Mirror.pm
 perlmod/Fink/NetAccess.pm
@@ -115,6 +116,7 @@ scripts/ci_bootstrap.sh
 scripts/color_preview.pl
 scripts/fetch_sources.sh
 scripts/format_check.pl
+scripts/help_preview.pl
 scripts/license_check.sh
 scripts/make_seed.sh
 scripts/payload_test.sh
@@ -130,8 +132,8 @@ test/Base/initialize.t
 test/Base/param.t
 test/Base/param_boolean.t
 test/CLI/capture.t
-test/CLI/mirror.t
 test/CLI/color_tokens.t
+test/CLI/mirror.t
 test/Command/cat.t
 test/Command/chowname.t
 test/Command/commands.t
@@ -160,6 +162,7 @@ test/Finally/finally.t
 test/Links/links.t
 test/FinkVersion/exports.t
 test/FinkVersion/version.t
+test/Help/help_colors.t
 test/Mirror/exports.t
 test/Notify/exports.t
 test/Package/duplicate_fullname_trees/epoch1/finkinfo/duplicate-fullname.info
@@ -184,7 +187,6 @@ test/SelfUpdate/subclasses.t
 test/Services/eval_conditional.t
 test/Services/execute_nonroot_okay.t
 test/Services/expand_percent.t
-test/Services/help_colors.t
 test/Services/prepare_script.t
 test/Services/spec2struct.t
 test/Services/version_cmp.t

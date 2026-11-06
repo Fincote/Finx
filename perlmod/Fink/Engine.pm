@@ -174,9 +174,12 @@ sub initialize {
 sub _unknown_command_message {
 	my $cmd = shift;
 	my $near = _nearest_command($cmd);
-	return "finx: unknown command '$cmd'"
-		. (defined $near ? ", did you mean '$near'?" : '.') . "\n"
-		. "Type 'finx --help' for a list of commands.\n";
+	return Fink::Help::paint("finx: unknown command '$cmd'", 'error')
+		. (defined $near
+			? ", " . Fink::Help::paint("did you mean '$near'?", 'bold')
+			: '.') . "\n"
+		. "Type '" . Fink::Help::paint('finx --help', 'cmd')
+		. "' for a list of commands.\n";
 }
 
 # 只在看起来真是笔误时才给建议：要么是前缀关系（instal / install），要么
@@ -584,7 +587,7 @@ sub cmd_mirror {
 		return;
 	}
 
-	print Fink::Services::_paint('Mirror configuration', 'section'), "\n";
+	print Fink::Help::paint('Mirror configuration', 'section'), "\n";
 	print "\n";
 	print _mirror_table(\@rows), "\n";
 	print "\n";

@@ -23,7 +23,7 @@
 # 所以在这里钉死。
 
 use strict;
-use Test::More tests => 10;
+use Test::More tests => 12;
 
 require Fink::Engine;
 
@@ -48,9 +48,25 @@ is(Fink::Engine::_nearest_command('in'), undef,
 # --- 提示本身 ---
 
 my $msg = Fink::Engine::_unknown_command_message('instal');
-like($msg, qr/^\Qfinx: unknown command 'instal'\E/, '第一句点名打错的命令');
+like($msg, qr/\Qfinx: unknown command 'instal'\E/, '第一句点名打错的命令');
 like($msg, qr/did you mean 'install'\?/, '并给出最接近的命令');
 like($msg, qr/finx --help/, '指向 --help');
 
 unlike(Fink::Engine::_unknown_command_message('xyzzy'), qr/Usage:|Common commands/,
 	'没有建议时也不打印帮助');
+
+# --- 颜色：终端里看得见，重定向到日志里不能留下转义码 ---
+
+{
+	local $ENV{NO_COLOR} = 1;
+	delete $ENV{FINX_COLOR};
+	unlike(Fink::Engine::_unknown_command_message('instal'), qr/\033/,
+		'NO_COLOR 时提示里没有转义码');
+}
+{
+	delete local $ENV{NO_COLOR};
+	local $ENV{FINX_COLOR} = 1;
+	like(Fink::Engine::_unknown_command_message('instal'), qr/\033/,
+		'强制上色时提示带转义码');
+}
+

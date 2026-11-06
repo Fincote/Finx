@@ -26,10 +26,11 @@
 use strict;
 use Test::More tests => 12;
 
-require Fink::Services;
-# 这几个都是私有函数，模块不导出，按全名调用 —— 这里测的就是它们的排版结果。
-sub _align_option_text { Fink::Services::_align_option_text(@_) }
-sub _expand_help { Fink::Services::_expand_help(@_) }
+require Fink::Help;
+# 帮助的渲染在 Fink::Help（解析仍在 Fink::Services::get_options）。这里测的是
+# 排版结果，所以直接按全名调用那两个函数。
+sub _align_option_text { Fink::Help::align_option_text(@_) }
+sub _expand_help { Fink::Help::expand_help(@_) }
 
 my @COLOR_VARS = qw(NO_COLOR CLICOLOR CLICOLOR_FORCE FINX_COLOR);
 my %saved = map { $_ => $ENV{$_} } @COLOR_VARS;

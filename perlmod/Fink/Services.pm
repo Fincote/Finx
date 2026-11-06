@@ -28,6 +28,7 @@ package Fink::Services;
 #use Fink::Checksum;
 use Fink::Command	qw(&rm_f);
 use Fink::CLI		qw(&word_wrap &get_term_width &print_breaking_stderr);
+use Fink::Help qw(&expand_help &new_option);
 
 use POSIX qw(:errno_h uname);
 use Fcntl qw(:flock);
@@ -2220,32 +2221,10 @@ The following elements of %optional are available:
 
 =item helpformat
 
-If the standard help format is not good enough for your purposes, a custom
-format can be defined. This is simply a string, with a some special constructs:
-
-  %opts{opt1,opt2,...}	Prints the default usage and description for the
-						given options 'opt1', 'opt2', etc.
-
-  %all{}				Prints the default usage and description for all
-  						options.
-
-  %align{opt,desc}		Prints the option 'opt' and its description 'desc',
-						aligned with other options.
-
-  %align{opt,desc,optspace}
-  						Prints the option 'opt' and its description 'desc',
-						aligned such that the option part takes up a width
-						of optspace characters.
-
-  %intro{ex,...}		Print a help introduction, with 'ex' as a very short
-  						generic example of calling this command, such as:
-  						'[options] [packages]'. With multiple examples, will
-  						print one per line.
-
-  %%					Print a literal percent character.
-
-  Percent can also be used to escape comma and curly brackets inside an
-  expansion.
+If the standard help format is not good enough for your purposes, pass a
+custom format string here. The expansion constructs (C<%all{}>, C<%opts{}>,
+C<%align{}>, C<%intro{}>) and the colour/alignment rules are documented in
+L<Fink::Help>.
 
 =item validate
 
@@ -2271,218 +2250,6 @@ the future
 
 our ($VALIDATE_OK, $VALIDATE_HELP, $VALIDATE_ERROR) = 0..20;
 
-# ---- 文本颜色 --------------------------------------------------------------
-#
-# 配色的定义、${name} 标记的展开、以及「什么时候不上色」的判定，全部在
-# Fink::Color 里 —— 这个文件与 CLI 都要用，谁也不能反过来依赖谁，所以单独一个模块。
-#
-# 这里只保留两个薄包装：_paint 按「角色」整段上色（帮助渲染按角色调用），
-# _color_enabled 供同文件的模板处理查询开关。改颜色请去 Fink::Color 的 %PALETTE。
-
-sub _color_enabled {
-	require Fink::Color;
-	return Fink::Color::enabled();
-}
-
-sub _paint {
-	my ($text, $role) = @_;
-	require Fink::Color;
-	return Fink::Color::paint($text, $role);
-}
-
-sub _paint_label {
-	my ($text, $role, $value) = @_;
-	return $text if $text =~ /^\s*$/;
-	return $text if !_color_enabled();
-
-	my ($indent, $body) = $text =~ /^(\s*)(.*)$/;
-	if (defined $value && length $value) {
-		my $quoted = quotemeta $value;
-		if ($body =~ /^(.*?)([=\s])($quoted)$/) {
-			return $indent . _paint($1, $role) . $2 . _paint($3, 'value');
-		}
-	}
-	return $indent . _paint($body, $role);
-}
-
-# my $str = _get_option_usage $optitem;
-#
-# Get usage and for an option item. Does not include the description.
-sub _get_option_usage {
-	my $opt = shift;
-
-	# Try each way to specify option (eg: -f, --full)
-	my @alts = sort { length($a) <=> length($b) } @{$opt->{names}};
-	foreach my $alt (@alts) {
-		if (length($alt) == 1) {
-			$alt = "-$alt";
-			$alt .= " $opt->{value}" if defined $opt->{value};
-		} else {
-			$alt = "--$alt";
-			$alt .= "=$opt->{value}" if defined $opt->{value};
-		}
-	}
-	return join ', ', @alts;
-}
-
-# my $str = _align_option_text $usage, $desc, $optlen, $role, $value;
-#
-# Aligns the usage and desc with other options.
-#
-# $role 决定标签用什么颜色（'cmd' 或 'flag'），$value 是旗标值的占位符名。
-# 补空格必须按**未上色**的长度算 —— 逃逸码会让 length() 长出五六个字符，
-# 于是列就对不齐了。
-sub _align_option_text {
-	my ($opttxt, $desctxt, $optlen, $role, $value) = @_;
-	my $ret = "";
-
-	# Word wrap things
-	my $desclen; # Ensure there's a reasonable size
-	for my $width (get_term_width(), 80) {
-		$desclen = $width - $optlen - 3;
-		last if $desclen > 5;
-	}
-
-	my @optlines = word_wrap $opttxt, $optlen, '  ', '    ';
-	my @desclines = map { word_wrap $_, $desclen }
-		split /\n/, $desctxt; # Respect newlines
-
-	# Add 'em to the message by pairs
-	my $first = 1;
-	while (1) {
-		my $optpart = shift @optlines;
-		my $descpart = shift @desclines;
-		last unless defined $optpart || defined $descpart;
-		$descpart = '' unless defined $descpart;
-
-		my $midpart = $first ? ' - ' : '   ';
-		$first = 0 if $first;
-
-		if (!defined $optpart) {
-			$ret .= (' ' x $optlen) . $midpart . $descpart . "\n";
-			next;
-		}
-
-		my $pad = $optlen - length($optpart);
-		$pad = 0 if $pad < 0;
-		$ret .= _paint_label($optpart, $role, $value) . (' ' x $pad)
-			. $midpart . $descpart . "\n";
-	}
-
-	return $ret;
-}
-
-# my $str = _get_option_help $optitem, $optlen;
-#
-# Get the complete help for an option. May be multi-line!
-sub _get_option_help {
-	my ($opt, $optlen) = @_;
-	my @realopts;
-	$DB::single = 1 if grep { $_ eq 'use-binary-dist' } @{$opt->{names}};
-	if ($opt->{modifiers} =~ /!/) {
-		require Storable;
-		my $negopt = Storable::dclone($opt);
-		$negopt->{names} = [
-			map { length($_) > 1 ? "no-$_" : () } @{$opt->{names}}
-		];
-		$negopt->{help} = 'Opposite of --'.$opt->{names}->[0];
-		@realopts = ($opt, $negopt);
-	} else {
-		@realopts = $opt;
-	}
-
-	my $text = '';
-	for my $ropt (@realopts) {
-		my $usage = _get_option_usage($ropt);
-		$text .= _align_option_text($usage, $ropt->{help}, $optlen,
-			'flag', $ropt->{value});
-	}
-	return $text;
-}
-
-# my $str = _expand_help $command, $optionlist, $helpformat, $optlen;
-#
-# Expand the help format
-sub _expand_help {
-	my ($command, $options, $helpformat, $optlen) = @_;
-
-	# Option table
-	my %opts;
-	foreach my $opt (@$options) {
-		my @names = @{$opt->{names}};
-		@opts{@names} = ($opt) x scalar(@names);
-	}
-
-	# Expansion table
-	my %exp = (
-		all => sub {
-			"Options:\n" . join '', map { _get_option_help($_, $optlen) }
-				@$options;
-		},
-		opts => sub {
-			if (my @missing_opts = grep {!exists $opts{$_}} @_) {
-				die "Options (@missing_opts) from \%opts{@_} not defined in option list ("
-					. (join ' ', keys %opts) . ")\n";
-			}
-			chomp (my $ret = join '', map { _get_option_help($_, $optlen) }
-				@opts{@_} );
-			$ret;
-		},
-		align	=> sub {
-			# %align 自带第三参数 optspace（Config.pm 传 $comlen），没给才用默认宽度。
-			# 所以不能写成 _align_option_text(@_, $optlen, 'cmd')：那会多顶一位，
-			# 把全局 optwidth 当成 optspace、把 'cmd' 当成值占位符。
-			my ($otxt, $dtxt, $ospace) = @_;
-			$ospace = $optlen unless defined $ospace;
-			chomp (my $ret = _align_option_text($otxt, $dtxt, $ospace, 'cmd'));
-			$ret
-		},
-		intro	=> sub {
-			my $first = shift;
-			require Fink::FinkVersion;
-			my $prog = 'finx';
-			my $usage = _paint('Usage:', 'section') . ' '
-				. _paint($prog, 'prog') . $command;
-			_paint('Finx ' . Fink::FinkVersion::fink_version(), 'bold') . "\n\n" .
-				$usage . " $first\n" .
-				join '', map { '       ' . _paint($prog, 'prog')
-					. $command . " $_\n" } @_;
-		},
-	);
-
-	# Do the format
-	$helpformat =~ s"(?<!\%)((?:\%\%)*)\%(\w+)\{(|.*?[^%])\}"
-		return $& unless exists $exp{$2};
-		my @args = map { s/(?<!\%)((?:\%\%)*)%([{},])/$1$2/g; $_ }
-			split /(?<!%),/, $3;
-		$1 . &{$exp{$2}}(@args);
-	"ge;
-# " <-- preceding s using " as delim confuses emacs syntax-highlight
-	$helpformat =~ s/%%/%/g;
-
-	# 节标题统一上色。放在最后一步：它们是模板里的普通文本（`Common commands:`
-	# 这类顶格、以冒号结尾的行），没有别的地方可以挂钩。限定顶格，所以缩进的
-	# 描述行不会被误伤。
-	if (_color_enabled()) {
-		$helpformat =~ s{^(\S[^\n:]*):$}{_paint("$1:", 'section')}gme;
-	}
-
-	return $helpformat;
-}
-
-# my $opthash = _new_option(@optarray);
-#
-# Get an option-item as a hash, given an option-item as an array.
-sub _new_option {
-	my $opthash;
-	@$opthash{qw(spec dest help value)} = @_;
-	$opthash->{spec} =~ /^([\w-]+(\|[\w-]+)*)(.*)$/
-		or die "Bad option specification: $opthash->{spec}\n";
-	$opthash->{names} = [ split /\|/, $1 ];
-	$opthash->{modifiers} = $3;
-	return $opthash;
-}
-
 sub get_options {
 	my ($command, $options, $args, %optional) = @_;
 	%optional = (
@@ -2493,13 +2260,13 @@ sub get_options {
 	);
 
 	# Turn the options into hashes
-	my @optitems = map { _new_option(@$_) } @$options;
+	my @optitems = map { new_option(@$_) } @$options;
 
 	# Insert help after last option, if it's not already in the list
 	my $wanthelp = 0;
 
 	if (!grep { grep { $_ eq 'help' || $_ eq 'h' } @{$_->{names}} } @optitems) {
-		push @optitems, _new_option('h|help' => \$wanthelp,
+		push @optitems, new_option('h|help' => \$wanthelp,
 			'Display this help text.');
 	}
 
@@ -2507,10 +2274,9 @@ sub get_options {
 	$command = " $command" if $command;
 
 	# Call GetOptions. Switch args into @ARGV so GetOptions can work
-	my $die = <<DIE;
-finx$command: unknown option
-Type 'finx$command --help' for more information.
-DIE
+	my $die = Fink::Help::paint("finx$command: unknown option", 'error') . "\n"
+		. "Type '" . Fink::Help::paint("finx$command --help", 'cmd')
+		. "' for more information.\n";
 	{
 		local @ARGV = @$args;
 		Getopt::Long::Configure(qw(bundling ignore_case require_order no_getopt_compat prefix_pattern=(--|-)));
@@ -2525,7 +2291,7 @@ DIE
 	}
 
 	# Now we're doing the help
-	print _expand_help($command, \@optitems,
+	print expand_help($command, \@optitems,
 		@optional{qw(helpformat optwidth)});
 
 	exit 0;

@@ -291,7 +291,7 @@ Common commands:
 %align{remove,remove the named packages,$comlen}
 %align{purge,same as remove but also removes all configuration files,$comlen}
 %align{update,update the named packages,$comlen}
-%align{selfupdate,upgrade finx to the lastest release,$comlen}
+%align{selfupdate,upgrade finx to the latest release,$comlen}
 %align{update-all,update all installed packages,$comlen}
 %align{configure,rerun the configuration process,$comlen}
 %align{list,list available packages%, optionally filtering by name%, see 'finx list --help' for more options,$comlen}
