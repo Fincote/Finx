@@ -112,6 +112,7 @@ our %commands =
 	  'description'       => [\&cmd_description,       1, 0, 0],
 	  'desc'              => [\&cmd_description,       1, 0, 0],
 	  'info'              => [\&cmd_description,       1, 0, 0],
+	  'mirror'            => [\&cmd_mirror,            0, 0, 0],
 	  'scanpackages'      => [\&cmd_scanpackages,      0, 1, 1],
 	  'list'              => [\&cmd_list,              0, 0, 0],
 	  'listpackages'      => [\&cmd_listpackages,      1, 0, 0],
@@ -528,6 +529,172 @@ sub cmd_listplugins {
 
 sub cmd_apropos {
 	do_real_list("apropos", @_);
+}
+
+# `finx mirror` —— 打印当前生效的镜像配置。
+#
+# 存在的理由与 MacWave 的 `wave mirror` 相同：装了镜像之后，用户真正想知道的是
+# 「这次用的是镜像还是官方地址」。以前只能靠 echo 一堆环境变量，默认值、哪些没设、
+# 哪些带凭据全靠自己分辨。
+#
+# 几条硬性约定（照抄 MacWave 的，两边行为一致）：
+#   - 未设置也打印默认值，不留空 —— 空值看不出「没设」还是「设成了空」。
+#   - 密码一律打印固定 6 个星号，与真实长度无关，否则星号个数会泄露长度。
+#   - --show-password 才打印真实密码；--hide-user 把用户名也盖掉。
+#   - 输出格式互斥：同时给两个就报错，避免「哪个生效」靠猜。
+sub cmd_mirror {
+	require Fink::Domains;
+	require Fink::Services;
+
+	my %format = map { $_ => 0 } qw(json raw);
+	my $show_password = 0;
+	my $hide_user = 0;
+	my $only_set = 0;
+
+	get_options('mirror', [
+		[ 'json' => \$format{json},
+			'print the configuration as JSON' ],
+		[ 'raw' => \$format{raw},
+			'print ready-to-paste export lines' ],
+		[ 'show-password' => \$show_password,
+			'print passwords in full instead of six asterisks' ],
+		[ 'hide-user' => \$hide_user,
+			'also mask the user name' ],
+		[ 'only-set' => \$only_set,
+			'with --raw: export only the variables you overrode' ],
+	], \@_);
+
+	my @chosen = grep { $format{$_} } sort keys %format;
+	if (@chosen > 1) {
+		die "choose one output format, got: --" . join(' --', @chosen) . "\n";
+	}
+	if ($only_set && (@chosen == 0 || $chosen[0] ne 'raw')) {
+		die "--only-set only applies to --raw\n";
+	}
+
+	my $kind = @chosen ? $chosen[0] : 'table';
+	my @rows = Fink::Domains::rows($show_password, $hide_user);
+
+	if ($kind eq 'raw') {
+		print _mirror_raw(\@rows, $only_set), "\n";
+		return;
+	}
+	if ($kind eq 'json') {
+		print _mirror_json(\@rows), "\n";
+		return;
+	}
+
+	print Fink::Services::_paint('Mirror configuration', 'section'), "\n";
+	print "\n";
+	print _mirror_table(\@rows), "\n";
+	print "\n";
+	printf "%s\n", 'env = set by FINX_*_DOMAIN, default = built-in address, '
+		. 'unset = nothing to point at yet';
+	if (grep { $_->{requires_auth} } @rows) {
+		if ($show_password) {
+			print "Passwords are shown in full (--show-password)\n";
+		} else {
+			print "Passwords are masked; --show-password prints them, "
+				. "--hide-user also masks the user name\n";
+		}
+	}
+	print "\n";
+	print "The installer (finx-install/install.sh) has its own set for the\n";
+	print "bootstrap download: FINX_INDEX_DOMAIN, FINX_SEED_DOMAIN,\n";
+	print "FINX_SEED_BASE. See docs/MIRRORS.md.\n";
+}
+
+sub _mirror_table {
+	my $rows = shift;
+
+	my ($name_width, $env_width, $source_width) = (0, 0, 0);
+	foreach my $row (@$rows) {
+		$name_width = length $row->{name} if length $row->{name} > $name_width;
+		$env_width = length $row->{env} if length $row->{env} > $env_width;
+		$source_width = length $row->{source} if length $row->{source} > $source_width;
+	}
+
+	my @lines;
+	foreach my $row (@$rows) {
+		my $value = $row->{source} eq 'unset'
+			? '(not configured)'
+			: $row->{value};
+		my $auth = $row->{requires_auth} ? ' (auth)' : '';
+		push @lines, sprintf('  %-*s  %-*s  %-*s  %s%s',
+			$name_width, $row->{name},
+			$env_width, $row->{env},
+			$source_width, $row->{source},
+			$value, $auth);
+	}
+	return join("\n", @lines);
+}
+
+# JSON 是手写的：Fink 要能跑在 5.8 上，而 JSON::PP 是 5.14 才进核心的。
+# 表里只有五个固定字段，转义几个字符就够。
+sub _mirror_json {
+	my $rows = shift;
+
+	my @objects;
+	foreach my $row (@$rows) {
+		my @fields = (
+			'"name": ' . _json_string($row->{name}),
+			'"env": ' . _json_string($row->{env}),
+			'"source": ' . _json_string($row->{source}),
+			'"requires_auth": ' . ($row->{requires_auth} ? 'true' : 'false'),
+			'"user": ' . (defined $row->{user} ? _json_string($row->{user}) : 'null'),
+			'"value": ' . (length $row->{value}
+				? _json_string($row->{value}) : 'null'),
+		);
+		push @objects, "    {\n      " . join(",\n      ", @fields) . "\n    }";
+	}
+	return "{\n  \"mirrors\": [\n" . join(",\n", @objects) . "\n  ]\n}";
+}
+
+sub _json_string {
+	my $text = shift;
+	$text = '' unless defined $text;
+	$text =~ s/\\/\\\\/g;
+	$text =~ s/"/\\"/g;
+	$text =~ s/\n/\\n/g;
+	$text =~ s/\r/\\r/g;
+	$text =~ s/\t/\\t/g;
+	return "\"$text\"";
+}
+
+# 逐行写全地址，不用「一个基址 + 若干路径」的写法：这样任何一行都能单独替换
+# （例如只把 bottle 指向另一台机器），也不会因为改漏了前缀而让所有行一起错。
+#
+# --only-set 只导出用户真的设过的项。区别在于「默认值要不要钉死」：全写的话，
+# 官方将来换默认地址，这份配置仍停在旧地址上。
+sub _mirror_raw {
+	my ($rows, $only_set) = @_;
+
+	my @lines = ('# Finx mirror');
+	my $exported = 0;
+	foreach my $row (@$rows) {
+		if ($row->{source} eq 'env') {
+			push @lines, sprintf('export %s="%s"', $row->{env}, $row->{value});
+			$exported++;
+		} elsif ($only_set) {
+			next;
+		} elsif ($row->{source} eq 'unset') {
+			# 空值 export 会把变量清掉，用注释占位更安全
+			push @lines, sprintf('# %s  (not configured)', $row->{env});
+		} else {
+			push @lines, sprintf('export %s="%s"', $row->{env}, $row->{value});
+		}
+	}
+
+	if ($only_set && !$exported) {
+		push @lines, '# Nothing is overridden; every address uses its built-in default.';
+	}
+	# 打码的行贴进 shell 就是坏的（密码变成六个星号）。与其让人复制一条
+	# 连不上的配置，不如在末尾说一句。
+	if (grep { $_->{requires_auth} } @$rows) {
+		push @lines, '# Passwords are masked above; add --show-password to make'
+			. ' these lines usable.';
+	}
+	return join("\n", @lines);
 }
 
 
@@ -1774,7 +1941,16 @@ sub cmd_rebuild {
 }
 
 sub cmd_install {
-	&real_install($OP_INSTALL, 0, 0, 0, @_);
+	# --dry-run 走到 real_install 的第四个参数：解依赖、把「会取哪些东西」
+	# 打出来，然后在真正编译/安装之前返回。不写这个开关的话，想看一眼
+	# 依赖树就只能真装一遍。
+	my $dryrun = 0;
+	get_options('install', [
+		[ 'dry-run|n' => \$dryrun,
+			'Work out what would be done and print it, without fetching, ' .
+			'building or installing anything.' ],
+	], \@_);
+	&real_install($OP_INSTALL, 0, 0, $dryrun, @_);
 }
 
 sub cmd_reinstall {
