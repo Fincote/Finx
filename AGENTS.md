@@ -33,8 +33,28 @@ Finx 在 `/opt/finx`），命令名相同就必然混淆。没有 `fink` 兼容�
 
 - **和用户说话一律用中文**：回复、澄清提问、总结、报错解释都是。
 - 代码标识符、命令、路径、终端输出保持原样，不要为说中文而翻译它们。
-- **程序面向用户的输出保持英文**（`print_breaking`、各脚本的 `echo`）。中文只出现在
-  注释、文档与对话里。
+- **程序面向用户的输出一律英文，唯一的例外是 `finx-install/install.sh`。**
+  中文只出现在注释、文档与对话里。细则：
+
+  | 载体 | 语言 |
+  | --- | --- |
+  | `print_breaking` 的消息、`die` / `warn` 文案、`finx --help`、`finx` 子命令的输出 | 英文 |
+  | `perlmod/` 之外的那些脚本（`scripts/`、`base-files/`、`finx-install/selftest.sh`） | 英文 |
+  | `finx-install/install.sh` | **中英成对**：`t 'english' '中文'`，`--zh` 或 `FINX_LANG=zh` 取中文 |
+  | POD（`=head1` / `=item` / 正文） | 英文，见下 |
+
+  为什么 `install.sh` 例外：它跑在用户装东西**之前**，读不懂就没法继续；而且它
+  是唯一会在 `curl | bash` 之下、没有任何本地文档可查的时刻说话的地方。其余
+  场合用户手上已经有 `finx --help` 与 man 页，再维护一份中文只会走散。
+
+  **POD 不能写中文。** `install.sh` 用 `/usr/bin/pod2man` 生成 man 页，而它自己
+  是 `bash -e`：没有 `=encoding` 的中文 POD 会让 pod2man 报
+  `POD document had syntax errors` 并以 255 退出，**整个安装随之中止**。加
+  `=encoding utf-8` 能救，但会引入一批 `Wide character in printf` 警告，不值得 ——
+  这些模块的 POD 本来就是英文的。
+
+  > 现状：`Fink::Color` / `Fink::Domains` / `Fink::Help` 的 POD 还是中文。它们不在
+  > `install.sh` 的 man 页清单里，所以现在不会炸；**要加进那个清单，先翻成英文**。
 
 ## 不要读的格式
 
