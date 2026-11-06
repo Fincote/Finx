@@ -74,6 +74,7 @@ perlmod/Fink/Checksum/SHA256.pm
 perlmod/Fink/Command.pm
 perlmod/Fink/Config.pm
 perlmod/Fink/Configure.pm
+perlmod/Fink/Domains.pm
 perlmod/Fink/Engine.pm
 perlmod/Fink/Finally.pm
 perlmod/Fink/Finally/BuildConflicts.pm
@@ -126,6 +127,7 @@ test/Base/initialize.t
 test/Base/param.t
 test/Base/param_boolean.t
 test/CLI/capture.t
+test/CLI/mirror.t
 test/Command/cat.t
 test/Command/chowname.t
 test/Command/commands.t

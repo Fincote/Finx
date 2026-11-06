@@ -5,7 +5,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License.
+# the Free Software Foundation; version 2 of the License.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -31,7 +31,7 @@ require Fink::Domains;
 require Fink::Engine;
 
 my @VARS = qw(FINX_API_DOMAIN FINX_DEB_DOMAIN FINX_SOURCE_DOMAIN
-              FINX_SOURCECODE_DOMAIN FINX_SELFUPDATE_DOMAIN);
+		FINX_SOURCECODE_DOMAIN FINX_SELFUPDATE_DOMAIN);
 my %saved = map { $_ => $ENV{$_} } @VARS;
 END {
 	while (my ($k, $v) = each %saved) {

@@ -23,6 +23,21 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 | `FINX_DEFAULT_MANIFEST_URL` | 见下面的优先级 | 直接给出清单的完整 URL，绕过上面的拼装 |
 | `FINX_MANIFEST_URL` | 空 | 等同 `--manifest-url`：显式指定清单，且**不回落**源码 |
 
+`finx` 自己（不是安装器）另有一组，全部在 `finx mirror` 里可见。它们由
+`Fink::Domains` 统一解析，**只有环境变量与内置默认两个来源** —— 以前还有第三
+个来源（`lib/finx/mirror/` 与 `lib/finx/URL/` 下那批单行文件），那种间接层最
+安静的死法是数据过期而代码已改对，于是旧地址赢，所以整个去掉了。
+
+| 变量 | 默认值 | 覆盖什么 |
+| --- | --- | --- |
+| `FINX_API_DOMAIN` | 空（尚未搬过来） | 包描述树（infosource） |
+| `FINX_DEB_DOMAIN` | `https://github.com/Fincote/debs/releases/download` | 预编译 `.deb`，按 `<域名>/<包名>/<文件>` 取 |
+| `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | finx 自身源码归档 |
+| `FINX_SOURCECODE_DOMAIN` | `https://github.com/Fincote/Finx-source/releases/download/src-1` | 上游源码池（`.info` 里 `CustomMirror` 指向的那批） |
+| `FINX_SELFUPDATE_DOMAIN` | 空（尚未搬过来） | 自更新数据 |
+
+`FINX_DEB_DOMAIN` 与 `FINX_SOURCE_DOMAIN` 安装器也读，所以两边填同一个值即可。
+
 代理相关（不是 Finx 发明的，`curl` 与 `sudo` 都认）：
 
 | 变量 | 说明 |
@@ -53,6 +68,40 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 `https://finx.sh/finx/seed`，但**不设它**时生效的清单地址是 GitHub Releases。
 「没有这个变量」和「这个变量等于官方域名」在当时是同一件事，将来则不是 ——
 前者会跟着默认值走，后者钉死在 finx.sh。
+
+---
+
+## 二点五、`finx mirror`：现在到底用的哪个地址
+
+装了镜像之后最想知道的是「这次用的是镜像还是官方地址」。以前只能 `echo` 一堆
+环境变量自己分辨；现在：
+
+```
+$ finx mirror
+Mirror configuration
+
+  api         FINX_API_DOMAIN         unset    (not configured)
+  bottle      FINX_DEB_DOMAIN         env      https://user:******@mirror.example.top/Finx/bottle (auth)
+  core        FINX_SOURCE_DOMAIN      default  https://codeload.github.com/Fincote/Finx
+  sourcecode  FINX_SOURCECODE_DOMAIN  default  https://github.com/Fincote/Finx-source/releases/download/src-1
+  selfupdate  FINX_SELFUPDATE_DOMAIN  unset    (not configured)
+```
+
+`source` 一列是三态：`env`（你设了）、`default`（内置地址）、`unset`（这块内容
+还没有固定地址）。未设置也打印默认值 —— 空值看不出「没设」还是「设成了空」。
+
+| 旗标 | 作用 |
+| --- | --- |
+| `--json` | 同一份数据，字段化 |
+| `--raw` | 可直接粘贴的 `export` 行（`--only-set` 只导出你改过的） |
+| `--show-password` | 打印真实密码；默认固定六个星号，与长度无关 |
+| `--hide-user` | 连用户名一起打码 |
+
+两条安全约定：密码默认打码，`--raw` 在打码时会在末尾提示加 `--show-password`
+（否则那几行贴进 shell 是连不上的）；日志与错误信息里的地址一律走
+`Fink::Domains::redact_url`，因为那些输出会被贴进 issue。
+
+`--json` 与 `--raw` 互斥，同时给会直接报错，不让人靠猜。
 
 ---
 

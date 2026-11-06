@@ -161,6 +161,24 @@ Fink::SelfUpdate::<方法>::update()   ← rsync / git / cvs / svn 之一
 
 包描述**不是**随 finx 一起装的，是这一步单独拉的 —— 所以刚装完的 finx 只有一个 `base` 目录能装东西。
 
+### `finx install --dry-run`
+
+解依赖、把「会装什么、从哪儿取」打出来，然后在编译/安装之前返回。不写这个开关
+的话，想看一眼依赖树就只能真装一遍。
+
+它走的是 `real_install` 的第四个参数：打印用 `would be` 的时态、跳过确认提问、
+`prefetch` 只做 dry-run 的取用（源码就是列出候选镜像与校验值，二进制包交给
+`apt-get --dry-run`），最后 `return if $fetch_only || $dryrun` 停在构建之前。
+
+```
+$ finx install --dry-run cvs
+The following package would be installed or updated:
+ cvs
+cvs-1.12.13.tar.bz2 md5=956ab476... <三个候选镜像> <维护者>
+```
+
+`-n` 是它的短写法。注意 `get_options` 用 `require_order`，所以旗标要写在包名前面。
+
 ### `finx list` / `describe` / `show-deps`
 
 只读操作。`list` 读 `index.db`；`describe` 读 `.info`；`show-deps` 走 `Package.pm` 的依赖求解。
