@@ -162,6 +162,14 @@ sub print_breaking {
 
 	chomp($s);
 
+	# 诊断消息统一外观：ERROR 红、WARNING 黄，段首加程序标记。规则与「为什么
+	# 放在这里而不是每个调用点」见 Fink::Color::style_diagnostic。纯文本才动，
+	# 已经带标记的消息原样不动。
+	{
+		require Fink::Color;
+		$s = Fink::Color::style_diagnostic($s);
+	}
+
 	# if string has embedded newlines, handle each line separately
 	while ($s =~ s/^(.*?)\n//) {
 	    # Feed each line except for last back to ourselves (always

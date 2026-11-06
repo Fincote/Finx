@@ -160,7 +160,49 @@ FINX_COLOR=1 perl scripts/install_preview.pl | cat -v   # 看真实转义码
 
 ---
 
-## 七、什么时候不上色
+## 七、诊断消息：红色 + 🧩
+
+全项目的 `ERROR:` / `WARNING:` 有三十多处，散在六个模块里。要求每个调用点自己
+记得上色、自己打标记，迟早会漏 —— 而漏掉的往往是最少走到的那条。
+
+所以这件事**只在一处做**：`Fink::CLI::print_breaking` 在折行之前先过一遍
+`Fink::Color::style_diagnostic`。
+
+```
+调用点写的：  "ERROR: apt-get could not be run"
+渲染出来的：  🧩 ERROR: apt-get could not be run     ← error 红（WARNING 是黄）
+```
+
+| 规则 | 为什么 |
+| --- | --- |
+| 只认段首的 `ERROR` / `Error` / `FATAL` / `Failed` / `WARNING` / `Warning` | 那是项目里既有的写法，`grep`、测试断言、通知正文全都不受影响 —— 颜色是渲染期才加的 |
+| 空行分隔的**每段**都加标记 | 只给第一段加的话，下面几段看着像别人的输出 |
+| 已经带 `${name}` 标记或转义码的消息**原样返回** | 作者自己排过色了；再包一层 `error` 会把 `${reset}` 之后的文字染红 |
+| 其它消息原样返回 | 满屏都是标记等于没有标记 |
+
+标记本身是 `Fink::Color::$PROG_MARK`，与 MacWave 的 🌊 同位。它是**字节串**
+（`"\xF0\x9F\xA7\xA9"`），不是 `"\x{1F9E9}"` —— STDOUT 没有 `:utf8` 层，宽字符
+会打一条 `Wide character in print` 把输出弄脏。`install.sh` 里另有同名的
+`MARK` 常量（bash 直接写字面量），两处要一起改。
+
+`die` 的消息也能带上：它经 `Engine::process` 的 `$@` 处理，最终走
+`print_breaking("Failed: …")`，同样自动上色。`die_breaking` 直接把消息交给
+`print_breaking_stderr`，也是自动的。
+
+安装器（`finx-install/install.sh`）是 bash，用不了 Perl 模块，但 `die()` /
+`warn()` 是它所有 stderr 提示的**唯一**出口，改那两个函数就够了。另有两处
+「还没读到函数定义就得报错」的早期校验，直接用了 `${RED_BOLD}${MARK} ERROR: …`。
+
+调试：
+
+```sh
+perl scripts/color_preview.pl | sed -n '/diagnostic/,+4p'     # 关闭上色
+FINX_COLOR=1 perl scripts/color_preview.pl | cat -v            # 看真实转义码
+```
+
+---
+
+## 八、什么时候不上色
 
 输出不是终端（重定向、管道、CI 日志）时，标记会被**删掉**而不是留下转义码 —— 否则贴进 issue 的日志全是 `^[[33m`，`grep` 也匹配不上。
 
@@ -180,7 +222,7 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ---
 
-## 八、打错命令 / 打错旗标
+## 九、打错命令 / 打错旗标
 
 两条路，同一个形状（照 MacWave 的 `print_error_help`），渲染都在 `Fink::Help`：
 
@@ -196,12 +238,12 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ```
 $ finx instll jq
-finx: Error: Unknown command or argument.
+🧩 Error: Unknown command or argument.
 
    finx instll jq
         ^^^^^^
 
-finx: Did you mean: finx install jq
+🧩 Did you mean: finx install jq
 
    instll is not a command. The one you want is install.
 
@@ -210,14 +252,14 @@ finx: Did you mean: finx install jq
 
 ```
 $ finx mirror --jsons=1
-finx: Error: illegal option --jsons for `finx mirror`
+🧩 Error: illegal option --jsons for `finx mirror`
 
    finx mirror --jsons=1
                ^^^^^^^
 
-   Next: Did you mean --json?
+🧩 Next: Did you mean --json?
 
-   finx mirror --help lists the flags this command accepts
+🧩 finx mirror --help lists the flags this command accepts
 ```
 
 颜色与普通消息同一套 `%PALETTE`：`Error:` 行与出错的那个词、脱字符用 `error`，
@@ -238,7 +280,7 @@ finx: Error: illegal option --jsons for `finx mirror`
 
 ---
 
-## 九、还没上色的地方（知道就行，别以为是 bug）
+## 十、还没上色的地方（知道就行，别以为是 bug）
 
 | 位置 | 为什么没有 |
 | --- | --- |
@@ -253,7 +295,7 @@ finx: Error: illegal option --jsons for `finx mirror`
 
 ---
 
-## 十、一次改动的检查清单
+## 十一、一次改动的检查清单
 
 ```sh
 perl scripts/color_preview.pl | cat        # 关闭时无转义码

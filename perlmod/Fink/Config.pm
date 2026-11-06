@@ -483,8 +483,13 @@ However, certain commands know to ignore them if they're 'excluded'.
 		if (@include) {
 			foreach my $spec (@include) {
 				my @match = grep { &{_match_trees($spec)}() } @avail;
-				print "WARNING: No tree matching \"$spec\" found!\n"
-					unless @match;
+				# 走 print_breaking 才能拿到统一外观（黄 + 程序标记）。
+				# 这里延迟 require：Config 是最底层的模块之一，不该为了一条
+				# 警告在编译期就把 CLI 拖进来。
+				unless (@match) {
+					require Fink::CLI;
+					Fink::CLI::print_breaking("WARNING: No tree matching \"$spec\" found!");
+				}
 				push @trees, grep { !$seen{$_}++ } @match;
 			}
 		} else {
@@ -1077,7 +1082,10 @@ sub build_as_user_group {
 	my( $user, $group );
 	if (get_option("build_as_nobody")) {
 		if (!getpwnam('fink-bld') or !getgrnam('fink-bld')) {
-			print "WARNING: User and/or group 'fink-bld' not found! Falling back to user/group 'nobody'. Please run 'finx configure' to set up user 'fink-bld'.\n";
+			require Fink::CLI;
+			Fink::CLI::print_breaking("WARNING: User and/or group 'fink-bld' not found! "
+				. "Falling back to user/group 'nobody'. Please run 'finx configure' "
+				. "to set up user 'fink-bld'.");
 			($user, $group) = qw/ nobody nobody /;
 		} else {
 			($user, $group) = qw/ fink-bld fink-bld /;

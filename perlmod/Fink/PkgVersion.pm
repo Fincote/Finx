@@ -3423,13 +3423,11 @@ sub fetch_source {
 		print "$file ", (defined $checksum ? lc($self->get_checksum_type($suffix)) . '=' . $checksum : "-");
 	} else {
 		if (not defined $checksum) {
-			print "WARNING: No checksum specified for Source".$suffix.
-							" of package ".$self->get_fullname();
-			if ($self->has_param("Maintainer")) {
-				print ' Maintainer: '.$self->param("Maintainer") . "\n";
-			} else {
-				print "\n";
-			}
+			my $where = $self->has_param("Maintainer")
+				? ' Maintainer: ' . $self->param("Maintainer")
+				: '';
+			print_breaking("WARNING: No checksum specified for Source" . $suffix
+				. " of package " . $self->get_fullname() . $where);
 		}
 	}
 

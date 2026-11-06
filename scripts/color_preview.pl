@@ -79,6 +79,16 @@ foreach my $line (Fink::Color::wrap_marked($message, 72, '', '  ')) {
 	print "  $line\n";
 }
 
+print "\ndiagnostic messages, the way print_breaking renders them:\n\n";
+
+# ERROR / WARNING 由 Fink::Color::style_diagnostic 自动上色并加程序标记，
+# 调用点写的仍然只是纯文本。这里演示两种角色各一行。
+foreach my $msg ('ERROR: apt-get is missing; install the apt package first.',
+		'WARNING: no checksum recorded for ncdu-1.22.tar.gz') {
+	print '  ', join('', Fink::Color::wrap_marked(
+		Fink::Color::style_diagnostic($msg), 72, '  ', '    ')), "\n";
+}
+
 print "\nstep heading, the way install.sh prints it:\n\n";
 print '  ', Fink::Color::colorize('${step}==>${reset} ${bold}Checking host${reset}'), "\n";
 

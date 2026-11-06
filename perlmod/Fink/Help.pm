@@ -124,6 +124,12 @@ sub paint {
 	return Fink::Color::paint($text, $role);
 }
 
+# 程序标记（🧩）。和 paint 一样是薄包装，免得每个调用点自己 require。
+sub _mark {
+	require Fink::Color;
+	return Fink::Color::prog_mark();
+}
+
 =item paint_label
 
   my $text = paint_label($text, $role, $value);
@@ -491,7 +497,8 @@ sub unknown_command_message {
 		}
 	}
 
-	my $text = paint('finx: Error: Unknown command or argument.', 'error') . "\n\n";
+	my $mark = _mark();
+	my $text = paint("$mark Error: Unknown command or argument.", 'error') . "\n\n";
 	$text .= _replay_and_caret('   ', \@words, $bad) . "\n" if defined $bad;
 
 	if (defined $near && length $near) {
@@ -500,7 +507,7 @@ sub unknown_command_message {
 		my $shown = join ' ', map {
 			$_ eq $near ? paint($_, 'ok') : $_
 		} @fixed;
-		$text .= paint('finx: Did you mean:', 'bold') . " $shown\n\n";
+		$text .= paint("$mark Did you mean:", 'bold') . " $shown\n\n";
 		$text .= '   ' . paint($cmd, 'warn') . ' is not a command. '
 			. 'The one you want is ' . paint($near, 'ok') . ".\n\n";
 	}
@@ -534,16 +541,18 @@ sub unknown_option_message {
 	$span = length $token unless defined $span && length $span;
 
 	my $for = length $cmd ? "for `finx $cmd`" : 'for `finx`';
-	my $text = paint("finx: Error: illegal option $span $for", 'error')
+	my $mark = _mark();
+	my $text = paint("$mark Error: illegal option $span $for", 'error')
 		. "\n\n";
 	$text .= _replay_and_caret('   ', \@words, $bad, length $span)
 		. "\n" if defined $bad;
 
 	if (defined $near && length $near) {
-		$text .= '   ' . paint('Next:', 'bold')
+		$text .= paint("$mark Next:", 'bold')
 			. ' Did you mean ' . paint($near, 'ok') . "?\n\n";
 	}
-	$text .= '   ' . paint(length $cmd ? "finx $cmd --help" : 'finx --help', 'cmd')
+	$text .= paint("$mark ", 'bold')
+		. paint(length $cmd ? "finx $cmd --help" : 'finx --help', 'cmd')
 		. ' lists the flags ' . (length $cmd ? 'this command' : 'finx')
 		. " accepts\n";
 	return $text;

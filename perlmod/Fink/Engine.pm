@@ -340,7 +340,14 @@ sub process {
 		my $msg = $proc_rc->{'$@'};
 		$msg = '' if $msg =~ /^\s*$/; # treat empty messages nicely
 
-		print ($msg ? "Failed: $msg" : "Exiting with failure.\n");
+		# 走 print_breaking 而不是裸 print：它会把 Failed 认成诊断消息，
+		# 上红并打程序标记（见 Fink::Color::style_diagnostic）。
+		if ($msg) {
+			chomp $msg;
+			&print_breaking("Failed: $msg");
+		} else {
+			&print_breaking('Failed: the command did not complete.');
+		}
 		my $notifydesc = $commandline . ($msg ? "\n$msg" : '');
 		$notifier->notify(
 			event => 'finkDoneFailed',
@@ -1015,7 +1022,7 @@ sub aptget_update {
 		$ENV{FTP_PROXY} = $ftp_proxy;
 	}
 	if (&execute($aptcmd . " update", quiet => $quiet)) {
-		print("WARNING: Failure while updating indexes.\n");
+		print_breaking("WARNING: Failure while updating indexes.");
 		return 0;
 	}
 	return 1;
@@ -1308,19 +1315,19 @@ sub get_pkglist {
 		# Can only remove/purge installed pkgs
 		my ($vers) = $package->list_installed_versions();
 		unless (defined $vers) {
-			print "WARNING: $pname is not installed, skipping.\n";
+			&print_breaking("WARNING: $pname is not installed, skipping.");
 			next;
 		}
 		my $pv = $package->get_version($vers);
 
 		# Can't purge or remove virtuals (but status packages are ok!)
 		if ($pv->is_type('dummy') && $pv->get_subtype('dummy') eq 'virtual') {
-			print "WARNING: $pname is a virtual package, skipping.\n";
+			&print_breaking("WARNING: $pname is a virtual package, skipping.");
 		}
 
 		# shouldn't be able to remove or purge essential pkgs
 		if ($pv->param_boolean('essential')) {
-			print "WARNING: $pname is essential, skipping.\n";
+			&print_breaking("WARNING: $pname is essential, skipping.");
 			next;
 		}
 
@@ -1363,8 +1370,8 @@ sub cmd_purge {
 			'Also remove packages that depend on the package(s) to be removed.' ],
 	], \@_, helpformat => "%intro{[options] [package(s)]}\n%all{}\n");
 
-	print "WARNING: this command will remove the package(s) and remove any\n";
-	print "         global configure files, even if you modified them!\n\n";
+	print_breaking "WARNING: this command will remove the package(s) and remove any " .
+		"global configure files, even if you modified them!\n";
 
 	my $answer = &prompt_boolean("Do you want to continue?", default => 1);
 	if (! $answer) {
@@ -1680,7 +1687,7 @@ EOFUNC
 		my $files_before_clean = &count_files($apt_cache_path, $deb_regexp);
 
 		if (&execute($aptcmd . "--option APT::Clean-Installed=false autoclean")) {
-			print("WARNING: Cleaning deb packages in '$apt_cache_path' failed.\n");
+			print_breaking("WARNING: Cleaning deb packages in '$apt_cache_path' failed.");
 		}
 		if (!$opts{dryrun}) {
 			print "Obsolete deb packages deleted from apt cache: ",

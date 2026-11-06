@@ -40,7 +40,7 @@ fi
 
 case $FINX_TEST in
     /*) ;;
-    *) printf 'ERROR: FINX_TEST must be an absolute path\n' >&2; exit 1 ;;
+    *) printf '🧩 ERROR: FINX_TEST must be an absolute path\n' >&2; exit 1 ;;
 esac
 
 mkdir -p "$FINX_TEST" || exit 1
