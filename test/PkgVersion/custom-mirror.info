@@ -1,0 +1,12 @@
+Package: custom-mirror
+Version: 1.0
+Revision: 1
+Source: mirror:custom:%n-%v.tar.gz
+CustomMirror: <<
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+	Secondary: http://ftpmirror.gnu.org/non-gnu/%n/source/feature/%v/
+<<
+Source-MD5: wickawockaD
+Description: Test package with the upstream source pool plus a secondary
+Maintainer: fink-core <fink-core@lists.sourceforge.net>
+License: Public Domain

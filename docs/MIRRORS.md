@@ -35,8 +35,18 @@ Finx 安装器不读任何配置文件，也不用命令行参数来定位镜像
 | `FINX_SOURCE_DOMAIN` | `https://codeload.github.com/Fincote/Finx` | finx 自身源码归档 |
 | `FINX_SOURCECODE_DOMAIN` | `https://github.com/Fincote/Finx-source/releases/download/src-1` | 上游源码池（`.info` 里 `CustomMirror` 指向的那批） |
 | `FINX_SELFUPDATE_DOMAIN` | 空（尚未搬过来） | 自更新数据 |
+| `FINX_MIRROR_DOMAIN` | 空 | 基址：一次覆盖上面全部，地址为 `<基址>/<kind>` |
 
 `FINX_DEB_DOMAIN` 与 `FINX_SOURCE_DOMAIN` 安装器也读，所以两边填同一个值即可。
+
+**这五个是否真的生效**：`FINX_SOURCECODE_DOMAIN` 会替换 `.info` 里指向官方池
+的那串地址（只换那一串，包自己的 `Secondary` 保留）；`FINX_MIRROR_DOMAIN`
+派生出的同一个值也一样。其余四个目前仍只在 `finx mirror` 里显示，真正的取用方
+（apt 那条通道、selfupdate 的下载）还没接上来。
+
+**提权之后还在不在**：`finx install` / `fetch` / `build` 会以 root 重新执行
+自己，这些变量由 `Fink::Engine::root_env_prefix()` 显式转发过 `sudo`。往
+`Fink::Domains` 加新变量时必须同步 `Engine.pm` 的 `@ROOT_ENV_VARS`。
 
 代理相关（不是 Finx 发明的，`curl` 与 `sudo` 都认）：
 
@@ -87,8 +97,9 @@ Mirror configuration
   selfupdate  FINX_SELFUPDATE_DOMAIN  unset    (not configured)
 ```
 
-`source` 一列是三态：`env`（你设了）、`default`（内置地址）、`unset`（这块内容
-还没有固定地址）。未设置也打印默认值 —— 空值看不出「没设」还是「设成了空」。
+`source` 一列是四态：`env`（你设了这个 kind 自己的变量）、`base`（由
+`FINX_MIRROR_DOMAIN` 派生）、`default`（内置地址）、`unset`（这块内容还没有
+固定地址）。未设置也打印默认值 —— 空值看不出「没设」还是「设成了空」。
 
 | 旗标 | 作用 |
 | --- | --- |
@@ -130,6 +141,23 @@ export FINX_SEED_DOMAIN=https://oss.example.com/finx/seeds
 
 ```sh
 export FINX_DEB_DOMAIN=https://mirror.example.com/finx/debs
+```
+
+### 一个镜像站包办全部
+
+镜像站按 MacWave 的布局分目录（`Finx/bottle`、`Finx/sourcecode` …）时，只填基址：
+
+```sh
+export FINX_MIRROR_DOMAIN=https://mirror.repohub.top/Finx
+```
+
+某个 kind 想单独指到别处，再设它自己的变量即可（单个变量优先）。注意 `sudo`
+会清空环境，所以首次安装时要把变量交给**真正跑脚本的那个 `sudo`**，而不是
+写在 `curl` 前面（那样只有 `curl` 拿到变量）：
+
+```sh
+curl -fsSL <install.sh 的地址> \
+  | sudo FINX_MIRROR_DOMAIN=https://mirror.repohub.top/Finx bash
 ```
 
 ### 连不上，缩短等待
@@ -455,6 +483,42 @@ url https://.../seed.tar.gz      ← 可选
 - 不需要模拟容器 registry（没有按 digest 取字节的接口）
 - 不需要提供 apt 的 `Packages` 索引 —— 这套 `.deb` 由 Finx 按名字直接取，不走 apt 的源列表
 - 不需要 https 才能用：`finx_domain` 也接受 `file://`，本地目录与 U 盘都行
+
+### 规划中的 `mirror.repohub.top`
+
+自有服务器，目录结构与 MacWave 一致：**域名顶层留给别的产品**，每个产品一层，
+各 `kind` 再各一层。Finx 未来占：
+
+```
+https://mirror.repohub.top/
+├── MacWave/          （已有）
+│   ├── bottle/
+│   └── deps/
+├── LinuxWave/        （可能）
+└── Finx/             ← 这一层还没有
+    ├── bottle/       ≈ FINX_DEB_DOMAIN
+    ├── core/         ≈ FINX_SOURCE_DOMAIN
+    ├── sourcecode/   ≈ FINX_SOURCECODE_DOMAIN
+    ├── selfupdate/   ≈ FINX_SELFUPDATE_DOMAIN
+    └── api/          ≈ FINX_API_DOMAIN
+```
+
+**开关已经就位，只差数据。** 因为每个 `kind` 的目录名与 `Fink::Domains` 的名字
+一一对应，站点上线后用户只需要一行：
+
+```bash
+export FINX_MIRROR_DOMAIN=https://mirror.repohub.top/Finx
+```
+
+单点的变量（例如 `FINX_DEB_DOMAIN`）仍然优先，可以用来把某一块单独指到别处。
+
+**为什么现在不填进默认值**：默认值必须是一个此刻真能下载的地址。等 `Finx/`
+这一层有内容了，再把 `Domains.pm` 的 `%DEFAULTS` 逐个改过去 —— 改一个 kind 就
+是改一行，不必动解析逻辑。
+
+**取源码这一条已经通了**：`FINX_SOURCECODE_DOMAIN`（含基址派生）会替换 `.info`
+里指向官方池的那串地址，所以镜像一旦有 `Finx/sourcecode/`，`finx install` 就
+真的从那里取。`.deb` 那条通道还没接（见下节）。
 
 ---
 

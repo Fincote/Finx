@@ -30,7 +30,7 @@ use warnings;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(domain is_custom url_for rows redact_url masked_url
-			split_userinfo kinds env_name description);
+			split_userinfo kinds env_name description builtin_default);
 
 =head1 NAME
 
@@ -65,12 +65,22 @@ Fink::Domains - 所有对外地址的唯一来源
   FINX_SOURCECODE_DOMAIN  上游源码池（CustomMirror 指向的那批）
   FINX_SELFUPDATE_DOMAIN  自更新数据
 
+  FINX_MIRROR_DOMAIN      基址：一次覆盖上面全部（地址是基址后面接 kind）
+
 全部可带凭据（C<< https://user:pass@host/path >>），因为镜像站常需要账号。
 `finx mirror` 会打印它们，密码默认打码。
 
 安装器那一层（`finx-install/install.sh`）另有一组 `FINX_INDEX_DOMAIN` /
 `FINX_SEED_DOMAIN` / `FINX_SEED_BASE`，那是 bootstrap 之前取种子的地址，
-与这里的五个别混。
+与这里的别混。
+
+`FINX_MIRROR_DOMAIN` 是给自建镜像用的：镜像站按 MacWave 的布局，把一个产品的
+各类内容放在同一层目录下（`https://mirror.example.top/Finx/bottle`、
+`.../Finx/sourcecode` …），所以只填基址就够，单个 kind 的变量仍然优先。
+
+提权那一段：`finx install` / `fetch` / `build` 会以 root 重新执行自己，上面这些
+变量由 `Fink::Engine::root_env_prefix()` 显式转发过 sudo。往本模块加新变量时
+必须同步 `@ROOT_ENV_VARS`（`Engine.pm`），否则它们在需要 root 的命令里静默失效。
 
 =head1 校验
 
@@ -111,6 +121,13 @@ my %DESCRIPTION = (
 	sourcecode => 'upstream source pool',
 	selfupdate => 'self-update data',
 );
+
+# 一个基址覆盖全部 kind。镜像站按 MacWave 的布局把每类内容放在 <基址>/<kind>
+# 下面，所以自建镜像只填这一条；单独某个 kind 的变量仍然优先。
+#
+# 注意它是「基址」而不是某个 kind 的环境变量：它自己不会被拼进 URL，
+# 只参与派生，所以校验失败时报的变量名也必须是它。
+our $BASE_ENV = 'FINX_MIRROR_DOMAIN';
 
 # 空串的含义是「这块内容还没有搬到固定地址」，不是「配错了」。调用方拿到空串
 # 就继续用包描述里的字段（.info 的 CustomMirror），而不是拼出一个坏地址。
@@ -186,8 +203,8 @@ sub redact_url {
 
 # 值会被拼进 URL、写进错误信息，也可能被 shell 当参数用，所以宁可拒绝得早。
 sub _validate {
-	my ($kind, $value) = @_;
-	my $name = $ENV_NAME{$kind};
+	my ($kind, $value, $name) = @_;
+	$name = $ENV_NAME{$kind} unless defined $name;
 
 	for my $bad (" ", "\t", "\n", "\r", "\"", "'", "`", '$', "\\") {
 		die "$name contains a control or quoting character. "
@@ -218,7 +235,45 @@ sub _validate {
 	die "$name has an unsupported scheme ($scheme): $value\n";
 }
 
-# 解析一个地址：环境变量优先，其次内置默认。两处都为空时返回空串。
+# 解析一个 kind，返回 (值, 来源)。来源是 env / base / default / unset。
+#
+# 顺序即优先级。base 那条要过校验，因为基址本身可能是坏的；报错指向
+# FINX_MIRROR_DOMAIN，而不是某个 kind 的变量。
+sub _resolve {
+	my $kind = shift;
+
+	my $own = _strip_slashes(_trim($ENV{$ENV_NAME{$kind}}));
+	return ($own, 'env') if length $own;
+
+	my $base = _strip_slashes(_trim($ENV{$BASE_ENV}));
+	if (length $base) {
+		my $value = "$base/$kind";
+		_validate($kind, $value, $BASE_ENV);
+		return ($value, 'base');
+	}
+
+	my $default = $DEFAULTS{$kind};
+	return ($default, 'default') if defined $default && length $default;
+	return ('', 'unset');
+}
+
+sub _trim {
+	my $value = shift;
+	$value = '' unless defined $value;
+	$value =~ s/^\s+//;
+	$value =~ s/\s+$//;
+	return $value;
+}
+
+# 末尾斜杠一律去掉，拼路径时不用再关心有没有写。
+sub _strip_slashes {
+	my $value = shift;
+	1 while $value =~ s{/+$}{};
+	return $value;
+}
+
+# 解析一个地址：单独的环境变量优先，其次 FINX_MIRROR_DOMAIN 派生的
+# <基址>/<kind>，最后内置默认。三处都为空时返回空串。
 #
 # 校验失败直接 die：这个函数会在任何下载之前被调用，早失败比在下到一半时
 # 才发现地址是坏的强。
@@ -226,27 +281,31 @@ sub domain {
 	my $kind = shift;
 	return '' unless defined $kind && exists $ENV_NAME{$kind};
 
-	my $value = defined $ENV{$ENV_NAME{$kind}} ? $ENV{$ENV_NAME{$kind}} : '';
-	$value =~ s/^\s+//;
-	$value =~ s/\s+$//;
-	$value = $DEFAULTS{$kind} unless length $value;
-	return '' unless defined $value && length $value;
+	my ($value, $source) = _resolve($kind);
+	return '' unless length $value;
 
-	# 末尾斜杠一律去掉，拼路径时不用再关心有没有写
-	1 while $value =~ s{/+$}{};
-	_validate($kind, $value);
-	return $value;
+	# base 那条在 _resolve 里已经校验过：派生出来的地址不该再报一次，
+	# 否则同一条错误会指向两个变量名。
+	_validate($kind, $value, $ENV_NAME{$kind}) unless $source eq 'base';
+	return _strip_slashes($value);
 }
 
-# 用户是否显式设了这个变量。镜像站与官方站的能力不一定相同，调用方要靠它
-# 区分「用户指的」与「内置的」。
+# 用户是否显式指过这个 kind —— 无论是它自己的变量，还是通过基址派生。
+# 镜像站与官方站的能力不一定相同，调用方要靠它区分「用户指的」与「内置的」。
 sub is_custom {
 	my $kind = shift;
 	return 0 unless defined $kind && exists $ENV_NAME{$kind};
-	my $value = defined $ENV{$ENV_NAME{$kind}} ? $ENV{$ENV_NAME{$kind}} : '';
-	$value =~ s/^\s+//;
-	$value =~ s/\s+$//;
-	return length $value ? 1 : 0;
+	my ($value, $source) = _resolve($kind);
+	return ($source eq 'env' || $source eq 'base') ? 1 : 0;
+}
+
+# 内置默认值本身。调用方在用户覆盖之后仍需知道「官方地址长什么样」，
+# 例如把 .info 里那一串原样换掉，而不是整段丢弃。
+sub builtin_default {
+	my $kind = shift;
+	return '' unless defined $kind && exists $DEFAULTS{$kind};
+	my $default = $DEFAULTS{$kind};
+	return defined $default ? $default : '';
 }
 
 # 拼一个地址。域名之后是一条纯文件路径，镜像站 rsync 出同一棵树即可。
@@ -266,16 +325,8 @@ sub rows {
 
 	for my $kind (@KINDS) {
 		my $value = domain($kind);
+		my (undef, $source) = _resolve($kind);
 		my ($base, $user) = split_userinfo($value);
-
-		my $source;
-		if (!length $value) {
-			$source = 'unset';
-		} elsif (is_custom($kind)) {
-			$source = 'env';
-		} else {
-			$source = 'default';
-		}
 
 		push @rows, {
 			name          => $kind,
@@ -302,12 +353,17 @@ __END__
 
 =item domain(KIND)
 
-环境变量 → 内置默认。两边都为空时返回空串，表示「这块内容还没有固定地址」。
-返回前会去掉末尾斜杠并校验。
+单独的环境变量 → `FINX_MIRROR_DOMAIN` 派生的 C<< <基址>/<KIND> >> → 内置默认。
+都为空时返回空串，表示「这块内容还没有固定地址」。返回前会去掉末尾斜杠并校验。
 
 =item is_custom(KIND)
 
-用户是否显式设了 `FINX_*_DOMAIN`。
+用户是否显式指过 KIND —— 无论是它自己的变量，还是通过基址派生。
+
+=item builtin_default(KIND)
+
+内置默认值本身，不受环境变量影响。用户覆盖之后，调用方仍要靠它认出
+「原来那一串官方地址」并就地替换。
 
 =item url_for(KIND, PATH)
 
@@ -315,8 +371,8 @@ C<domain(KIND)/PATH>。域名或路径为空时按需要退化。
 
 =item rows(SHOW_PASSWORD, HIDE_USER)
 
-给 `finx mirror` 用的行：名称、变量、来源（env / default / unset）、是否带
-凭据、打码后的值。
+给 `finx mirror` 用的行：名称、变量、来源（env / base / default / unset）、
+是否带凭据、打码后的值。
 
 =item redact_url(URL)
 

@@ -385,9 +385,15 @@ sub process {
 
 # sudo 默认清空环境；这些变量必须自己送过去，否则提权之后下载会绕过
 # 代理（内网/镜像环境直接失败），或者找不到我们自己的模块。
+#
+# FINX_* 决定从哪儿取东西（Fink::Domains）。`install`、`fetch`、`build` 这些
+# 命令全都是提权之后才干活，不转发的话用户写在 .zshrc 里的镜像设置形同虚设，
+# 实际取的是内置默认地址 —— 而那种失败看起来像「镜像站挂了」。
 my @ROOT_ENV_VARS = qw/ PERL5LIB
 	http_proxy https_proxy ftp_proxy rsync_proxy all_proxy no_proxy
-	HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY /;
+	HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY
+	FINX_MIRROR_DOMAIN FINX_API_DOMAIN FINX_DEB_DOMAIN FINX_SOURCE_DOMAIN
+	FINX_SOURCECODE_DOMAIN FINX_SELFUPDATE_DOMAIN /;
 
 # 返回一段可以嵌进命令行的 "/usr/bin/env A='x' B='y' "，没有变量时返回空串。
 sub root_env_prefix {
@@ -571,7 +577,8 @@ sub cmd_mirror {
 	print "\n";
 	print _mirror_table(\@rows), "\n";
 	print "\n";
-	printf "%s\n", 'env = set by FINX_*_DOMAIN, default = built-in address, '
+	printf "%s\n", 'env = set by FINX_*_DOMAIN, base = derived from '
+		. 'FINX_MIRROR_DOMAIN, default = built-in address, '
 		. 'unset = nothing to point at yet';
 	if (grep { $_->{requires_auth} } @rows) {
 		if ($show_password) {

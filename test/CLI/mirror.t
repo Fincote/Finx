@@ -25,13 +25,13 @@
 #   3. 非法地址必须拒绝得早：它会被拼进 URL、写进错误信息，也可能被 shell 用。
 
 use strict;
-use Test::More tests => 29;
+use Test::More tests => 37;
 
 require Fink::Domains;
 require Fink::Engine;
 
 my @VARS = qw(FINX_API_DOMAIN FINX_DEB_DOMAIN FINX_SOURCE_DOMAIN
-		FINX_SOURCECODE_DOMAIN FINX_SELFUPDATE_DOMAIN);
+		FINX_SOURCECODE_DOMAIN FINX_SELFUPDATE_DOMAIN FINX_MIRROR_DOMAIN);
 my %saved = map { $_ => $ENV{$_} } @VARS;
 END {
 	while (my ($k, $v) = each %saved) {
@@ -151,8 +151,43 @@ sub clear_env { delete @ENV{@VARS} }
 	unlike($only, qr/^export FINX_SOURCE_DOMAIN=/m, '--only-set drops the defaults');
 }
 
-# --- 7. install --dry-run 必须被接受 --------------------------------------
+# --- 7. FINX_MIRROR_DOMAIN：一个基址覆盖全部 kind -------------------------
 
+{
+	# 自建镜像按 MacWave 的布局把一个产品的各类内容放在同一层目录下，
+	# 所以只填基址就够 —— 这是「留出数据位置」的那一格。
+	clear_env();
+	$ENV{FINX_MIRROR_DOMAIN} = 'https://mirror.repohub.top/Finx';
+	is(Fink::Domains::domain('bottle'), 'https://mirror.repohub.top/Finx/bottle',
+		'the base domain derives a subdirectory per kind');
+	is(Fink::Domains::domain('sourcecode'),
+		'https://mirror.repohub.top/Finx/sourcecode',
+		'including the upstream source pool');
+	is(Fink::Domains::domain('api'), 'https://mirror.repohub.top/Finx/api',
+		'a kind with no built-in default gets one from the base too');
+	ok(Fink::Domains::is_custom('api'), 'is_custom sees the base as an override');
+
+	my %by_name = map { $_->{name} => $_ } Fink::Domains::rows(0, 0);
+	is($by_name{sourcecode}{source}, 'base', 'rows marks it as "base", not "env"');
+
+	# 单独某个 kind 的变量仍然优先
+	$ENV{FINX_DEB_DOMAIN} = 'https://debs.example.top/x';
+	is(Fink::Domains::domain('bottle'), 'https://debs.example.top/x',
+		'a per-kind variable wins over the base');
+
+	# 基址末尾的斜杠不影响拼接
+	clear_env();
+	$ENV{FINX_MIRROR_DOMAIN} = 'https://mirror.repohub.top/Finx//';
+	is(Fink::Domains::domain('bottle'), 'https://mirror.repohub.top/Finx/bottle',
+		'trailing slashes on the base are stripped before joining');
+
+	# 坏的基址必须报它自己的名字，否则用户会去查 FINX_DEB_DOMAIN
+	$ENV{FINX_MIRROR_DOMAIN} = 'mirror.repohub.top/Finx';
+	my $err = do { local $@; eval { Fink::Domains::domain('bottle') }; $@ };
+	like($err, qr/FINX_MIRROR_DOMAIN/, 'a bad base names FINX_MIRROR_DOMAIN, not the kind');
+}
+
+# --- 8. install --dry-run 必须被接受 --------------------------------------
 {
 	# 解析层只要不把 --dry-run 当成「未知选项」就够了；这里不需要真的解依赖，
 	# 所以拿一个必然不存在的包触发失败，只断言错误来自包名而不是旗标。

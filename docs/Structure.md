@@ -236,8 +236,8 @@ resolve_method()   决定走种子还是源码
 
 | 模块 | 行数 | 干什么 |
 | --- | --- | --- |
-| `PkgVersion.pm` | 6386 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
-| `Engine.pm` | 3522 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
+| `PkgVersion.pm` | 6407 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
+| `Engine.pm` | 3509 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
 | `Services.pm` | 2701 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
 | `Validation.pm` | 2557 | `.info` 字段校验（含"不许硬编码前缀"那条） |
 | `VirtPackage.pm` | 2484 | 虚拟包：把系统能力（SDK、perl、openssl…）伪装成包 |
@@ -255,7 +255,7 @@ resolve_method()   决定走种子还是源码
 | `Help.pm` | 365 | `--help` 的渲染：展开 `helpformat` 模板、折行、按角色上色 |
 | `Notify.pm` | 355 | 带外通知（Growl / Syslog / XTerm / Say） |
 | `Color.pm` | 341 | 唯一的调色板 `%PALETTE`，以及字符串里的 `${name}` 标记 |
-| `Domains.pm` | 331 | 所有对外地址的唯一来源（`FINX_*_DOMAIN` → 内置默认） |
+| `Domains.pm` | 387 | 所有对外地址的唯一来源（`FINX_*_DOMAIN` / `FINX_MIRROR_DOMAIN` 基址 → 内置默认） |
 | `Base.pm` | 286 | 最基础的参数处理基类 |
 | `Checksum.pm` | 253 | MD5 / SHA1 / SHA256 |
 | `Finally.pm` | 226 | 作用域结束自动清理（类似 RAII） |

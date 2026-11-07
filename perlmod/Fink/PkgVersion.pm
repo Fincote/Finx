@@ -1824,12 +1824,35 @@ sub get_custom_mirror {
 	}
 
 	if ($self->has_param("CustomMirror")) {
-		$self->{_custom_mirror} =
-			Fink::Mirror->new_from_field($self->param_expanded("CustomMirror"));
+		$self->{_custom_mirror} = Fink::Mirror->new_from_field(
+			_custom_mirror_field($self->param_expanded("CustomMirror")));
 	} else {
 		$self->{_custom_mirror} = 0;
 	}
 	return $self->{_custom_mirror};
+}
+
+# 用户显式指了上游源码池（FINX_SOURCECODE_DOMAIN，或由 FINX_MIRROR_DOMAIN
+# 派生出的那一个）时，把 `.info` 里指向官方池的那串地址就地换成镜像的：镜像站
+# 提供同样的后缀，只换了域名与路径前缀。
+#
+# 只换「官方池的那一串」，不整段丢弃：`CustomMirror` 里还可能有上游自己的
+# Secondary（例如 cvs.info 的 ftpmirror.gnu.org），那是真能用上的备胎；而
+# base-files.info 这类根本没走我们池子的包，一个字都不该动。
+sub _custom_mirror_field {
+	my $field = shift;
+
+	require Fink::Domains;
+	return $field unless Fink::Domains::is_custom('sourcecode');
+
+	my $base = Fink::Domains::domain('sourcecode');
+	return $field unless length $base;
+
+	my $official = Fink::Domains::builtin_default('sourcecode');
+	return $field unless length $official && index($field, $official) >= 0;
+
+	$field =~ s/\Q$official\E/$base/g;
+	return $field;
 }
 
 sub get_build_directory {
