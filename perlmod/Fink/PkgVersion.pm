@@ -5966,19 +5966,18 @@ sub package_error {
 		$error .= 	"Also try using \"finx configure\" to set your maximum build jobs to 1 and\n" .
 					"attempt to build the package again." ;
 		}
-	$error .= "\nIf you continue to have issues, please check to see if the FAQ on Fink's \n".
-		"website solves the problem.  If not, ask on one (not both, please) of\n".
-		"these mailing lists:\n\n" .
-		"\tThe Fink Users List <fink-users\@lists.sourceforge.net>\n".
-		"\tThe Fink Beginners List <finx-beginners\@lists.sourceforge.net>";
+	# 支持渠道指向 Finx 自己的仓库。原来是 Fink 的两个 SourceForge 邮件列表，
+	# 对 Finx 的用户来说那是另一个项目，写进去只会把人送错地方。
+	$error .= "\nIf you continue to have issues, please open an issue at\n".
+		"\thttps://github.com/Fincote/Finx/issues";
 	if ($self->has_param('maintainer')) {
 		if ($self->param('maintainer') !~ /finx(.*-core|-devel)/) {
-			$error .= ",\n\nwith a carbon copy to the maintainer:\n" .
+			$error .= "\n\nand mention the maintainer:\n" .
 				"\n".
 				"\t" . $self->param('maintainer') . "\n" .
 				"\n" .
-				"Note that this is preferable to emailing just the maintainer directly,\n".
-				"since most finx package maintainers do not have access to all possible\n" .
+				"That is preferable to mailing the maintainer directly, since most\n".
+				"finx package maintainers do not have access to all possible\n" .
 				"hardware and software configurations"
 		}
 	}

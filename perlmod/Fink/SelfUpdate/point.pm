@@ -88,10 +88,21 @@ sub do_direct {
 	# get the file with the current release number
 	my $currentfink;
 	$currentfink = "CURRENT-FINK-$distribution";
-	my $website = "https://www.finkproject.org";
-	if (-f "$basepath/lib/finx/URL/website") {
-		$website = cat "$basepath/lib/finx/URL/website";
-		chomp($website);
+
+	# 地址只有一个来源：FINX_SELFUPDATE_DOMAIN → 内置默认（目前是空串，意思是
+	# 「这一块还没有固定地址」）。以前这里写死 www.finkproject.org，那是另一个
+	# 项目的站点，对 Finx 的发行版号只会 404；失败信息也看不出该去设什么。
+	#
+	# 不再读 lib/finx/URL/website：那一层「单行文件当 CNAME」的间接层已经整体
+	# 去掉，留着就又是「旧地址赢」。
+	require Fink::Domains;
+	my $website = Fink::Domains::domain('selfupdate');
+	unless (length $website) {
+		die "Finx has no self-update address configured.\n"
+			. "Either set FINX_SELFUPDATE_DOMAIN to a base that serves "
+			. "$currentfink,\n"
+			. "or use another method (for example "
+			. "'finx selfupdate --method=rsync').\n";
 	}
 	my $srcdir = "$basepath/src";
 # we now use &fetch_url_to_file so that we can pass the option

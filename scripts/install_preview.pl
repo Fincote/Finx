@@ -148,7 +148,8 @@ if ($with_failure) {
 		{ kind => 'break' },
 		{ kind => 'text', text => '${error}phase compile: ncdu-1.22-1 failed${reset}' },
 		{ kind => 'text', text => 'Before reporting any errors, please run "finx selfupdate" and try again.' },
-		{ kind => 'text', text => 'If you continue to have issues, please check to see if the FAQ on Fink\'s website solves the problem.' },
+		{ kind => 'text', text => 'If you continue to have issues, please open an issue at' },
+		{ kind => 'text', text => "\thttps://github.com/Fincote/Finx/issues" },
 		{ kind => 'break' },
 		{ kind => 'raw',  text => 'Closed logfile /tmp/finx-build-log_ncdu_1.22-1_2026.11.06-14.55.02' };
 }

@@ -372,7 +372,7 @@ SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来�
 | --- | --- | --- |
 | `TODO` | Fink 镜像管理者的待办（"contact Atlanta to write a LOCAL"） | 2003 年的；这些镜像站与 Finx 无关 |
 | `cvs-repository` / `anonymous-cvs` / `developer-cvs` | `finx selfupdate-cvs` 的仓库地址 | Finx 不自举 CVS；`SelfUpdate::CVS` 里读这三个文件时都有 `-f` 守卫，缺了不影响 |
-| `website` | `selfupdate-point` 拼下载地址时用的官网 | `SelfUpdate/point.pm:91` 内置了 `https://www.finkproject.org`，文件缺失即用它 |
+| `website` | `selfupdate-point` 拼下载地址时用的官网 | 现在 `SelfUpdate/point.pm` 只认 `FINX_SELFUPDATE_DOMAIN`，不再读这个文件 |
 | `_urls` | 上面四个文件在 `lib/finx/URL/` 里的登记表 | 只登记了这四项，随它们一起删 |
 | `apt` | Fink 二进制分发（`bindist.finkmirrors.net`）的 apt 仓库列表 | Finx 的二进制分发是 `Fincote/debs`；这个域名早已不服务。已同时从 `_list` 的 `Order:` 里摘掉 |
 
