@@ -33,8 +33,9 @@ The current distribution tree is `10.9-libcxx`, covering **macOS 10.9 and later*
 
 ## 🧩 Latest Version
 
-`1.0.0-beta3` — third public beta. Binary package distribution is not wired up
-yet, so packages beyond the seed build from source; see the release notes.
+`1.0.0-beta4` — fourth public beta. Prebuilt `.deb` packages can now be
+fetched from a mirror, but the option is off by default, so packages beyond the
+seed still build from source; see the release notes.
 
 ## 🧩 Install Finx
 
