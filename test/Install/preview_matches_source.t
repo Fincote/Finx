@@ -40,7 +40,7 @@ my @fragments = (
 	[ '../perlmod/Fink/PkgVersion.pm',
 		'from binary dist.',               '取 .deb 的那一行' ],
 	[ '../perlmod/Fink/Services.pm',
-		'### execution of ',               '命令失败的提示' ],
+		'Failed: execution of ',           '命令失败的提示' ],
 	[ '../perlmod/Fink/Services.pm',
 		'[ENV] sh -c ',                    '命令回显的前缀' ],
 );

@@ -27,7 +27,8 @@ package Fink::Services;
 
 #use Fink::Checksum;
 use Fink::Command	qw(&rm_f);
-use Fink::CLI		qw(&word_wrap &get_term_width &print_breaking_stderr);
+use Fink::CLI		qw(&word_wrap &get_term_width &print_breaking
+					  &print_breaking_stderr);
 use Fink::Help qw(&expand_help &new_option);
 
 use POSIX qw(:errno_h uname);
@@ -549,6 +550,15 @@ line in it.
 
 =cut
 
+# 命令回显：整行压暗，让子进程自己的输出更醒目。关闭上色时逐字节不变，
+# 这也是 `print_breaking` 那条「标记在别处展开」的规则 —— 这里直接展开，
+# 因为回显是热路径（一次构建几千行），不值得每行走一遍包装。
+sub _print_command {
+	my $text = shift;
+	require Fink::Color;
+	print Fink::Color::colorize("%{dim}$text%{reset}"), "\n";
+}
+
 sub execute {
 	my $script = shift;
 	my %options = ( defined $_[0] ? @_ : () );
@@ -610,7 +620,8 @@ EOSCRIPT
 	# Execute each line as a separate command.
 	foreach my $cmd (split(/\n/,$script)) {
 		my ($commandname) = split(/\s+/, $cmd);
-		print "$wrap_token$cmd\n" unless $options{'quiet'};
+		_print_command("$wrap_token$cmd")
+			unless $options{'quiet'};
 		{
 			# system("no_such_command") emits a warning involving finx
 			# itself (it's the system() that fails)
@@ -625,7 +636,9 @@ EOSCRIPT
 		if ($?) {
 			my $rc = $?;
 			if (not $options{'quiet'}) {
-				print "### execution of $commandname failed, exit code $rc\n";
+				# 与其他诊断同形：红色 + 🧩，由 print_breaking 统一处理。
+				print_breaking("Failed: execution of $commandname, "
+					. "exit code $rc");
 			}
 			if (defined $options{'delete_tempfile'} and $options{'delete_tempfile'} == 1) {
 				# probably keep tempfile around (to aide debugging)

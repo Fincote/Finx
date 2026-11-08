@@ -238,7 +238,7 @@ resolve_method()   决定走种子还是源码
 | --- | --- | --- |
 | `PkgVersion.pm` | 6640 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
 | `Engine.pm` | 3525 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
-| `Services.pm` | 2701 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
+| `Services.pm` | 2765 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
 | `Validation.pm` | 2557 | `.info` 字段校验（含"不许硬编码前缀"那条） |
 | `VirtPackage.pm` | 2484 | 虚拟包：把系统能力（SDK、perl、openssl…）伪装成包 |
 | `Package.pm` | 1363 | 所有包的集合：索引、查找、`Essential` 判定 |

@@ -11,7 +11,7 @@
 | 层 | 谁在说 | 现在有颜色吗 | 要改它得动 |
 | --- | --- | --- | --- |
 | **我们的话** | `print_breaking` 打印的摘要、警告、错误 | 可以（`${name}` 标记） | 调用点的字符串 + `Fink::Color` |
-| **外部命令的回显** | `execute` 把要跑的命令打出来（`sudo … sh -c …`）、失败时的 `### execution of … failed` | 无 | `perlmod/Fink/Services.pm` 的 `execute` |
+| **外部命令的回显** | `execute` 把要跑的命令打出来（`sudo … sh -c …`，整行压暗）、失败时的 `Failed: execution of …` | 回显压暗；失败那行红 + 🧩 | `perlmod/Fink/Services.pm` 的 `_print_command` 与 `execute` |
 | **子进程自己的话** | 编译器、`make`、`dpkg -i`、`curl` 进度条、`patch` | 无，也不该有 | 不归我们管 |
 | **帮助** | `finx --help` / `finx <cmd> --help` | 有，但走另一套 | `perlmod/Fink/Help.pm` |
 
@@ -41,7 +41,7 @@ sed -n '2317,2362p' perlmod/Fink/Engine.pm
 | --- | --- |
 | 安装/更新摘要、additional packages、可能被临时移除的包 | `perlmod/Fink/Engine.pm` 的 `real_install`，约 `:2320`–`:2365` |
 | 阶段失败（`phase compile: foo failed`） | `perlmod/Fink/PkgVersion.pm:5697` `package_error` |
-| 每条外部命令的回显与失败 | `perlmod/Fink/Services.pm:613`–`:635`（`execute` 内） |
+| 每条外部命令的回显与失败 | `perlmod/Fink/Services.pm:556` `_print_command` / `:640`（`execute` 内） |
 | `--help` 的排版、对齐、宽度 | `perlmod/Fink/Help.pm` 的 `align_option_text`；模板在各 `cmd_*` 的 `helpformat` |
 
 ---
@@ -331,14 +331,23 @@ $ finx mirror --jsons=1
 
 | 位置 | 为什么没有 |
 | --- | --- |
-| `execute` 回显的每条命令、`### execution of … failed` | 走的是裸 `print`，没经过 `print_breaking` |
 | 编译输出、`make` 的进度 | 子进程直通终端 |
 | `curl` 的进度条 | 第三方工具自己的输出 |
 | `dpkg -i` 的输出 | 同上 |
 | `configure` 的交互提问 | `Fink::CLI::prompt_*` 的排版是另一套（`(1)\t选项`），目前不上色 |
 | `finx mirror --json/--raw` | 机器可读的输出，故意不掺转义码 |
 
-要给这些上色，得先决定它们归哪一层：命令回显可以走 `print_breaking`；子进程输出只能靠「收进日志 + 摘要」而不是上色。
+要给这些上色，得先决定它们归哪一层：子进程输出只能靠「收进日志 + 摘要」而不是
+上色，因为转义码会跟着进构建日志。
+
+`execute` 那两条已经处理过了，形状不一样：
+
+- **回显**（`sudo -u fink-bld [env] sh -c '…'`）整行压暗，让子进程自己的输出更
+  醒目。走 `Fink::Color::colorize('%{dim}…%{reset}')` 而不是 `print_breaking`：
+  一次构建几千行，不值得每行走一遍折行包装。关闭上色时逐字节不变。
+- **失败那一行**改成 `Failed: execution of <命令>, exit code <N>`，交给
+  `print_breaking`：于是它和别的诊断同形（红 + 🧩）。原来的 `### execution of …`
+  不以 `Failed` 开头，`style_diagnostic` 认不出来，所以那句一直是素的。
 
 ---
 

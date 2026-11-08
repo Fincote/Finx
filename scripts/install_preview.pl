@@ -124,13 +124,13 @@ my @steps = (
 	# 以下都是 execute 的命令回显：sudo -u fink-bld [ENV] sh -c '<命令>'
 	# （[ENV] 是真实代码里的占位，实际会展开成一长串 KEY=VALUE）
 	# 用 q!...! 而不是 q{...}：命令里带 sh -c 的单引号，q{} 的右花括号容易被看错。
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'mkdir -p /opt/finx/src/finx.build/ncdu-1.22-1'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1 && tar xf /opt/finx/src/ncdu-1.22.tar.gz'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && patch -p1 < /opt/finx/finx/dists/15.0/main/finkinfo/base/ncdu.patch'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && CFLAGS="-O2 -g" ./configure --prefix=/opt/finx'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && make'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && make install DESTDIR=/opt/finx/src/finx.build/root-ncdu-1.22-1'! },
-	{ kind => 'raw',  text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/root-ncdu-1.22-1 && /opt/finx/bin/dpkg-deb -b ...'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'mkdir -p /opt/finx/src/finx.build/ncdu-1.22-1'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1 && tar xf /opt/finx/src/ncdu-1.22.tar.gz'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && patch -p1 < /opt/finx/finx/dists/15.0/main/finkinfo/base/ncdu.patch'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && CFLAGS="-O2 -g" ./configure --prefix=/opt/finx'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && make'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/ncdu-1.22-1/ncdu-1.22 && make install DESTDIR=/opt/finx/src/finx.build/root-ncdu-1.22-1'! },
+	{ kind => 'echo', text => q!sudo -u fink-bld [ENV] sh -c 'cd /opt/finx/src/finx.build/root-ncdu-1.22-1 && /opt/finx/bin/dpkg-deb -b ...'! },
 
 	{ kind => 'break' },
 
@@ -144,7 +144,7 @@ my @steps = (
 if ($with_failure) {
 	push @steps,
 		{ kind => 'break' },
-		{ kind => 'raw',  text => '### execution of make failed, exit code 2' },
+		{ kind => 'text', text => 'Failed: execution of make, exit code 2' },
 		{ kind => 'break' },
 		{ kind => 'text', text => '${error}phase compile: ncdu-1.22-1 failed${reset}' },
 		{ kind => 'text', text => 'Before reporting any errors, please run "finx selfupdate" and try again.' },
@@ -158,6 +158,10 @@ foreach my $step (@steps) {
 		print "\n";
 	} elsif ($step->{kind} eq 'raw') {
 		print $step->{text}, "\n";
+	} elsif ($step->{kind} eq 'echo') {
+		# execute 的命令回显：整行压暗
+		require Fink::Color;
+		print Fink::Color::colorize("%{dim}$step->{text}%{reset}"), "\n";
 	} else {
 		Fink::CLI::print_breaking($step->{text}, $step->{linebreak},
 			$step->{prefix});
