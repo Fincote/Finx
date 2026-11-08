@@ -475,14 +475,28 @@ url https://.../seed.tar.gz      ← 可选
 是两个文件：每个 `.deb` 都带 `darwin (>= N-1)` 依赖，装错了 dpkg 会拒绝。所以
 `darwin21-x86_64` 与 `darwin24-arm64` 不能互相顶替。
 
+**每个 Release 必须带一份 `SHA256SUMS`。** 格式就是 `sha256sum` 的输出：
+
+```
+b19b6392d6512e1661e0113b4d62134be56eb18788ed1a9a6e334e88a3a2edd6  dpkg@1.19.7-1.3.darwin24-arm64.deb
+```
+
+`finx install` 会先取它、再下载，对不上就删掉文件并中止 —— 不留一个坏 `.deb`
+在缓存里等着被 `dpkg -i`。缺这一份文件，或里面没有本平台那一行，安装会直接失败
+并提示「没有这个平台的预编译包」。
+
+它挡的是传输损坏和「文件被换过」这类错配，**挡不住恶意镜像**：两份文件来自同一台
+主机。真正的信任边界是那个域名本身，见下面第四节。
+
 **只增不删。** 镜像侧同步请用「只补缺失」，不要 `--delete` —— 上游删掉一个资产，
 等于让某个版本永久消失，而存档意义正是反过来的。
 
 **镜像不需要做的事：**
 
 - 不需要模拟容器 registry（没有按 digest 取字节的接口）
-- 不需要提供 apt 的 `Packages` 索引 —— 这套 `.deb` 由 Finx 按名字直接取，不走 apt 的源列表
+- 不需要提供 apt 的 `Packages` 索引 —— 这套 `.deb` 由 Finx 自己按名字取，不走 apt 的源列表
 - 不需要 https 才能用：`finx_domain` 也接受 `file://`，本地目录与 U 盘都行
+  （明文 `http://` 只给回环地址，见 `Fink::Domains` 的校验）
 
 ### 规划中的 `mirror.repohub.top`
 
@@ -526,10 +540,13 @@ export FINX_MIRROR_DOMAIN=https://mirror.repohub.top/Finx
 
 - **不管包仓库的目录结构。** 装软件包时用哪个 dists、哪些 trees，由 `finx.conf` 里的
   `Trees` 与 `Distribution` 决定，不是安装器的事。
-- **`FINX_DEB_DOMAIN` 目前只声明位置。** 它指出预编译 `.deb` 放在哪，但当前版本的
-  `finx install` 仍然让 apt 自己取字节（`apt-get --download-only`），而 apt 0.5.4
-  没有 https method。也就是说这个变量要等「Finx 自己下载再交给 apt」那条路做完才
-  生效 —— 现在设了不会改变任何行为。镜像站可以照第五节先把目录准备好。
+- **`FINX_DEB_DOMAIN` 现在真的生效了，但只在这一条路径上。** `finx install`
+  在 `UseBinaryDist` 打开时，自己按
+  `<域名>/<包名>/<包名>@<版本>-<修订>.darwin<Darwin>-<架构>.deb` 下载，用同一个
+  Release 下的 `SHA256SUMS` 校验，然后照旧 `dpkg -i` 本地文件 —— apt 不再参与
+  下载（它 0.5.4 也没有 https method）。装进
+  `<前缀>/var/cache/finx/bottles/`，与 apt 的 archives 分开。
+  没有配地址时仍走老的 `apt-get --download-only`。
 - **不管已安装的 Finx 自身更新。** `finx selfupdate` 走自己的仓库地址。
 - **不是必需的。** 全部不设，`curl | bash` 就该能装成。
 

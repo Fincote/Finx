@@ -1,0 +1,11 @@
+Package: bottle-test
+Version: 1.2
+Revision: 3
+Source: mirror:custom:%n-%v.tar.gz
+CustomMirror: <<
+	Primary: https://github.com/Fincote/Finx-source/releases/download/src-1
+<<
+Source-MD5: wickawockaD
+Description: Test package for the prebuilt .deb channel
+Maintainer: fink-core <fink-core@lists.sourceforge.net>
+License: Public Domain

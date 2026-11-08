@@ -446,6 +446,17 @@ sub restart_as_root {
 my ($OP_FETCH, $OP_BUILD, $OP_INSTALL, $OP_REBUILD, $OP_REINSTALL) =
 	(-1, 0, 1, 2, 3);
 
+# 「这个包能以预编译包的形式取到吗」。apt 的索引是一条来源，我们自己的镜像
+# 是另一条（apt 0.5.4 没有 https method，sources.list 里也不会写进我们的包）。
+#
+# $dryrun 传进来是为了让预演保持不联网：那时只认 apt 的答案，其余按「有」处理，
+# 于是预演会打印出它本来就要打印的「会取哪个地址」。
+sub _prebuilt_available {
+	my ($pv, $dryrun) = @_;
+	return 1 if $pv->is_aptgetable();
+	return $pv->is_bottleable($dryrun ? 1 : 0);
+}
+
 ### simple commands
 
 sub cmd_index {
@@ -2150,7 +2161,8 @@ sub real_install {
 			@deplist = $item->[PKGVER]->resolve_depends(2, "Depends", $forceoff);
 			@con_lol = $item->[PKGVER]->resolve_depends(2, "Conflicts", $forceoff);
 		} elsif ((not $item->[PKGVER]->is_present()
-		  and not ($deb_from_binary_dist and $item->[PKGVER]->is_aptgetable()))
+		  and not ($deb_from_binary_dist
+		           and _prebuilt_available($item->[PKGVER], $dryrun)))
 		  or $item->[OP] == $OP_REBUILD) {
 			# We want to install this package and have to build it for that
 			# -> include both life-time & build-time dependencies
@@ -2160,7 +2172,8 @@ sub real_install {
 			@deplist = $item->[PKGVER]->resolve_depends(1, "Depends", $forceoff);
 			@con_lol = $item->[PKGVER]->resolve_depends(1, "Conflicts", $forceoff);
 		} elsif (not $item->[PKGVER]->is_present() and $item->[OP] != $OP_REBUILD
-		         and $deb_from_binary_dist and $item->[PKGVER]->is_aptgetable()) {
+		         and $deb_from_binary_dist
+		         and _prebuilt_available($item->[PKGVER], $dryrun)) {
 			# We want to install this package and will download the .deb for it
 			# -> only include life-time dependencies
 			if ($verbosity > 2) {
@@ -2200,7 +2213,9 @@ sub real_install {
 			push @requested, $pkgname;
 		}
 		if ($item->[OP] == $OP_REBUILD || $item->[OP] == $OP_BUILD ||
-		    (not $item->[PKGVER]->is_present() and not($deb_from_binary_dist and $item->[PKGVER]->is_aptgetable()))) {
+		    (not $item->[PKGVER]->is_present()
+		     and not($deb_from_binary_dist
+		             and _prebuilt_available($item->[PKGVER], $dryrun)))) {
 			unless (($item->[OP] == $OP_INSTALL and $item->[PKGVER]->is_installed())) {
 				$willbuild = 1;
 				$to_be_rebuilt{$pkgname} = 1;
@@ -3447,7 +3462,8 @@ sub prefetch {
 		if (grep { $dep->[OP] == $_ } ($OP_REINSTALL, $OP_INSTALL)) {
 			if ($dep->[PKGVER]->is_installed || $dep->[PKGVER]->is_present) {
 				next; # We have what we need, skip it
-			} elsif ($use_bindist && $dep->[PKGVER]->is_aptgetable) {
+			} elsif ($use_bindist
+			         && _prebuilt_available($dep->[PKGVER], $dryrun)) {
 				# Use apt
 				push @aptget, $dep->[PKGVER];
 			} elsif ($dep->[OP] == $OP_REINSTALL) {	# Shouldn't get here!

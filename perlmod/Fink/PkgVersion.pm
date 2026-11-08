@@ -2543,6 +2543,10 @@ sub find_debfile {
 
 	# maybe it's available from the bindist?
 	if ($config->binary_requested()) {
+		# 我们自己下的预编译包
+		my $bottle = bottle_cache_dir() . '/' . $self->get_bottle_name();
+		return $bottle if -f $bottle;
+
 		my $epoch = $self->get_epoch();
 		# Fix for Debarch since Apt converts _ into %5f
 		my $debarch = $config->param('Debarch');
@@ -3243,12 +3247,72 @@ sub phase_fetch_deb {
 	$self->fetch_deb($dryrun, @packages);
 }
 
+=item get_bottle_name
+
+  my $file = $pv->get_bottle_name;
+
+The asset name of this package's prebuilt .deb on a mirror:
+
+  <name>@<version>-<revision>.darwin<Darwin>-<arch>.deb
+
+The Darwin major version is part of the name because every .deb carries a
+`darwin (>= N-1)` dependency: the same dpkg built on macOS 12 and on macOS 15
+are two different files and cannot stand in for each other.
+
+=cut
+
+sub get_bottle_name {
+	my $self = shift;
+	return $self->{_bottle_name} if exists $self->{_bottle_name};
+
+	my $debarch = $config->param('Debarch');	# darwin-arm64
+	my ($arch) = $debarch =~ /^darwin-(.*)$/;
+	$arch = $debarch unless defined $arch;
+	my ($darwin) = split /\./, Fink::Services::get_kernel_vers_long();
+
+	$self->{_bottle_name} = sprintf '%s@%s-%s.darwin%s-%s.deb',
+		$self->get_name(), $self->get_version(), $self->get_revision(),
+		$darwin, $arch;
+	return $self->{_bottle_name};
+}
+
+=item get_bottle_url
+
+  my $url = $pv->get_bottle_url;
+
+Where that asset lives: C<< <bottle domain>/<name>/<name>@... >>. Returns
+undef when nothing is configured for prebuilt packages.
+
+=cut
+
+sub get_bottle_url {
+	my $self = shift;
+
+	require Fink::Domains;
+	return undef unless length Fink::Domains::domain('bottle');
+	return Fink::Domains::url_for('bottle',
+		$self->get_name() . '/' . $self->get_bottle_name());
+}
+
+# 我们下的预编译包放在自己的目录里，不与 apt 的 archives 混。apt 那套文件名是
+# Debian 规约（%n_%v-%r_%debarch.deb），与镜像站上的资产名（带 @、带 Darwin
+# 主版本）对不上，两边各存一份只会让人对不上号。
+#
+# 返回值一定是绝对路径：fetch_url_to_file 会 chdir 到下载目录且不回来，
+# 相对路径在这一步之后就解不开了。
+sub bottle_cache_dir {
+	my $dir = "$basepath/var/cache/finx/bottles";
+	return $dir if $dir =~ m{^/};
+	require Cwd;
+	return Cwd::abs_path($basepath) . '/var/cache/finx/bottles';
+}
+
 =item fetch_deb
 
   $self->fetch_deb($dryrun, @packages);
 
-Unconditionally download the .deb files for some packages. Die if apt-get
-fails.
+Download the .deb files for some packages. Dies if a download or its checksum
+verification fails.
 
 =cut
 
@@ -3256,12 +3320,22 @@ sub fetch_deb {
 	my $self = shift;
 	my $dryrun = shift || 0;
 	my @packages = @_;
-	next unless @packages;
+	return unless @packages;
 
 	my @names = sort map { $_->get_debname() } @packages;
 	if ($config->verbosity_level() > 2) {
 		print "Downloading " . join(', ', @names) . " from binary dist.\n";
 	}
+
+	# apt 0.5.4 没有 https method，而分发在 https 上，所以不再让 apt 去取：
+	# 自己下载、自己校验，装的时候仍然是 `dpkg -i` 一个本地文件。没有配
+	# 预编译包地址时保持老行为（apt 的 --download-only），不改变任何既有安装。
+	require Fink::Domains;
+	if (length Fink::Domains::domain('bottle')) {
+		$self->_fetch_deb_from_mirror($dryrun, @packages);
+		return;
+	}
+
 	my $aptcmd = aptget_lockwait() . " ";
 	if ($config->verbosity_level() == 0) {
 		$aptcmd .= "-qq ";
@@ -3317,6 +3391,165 @@ sub fetch_deb {
 		# FIXME: Should we check is_present to make sure the download really
 		# succeeded? Or just fail silently and hope things work out in the end?
 	}
+}
+
+# fetch_url_to_file 会 chdir 到下载目录且不回来。依赖解析阶段（is_bottleable）
+# 也走这里，留下的工作目录会让之后每一个相对路径失效 —— 所以在这一层兜住。
+#
+# try_all_mirrors 关掉交互式重试：失败时它会问「换哪个镜像重试」，而这个地址
+# 只有一个来源，问也问不出别的，在依赖解析当中停下等 120 秒更糟。失败直接
+# 返回 1，由调用方决定是「没有这个预编译包」还是「下载失败」。
+sub _download_to {
+	my ($url, $file, $dir) = @_;
+	require Cwd;
+	my $cwd = Cwd::getcwd();
+	my $rc = &fetch_url_to_file({
+		url                => $url,
+		filename           => $file,
+		download_directory => $dir,
+		try_all_mirrors    => 1,
+	});
+	chdir $cwd;
+	return $rc;
+}
+
+# 从镜像站取预编译包，并用同一个 Release 下的 SHA256SUMS 校验。
+#
+# 校验不是可选项：这些 .deb 的 postinst 以 root 执行，而地址可以由环境变量
+# 指定。没有校验的话，改一个环境变量就等于让某台主机往 /opt/finx 里装任意
+# 脚本。SHA256SUMS 与被校验的文件来自同一台主机，所以它挡的是传输损坏和
+# 「文件被换过」这类错配，挡不住恶意镜像 —— 真正的信任边界仍是那个域名本身
+# （见 docs/MIRRORS.md 第四节）。
+sub _fetch_deb_from_mirror {
+	my $self = shift;
+	my $dryrun = shift;
+	my @packages = @_;
+
+	my $dir = bottle_cache_dir();
+	my %checksums;		# 包名 → { 文件名 => sha256 }
+
+	for my $pkg (@packages) {
+		my $name = $pkg->get_name();
+		my $file = $pkg->get_bottle_name();
+		my $url  = $pkg->get_bottle_url();
+
+		if ($dryrun) {
+			print_breaking("Would fetch " . Fink::Domains::redact_url($url));
+			next;
+		}
+
+		$checksums{$name} = _bottle_checksums($name)
+			unless exists $checksums{$name};
+
+		my $want = $checksums{$name}->{$file};
+		unless (defined $want) {
+			die "The binary distribution of '$name' has no entry for $file.\n"
+				. "There is no prebuilt package for this OS version and "
+				. "architecture. Build it from source instead "
+				. "(run without the 'UseBinaryDist' option).\n";
+		}
+
+		mkdir_p $dir unless -d $dir;
+		my $dest = "$dir/$file";
+		unlink $dest if -f $dest;	# 上次下到一半的残片一律不要
+
+		if (_download_to($url, $file, $dir)) {
+			die "Downloading '$file' from "
+				. Fink::Domains::redact_url($url) . " failed.\n";
+		}
+
+		my $got = _sha256_of($dest);
+		unless (defined $got && $got eq lc $want) {
+			unlink $dest;
+			die "Checksum mismatch for '$file', deleted the file.\n"
+				. "  expected: $want\n"
+				. "  actual:   " . (defined $got ? $got : '(unreadable)') . "\n"
+				. "Nothing was installed.\n";
+		}
+	}
+}
+
+# 取并解析 <域名>/<包名>/SHA256SUMS。格式是 sha256sum 的输出：
+#   64 位十六进制，两个空格，然后是文件名。
+#
+# 同一进程内按「域名 + 包名」缓存：依赖解析阶段会反复问「这个包有没有预编译
+# 包」，不缓存就是一个包一次请求。带域名做 key 是因为换域名之后答案会变。
+our %BOTTLE_SUMS;
+
+sub _bottle_checksums {
+	my $name = shift;
+
+	require Fink::Domains;
+	my $base = Fink::Domains::domain('bottle');
+	my $key  = "$base\0$name";
+	return $BOTTLE_SUMS{$key} if exists $BOTTLE_SUMS{$key};
+
+	my $dir  = bottle_cache_dir();
+	my $file = "$name.SHA256SUMS";
+	my $dest = "$dir/$file";
+
+	mkdir_p $dir unless -d $dir;
+	unlink $dest if -f $dest;
+
+	if (_download_to(Fink::Domains::url_for('bottle', "$name/SHA256SUMS"),
+			$file, $dir)) {
+		die "Could not fetch the checksum list for '$name' "
+			. "from " . Fink::Domains::redact_url(
+				Fink::Domains::url_for('bottle', "$name/SHA256SUMS")) . ".\n";
+	}
+
+	my %sums;
+	open(my $fh, '<', $dest) or die "can't read $dest: $!\n";
+	while (<$fh>) {
+		chomp;
+		next unless /^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$/;
+		$sums{$2} = lc $1;
+	}
+	close $fh;
+
+	die "The checksum list for '$name' is empty or malformed: $dest\n"
+		unless %sums;
+
+	$BOTTLE_SUMS{$key} = \%sums;
+	return \%sums;
+}
+
+sub _sha256_of {
+	my $file = shift;
+	my $sum = eval { Fink::Checksum->new('SHA256')->get_checksum($file) };
+	return (defined $sum && length $sum) ? lc $sum : undef;
+}
+
+=item is_bottleable
+
+  my $bool = $pv->is_bottleable;          # asks the mirror
+  my $bool = $pv->is_bottleable(1);       # --dry-run: no request, assume yes
+
+Is there a prebuilt .deb for this package on this OS version and architecture?
+
+This asks the mirror's SHA256SUMS (which is also the list of assets) instead of
+apt's index, because apt cannot reach an https-only mirror (0.5.4 has no https
+method) and nothing writes our packages into sources.list.
+
+With $assume set no request is made. That is what `--dry-run` uses: it must stay
+offline, and it only prints the addresses it would ask for anyway.
+
+=cut
+
+sub is_bottleable {
+	my $self = shift;
+	my $assume = shift || 0;
+
+	return 0 unless $config->binary_requested();
+
+	require Fink::Domains;
+	return 0 unless length Fink::Domains::domain('bottle');
+
+	return 1 if $assume;
+
+	my $sums = eval { _bottle_checksums($self->get_name()) };
+	return 0 unless $sums;
+	return exists $sums->{ $self->get_bottle_name() } ? 1 : 0;
 }
 
 ### fetch
