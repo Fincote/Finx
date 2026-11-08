@@ -252,10 +252,10 @@ resolve_method()   决定走种子还是源码
 | `NetAccess.pm` | 475 | 下载（curl/axel/wget 后端） |
 | `Mirror.pm` | 434 | 镜像列表解析：`mirror:gnu:` 这类写法展开成真 URL |
 | `Command.pm` | 417 | 用 Perl 模拟 `cat`/`cp`/`mkdir_p`/`rm_rf` 等 |
-| `Help.pm` | 365 | `--help` 的渲染：展开 `helpformat` 模板、折行、按角色上色 |
+| `Help.pm` | 604 | `--help` 的渲染：展开 `helpformat` 模板、折行、按角色上色 |
 | `Notify.pm` | 355 | 带外通知（Growl / Syslog / XTerm / Say） |
-| `Color.pm` | 341 | 唯一的调色板 `%PALETTE`，以及字符串里的 `${name}` 标记 |
-| `Domains.pm` | 387 | 所有对外地址的唯一来源（`FINX_*_DOMAIN` / `FINX_MIRROR_DOMAIN` 基址 → 内置默认） |
+| `Color.pm` | 415 | 唯一的调色板 `%PALETTE`，以及字符串里的 `${name}` 标记 |
+| `Domains.pm` | 400 | 所有对外地址的唯一来源（`FINX_*_DOMAIN` / `FINX_MIRROR_DOMAIN` 基址 → 内置默认） |
 | `Base.pm` | 286 | 最基础的参数处理基类 |
 | `Checksum.pm` | 253 | MD5 / SHA1 / SHA256 |
 | `Finally.pm` | 226 | 作用域结束自动清理（类似 RAII） |

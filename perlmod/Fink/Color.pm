@@ -34,52 +34,58 @@ our @EXPORT_OK = qw(enabled colorize paint strip wrap_marked tokens palette
 
 =head1 NAME
 
-Fink::Color - 一处定义配色，字符串里用 ${名字} 就地着色
+Fink::Color - one palette, and ${name} markers that colour a string in place
 
 =head1 SYNOPSIS
 
   use Fink::Color qw(colorize);
 
-  print_breaking "${yellow}WARNING${reset}: 这条包描述没有 Depends";
+  print_breaking "${yellow}WARNING${reset}: this package is missing Depends";
 
-  # 或先拼好再交给任何输出函数
+  # or build the line first and hand it to any output function
   my $line = colorize('${cmd}install${reset} ${flag}--yes${reset}');
 
 =head1 DESCRIPTION
 
-改颜色只需要动本文件的 C<%PALETTE>；写新消息时不必再记「哪个角色对应哪个
-函数」，直接在字符串里放 C<${名字}>。
+Changing a colour means editing C<%PALETTE> in this file and nothing else. When
+writing a new message you do not have to remember which role maps to which
+function: put C<${name}> in the string.
 
-=head2 为什么不用 ${yellow} 当 Perl 变量
+=head2 Why not use ${yellow} as a Perl variable
 
-Perl 的双引号里 C<${yellow}> 会去插值一个叫 C<$yellow> 的变量。消息散在十几个
-包里，各自都得先声明一遍那些变量；漏一个就是编译期错误，而 C<use strict> 下
-连提示都不会给出「你是不是想上色」。所以这里把 C<${名字}> 当**普通文本**看待，
-由 C<colorize> 在真正输出前展开 —— 写的人只关心名字，不关心作用域。
+Inside Perl's double quotes C<${yellow}> interpolates a variable called
+C<$yellow>. Messages live in a dozen packages, so each one would have to declare
+those variables; forget one and you get a compile error, and under C<use strict>
+not even a hint that colour was intended. So C<${name}> is treated as B<plain
+text> here and expanded by C<colorize> just before printing: the writer only
+cares about the name, not about scope.
 
-=head2 什么时候不上色
+=head2 When it does not colour
 
-输出不是终端（被重定向到文件或管道）、或者 C<NO_COLOR> 被设置时，C<colorize>
-把标记**删掉**而不是留下转义码。逃逸码混进日志以后，用户贴报错求助时会变成
-一堆 C<^[[33m>，C<grep> 也再也匹配不上。
+When the output is not a terminal (redirected to a file or a pipe), or when
+C<NO_COLOR> is set, C<colorize> B<removes> the markers instead of leaving escape
+codes behind. Escape codes in a log turn into a wall of C<^[[33m> when someone
+pastes the error into a bug report, and C<grep> stops matching anything.
 
-  环境变量              行为
-  NO_COLOR=1            关（优先级最高）
-  CLICOLOR=0            关
-  FINX_COLOR=1          开（截图、录屏时输出被重定向仍要颜色）
-  CLICOLOR_FORCE=1      开
-  都不设                看 STDOUT 是不是终端
+  environment variable  behaviour
+  NO_COLOR=1            off (highest priority)
+  CLICOLOR=0            off
+  FINX_COLOR=1          on (colours survive a redirect for screenshots)
+  CLICOLOR_FORCE=1      on
+  none of the above     colour if STDOUT is a terminal
 
-=head2 折行不会因为标记而变短
+=head2 Markers do not shorten the wrap
 
-标记是零宽的，但 C<length()> 会把它算进去。所以带标记的字符串不能直接交给
-C<word_wrap>：那样每出现一个 C<${yellow}> 就少折 9 列，长消息会窄一截。
-C<wrap_marked> 按**可见列数**折行，标记原样跟着走，最后才展开。
+A marker is zero width, but C<length()> counts it. So a marked string must not go
+straight into C<word_wrap>: every C<${yellow}> would cost 9 columns and long
+messages would come out too narrow. C<wrap_marked> wraps by B<visible columns>,
+carries the markers along, and expands them last.
 
-=head1 已知标记
+=head1 Known markers
 
-跑 C<scripts/color_preview.pl> 可以一次看到全部标记的实际效果 —— 调色时
-不必改代码、编译、再翻一份长日志去找那一行。
+Run C<scripts/color_preview.pl> to see every marker at once. That is how you tune
+the palette without editing code, rebuilding, and digging the line out of a long
+log.
 
 =cut
 
@@ -373,33 +379,36 @@ sub palette { return %PALETTE }
 
 __END__
 
-=head1 函数
+=head1 Functions
 
 =over 4
 
 =item colorize(TEXT)
 
-展开 C<${名字}>。关闭上色时把标记删掉。
+Expands C<${name}>. Removes the markers when colour is off.
 
 =item strip(TEXT)
 
-只删标记，用来算可见宽度或做纯文本比较。
+Removes the markers only. Use it to measure visible width or to compare text.
 
 =item paint(TEXT, ROLE)
 
-等价于整段上色。保留是为了兼容按角色调用的老代码。
+Colours the whole string. Kept for older code that calls by role.
 
 =item wrap_marked(TEXT, WIDTH, PREFIX1, PREFIX2)
 
-按可见列数折行并展开，返回行列表。给 C<print_breaking> 用。
+Wraps by visible columns and expands, returning a list of lines. This is what
+C<print_breaking> uses.
 
 =item enabled()
 
-当前是否上色。看 C<NO_COLOR> / C<CLICOLOR> / C<CLICOLOR_FORCE> / C<FINX_COLOR>。
+Whether colour is on right now. Consults C<NO_COLOR> / C<CLICOLOR> /
+C<CLICOLOR_FORCE> / C<FINX_COLOR>.
 
 =item tokens() / palette()
 
-全部标记名 / 标记到转义码的映射。给 C<scripts/color_preview.pl> 与测试用。
+Every marker name / the marker-to-escape-code map. For C<scripts/color_preview.pl>
+and the tests.
 
 =back
 

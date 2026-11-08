@@ -34,72 +34,80 @@ our @EXPORT_OK = qw(domain is_custom url_for rows redact_url masked_url
 
 =head1 NAME
 
-Fink::Domains - 所有对外地址的唯一来源
+Fink::Domains - the single source of every outward-facing address
 
 =head1 SYNOPSIS
 
   use Fink::Domains qw(&domain &is_custom &redact_url);
 
-  my $base = domain('bottle');          # 环境变量优先，其次内置默认
+  my $base = domain('bottle');          # environment first, then built-in default
   my $url  = "$base/$pkg/$file";
-  print redact_url($url);               # 打印/写日志前先脱敏
+  print redact_url($url);               # redact before printing or logging
 
 =head1 DESCRIPTION
 
-一份「从哪儿取」的清单，其它模块不再各写各的字面量。
+One list of "where to fetch from", so no other module writes its own literals.
 
-为什么要有这个模块：以前地址散在三处 —— `.info` 的 `CustomMirror`、代码里的
-字符串、以及 `lib/finx/mirror/` 与 `lib/finx/URL/` 下一堆「单行文件当 CNAME」
-的数据。那种间接层最安静的死法是数据过期而代码已经改对，于是**旧地址赢**：
-`SelfUpdate/CVS.pm` 的兜底早就写成 `finx.cvs.sourceforge.net`，而
-`URL/cvs-repository` 里仍是 2018 年的 `fink.cvs.sourceforge.net`，文件在就以
-文件为准，没人发现。
+Why this module exists: the addresses used to live in three places -- the
+C<CustomMirror> field in C<.info> files, string literals in the code, and a pile
+of "one-line files as CNAMEs" under C<lib/finx/mirror/> and C<lib/finx/URL/>.
+The quietest way for that indirection to die is data going stale while the code
+was fixed, so the B<old address wins>: the fallback in C<SelfUpdate/CVS.pm> had
+long said C<finx.cvs.sourceforge.net>, while C<URL/cvs-repository> still held the
+2018 value C<fink.cvs.sourceforge.net>; the file existed, so the file won, and
+nobody noticed.
 
-所以规则只有一条：**环境变量 → 内置默认，没有第三个来源**。
+So there is exactly one rule: B<environment variable, then built-in default, no
+third source>.
 
-=head2 变量
+=head2 Variables
 
-  FINX_API_DOMAIN         包描述树（infosource）
-  FINX_DEB_DOMAIN         预编译 .deb（Bottle 式：一包一 Release）
-  FINX_SOURCE_DOMAIN      finx 自身源码归档
-  FINX_SOURCECODE_DOMAIN  上游源码池（CustomMirror 指向的那批）
-  FINX_SELFUPDATE_DOMAIN  自更新数据
+  FINX_API_DOMAIN         package description tree (infosource)
+  FINX_DEB_DOMAIN         prebuilt .deb packages (one release per package)
+  FINX_SOURCE_DOMAIN      finx's own source archive
+  FINX_SOURCECODE_DOMAIN  upstream source pool (what CustomMirror points at)
+  FINX_SELFUPDATE_DOMAIN  self-update data
 
-  FINX_MIRROR_DOMAIN      基址：一次覆盖上面全部（地址是基址后面接 kind）
+  FINX_MIRROR_DOMAIN      a base: overrides all of the above as <base>/<kind>
 
-全部可带凭据（C<< https://user:pass@host/path >>），因为镜像站常需要账号。
-`finx mirror` 会打印它们，密码默认打码。
+All of them may carry credentials (C<< ******host/path >>), because mirrors often
+need an account. C<finx mirror> prints them with passwords masked by default.
 
-安装器那一层（`finx-install/install.sh`）另有一组 `FINX_INDEX_DOMAIN` /
-`FINX_SEED_DOMAIN` / `FINX_SEED_BASE`，那是 bootstrap 之前取种子的地址，
-与这里的别混。
+The installer (C<finx-install/install.sh>) has its own set:
+C<FINX_INDEX_DOMAIN> / C<FINX_SEED_DOMAIN> / C<FINX_SEED_BASE>. Those are the
+addresses used before bootstrap, and must not be confused with these.
 
-`FINX_MIRROR_DOMAIN` 是给自建镜像用的：镜像站按 MacWave 的布局，把一个产品的
-各类内容放在同一层目录下（`https://mirror.example.top/Finx/bottle`、
-`.../Finx/sourcecode` …），所以只填基址就够，单个 kind 的变量仍然优先。
+C<FINX_MIRROR_DOMAIN> is for self-hosted mirrors that follow MacWave's layout,
+where one product puts all of its kinds side by side
+(C<https://mirror.example.top/Finx/bottle>, C<.../Finx/sourcecode>, ...). Fill in
+the base only; a per-kind variable still wins.
 
-提权那一段：`finx install` / `fetch` / `build` 会以 root 重新执行自己，上面这些
-变量由 `Fink::Engine::root_env_prefix()` 显式转发过 sudo。往本模块加新变量时
-必须同步 `@ROOT_ENV_VARS`（`Engine.pm`），否则它们在需要 root 的命令里静默失效。
+Escalation: C<finx install> / C<fetch> / C<build> re-execute themselves as root,
+and these variables are forwarded across sudo by
+C<Fink::Engine::root_env_prefix()>. Add a new variable here and you must add it
+to C<@ROOT_ENV_VARS> in C<Engine.pm> too, or it silently disappears from every
+command that needs root.
 
-=head1 校验
+=head1 Validation
 
-值会被拼进 URL、写进错误信息，也可能被 shell 当参数用，所以宁可拒绝得早：
+The value is spliced into URLs, written into error messages, and could be used
+by a shell as an argument, so refusing early is better than failing late:
 
 =over 4
 
-=item * 只接受 C<https://> 与 C<file://>；明文 C<http://> 仅限回环地址（离线测试）
+=item * only C<https://> and C<file://>; plain C<http://> is limited to loopback (offline tests)
 
-=item * 空白、控制字符、引号、C<$> 与反引号一律不收
+=item * whitespace, control characters, quotes, C<$> and backticks are refused
 
-=item * 末尾斜杠一律去掉，拼路径时不用再关心有没有写
+=item * trailing slashes are stripped, so building a path never has to care
 
 =back
 
-=head1 为什么不用 JSON
+=head1 Why not use JSON
 
-`finx mirror --json` 是手写的：Fink 要能跑在 5.8 上，而 `JSON::PP` 是 5.14 才
-进核心的。表里只有五个固定字段，转义两个字符就够。
+C<finx mirror --json> is hand-written: Fink has to run on 5.8, and C<JSON::PP>
+only entered core in 5.14. The table has five fixed fields, so escaping two
+characters is enough.
 
 =cut
 
@@ -347,40 +355,45 @@ sub rows {
 
 __END__
 
-=head1 函数
+=head1 Functions
 
 =over 4
 
 =item domain(KIND)
 
-单独的环境变量 → `FINX_MIRROR_DOMAIN` 派生的 C<< <基址>/<KIND> >> → 内置默认。
-都为空时返回空串，表示「这块内容还没有固定地址」。返回前会去掉末尾斜杠并校验。
+Its own environment variable, then C<< <base>/<KIND> >> derived from
+C<FINX_MIRROR_DOMAIN>, then the built-in default. Returns the empty string when
+all three are empty, which means "this kind has no fixed address yet". Trailing
+slashes are stripped and the value is validated before it is returned.
 
 =item is_custom(KIND)
 
-用户是否显式指过 KIND —— 无论是它自己的变量，还是通过基址派生。
+Whether the user pointed KIND somewhere explicit -- either through its own
+variable or through the base.
 
 =item builtin_default(KIND)
 
-内置默认值本身，不受环境变量影响。用户覆盖之后，调用方仍要靠它认出
-「原来那一串官方地址」并就地替换。
+The built-in default itself, unaffected by the environment. After a user
+override, callers still need it to recognise "that official string" and replace
+it in place.
 
 =item url_for(KIND, PATH)
 
-C<domain(KIND)/PATH>。域名或路径为空时按需要退化。
+C<domain(KIND)/PATH>. Degrades as needed when the domain or the path is empty.
 
 =item rows(SHOW_PASSWORD, HIDE_USER)
 
-给 `finx mirror` 用的行：名称、变量、来源（env / base / default / unset）、
-是否带凭据、打码后的值。
+The rows behind C<finx mirror>: name, variable, source (env / base / default /
+unset), whether it carries credentials, and the masked value.
 
 =item redact_url(URL)
 
-把 C<user:pass@> 换成 C<user:***@>，其余原样。只在 authority 段里识别凭据。
+Rewrites C<user:pass@> as C<user:***@> and leaves the rest alone. Credentials are
+only recognised inside the authority segment.
 
 =item masked_url(URL, SHOW_PASSWORD, HIDE_USER)
 
-展示用的打码，密码固定六个星号。
+The mask used for display; the password becomes a fixed six asterisks.
 
 =back
 

@@ -172,14 +172,17 @@ for p in \
         Fink::Bootstrap		\
         Fink::Checksum		\
         Fink::CLI			\
+        Fink::Color			\
         Fink::Command		\
         Fink::Config		\
         Fink::Configure		\
+        Fink::Domains		\
         Fink::Engine		\
         Fink::Finally		\
         Fink::Finally::BuildConflicts	\
         Fink::Finally::Buildlock		\
         Fink::FinkVersion	\
+        Fink::Help		\
         Fink::Notify		\
         Fink::Package		\
         Fink::PkgVersion	\
