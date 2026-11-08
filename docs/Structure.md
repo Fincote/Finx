@@ -242,7 +242,7 @@ resolve_method()   决定走种子还是源码
 | `Validation.pm` | 2557 | `.info` 字段校验（含"不许硬编码前缀"那条） |
 | `VirtPackage.pm` | 2484 | 虚拟包：把系统能力（SDK、perl、openssl…）伪装成包 |
 | `Package.pm` | 1363 | 所有包的集合：索引、查找、`Essential` 判定 |
-| `Config.pm` | 1257 | `finx.conf` 读写 + 路径推导（`$basepath`/`$buildpath`/`$dbpath`…） |
+| `Config.pm` | 1266 | `finx.conf` 读写 + 路径推导（`$basepath`/`$buildpath`/`$dbpath`…） |
 | `Bootstrap.pm` | 1195 | 自举三阶段、`check_host`、打 tar、`inject_package` |
 | `SysState.pm` | 997 | 探测系统状态（架构、SDK 路径等） |
 | `CLI.pm` | 770 | 与用户交互：提问、进度条、`print_breaking`（带颜色标记时转入 `Fink::Color` 折行） |

@@ -301,6 +301,7 @@ Common commands:
 %align{validate,performs various checks on .info and .deb files,$comlen}
 %align{scanpackages,rescans the list of binary packages on the system,$comlen}
 %align{cleanup,reclaims disk space used by temporary or obsolete files,$comlen}
+%align{mirror,show where packages and sources are fetched from,$comlen}
 %align{show-deps,list run-time and compile-time package dependencies,$comlen}
 
 Common options:
