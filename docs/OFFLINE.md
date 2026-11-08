@@ -143,7 +143,7 @@ ls /opt/finx/bin/{finx,dpkg,dpkg-deb,tar}
 ```sh
 D=$(uname -r | cut -d. -f1)
 sudo ./scripts/make_seed.sh --prefix /opt/finx --out seed \
-    --release 1.0.0-beta2 \
+    --release 1.0.0-beta3 \
     --url "https://github.com/Fincote/Finx/releases/download/seed-$D/seed.tar.gz"
 ```
 

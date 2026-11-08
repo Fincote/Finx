@@ -439,7 +439,7 @@ SourceForge 那批常年死掉的镜像，构建时间与失败率都降下来�
 
 ```
 schema 1
-release 1.0.0-beta2
+release 1.0.0-beta3
 arch arm64
 seed seed.tar.gz
 size 21111384
