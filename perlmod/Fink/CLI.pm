@@ -42,7 +42,7 @@ BEGIN {
 	# your exported package globals go here,
 	# as well as any optionally exported functions
 	@EXPORT_OK	 = qw(&print_breaking &print_breaking_stderr &die_breaking
-					  &rejoin_text
+					  &print_step &rejoin_text
 					  &prompt &prompt_boolean &prompt_selection
 					  &print_optionlist
 					  &get_term_width &should_skip_prompt
@@ -122,6 +122,25 @@ sub word_wrap {
 	push @lines, "$prefix$s";
 
 	return @lines;
+}
+
+=item print_step
+
+    print_step "The following package would be installed:";
+    print_step "Failed to do something", "error";
+
+One step line: a coloured `==>` followed by bold text. Continuation lines line up
+under the text (four spaces), so a wrapped step still reads as one block.
+
+The arrow colour comes from C<Fink::Color::step_role> unless ROLE is given.
+
+=cut
+
+sub print_step {
+	my ($text, $role) = @_;
+	require Fink::Color;
+	&print_breaking(Fink::Color::step_prefix($role) . '${bold}' . $text . '${reset}',
+		1, '', '    ');
 }
 
 =item print_breaking
@@ -392,15 +411,33 @@ Default value: no timeout
 
 A string to categorize this prompt.
 
+=item arrow (optional)
+
+Prefix the prompt with the `==>` step marker. Default: off.
+
+=item require_answer (optional)
+
+When true, an empty answer does not fall back to the default; the user has to
+type y or n and press Enter. Default: false.
+
 =back
 
 =cut
 
 sub prompt_boolean {
 	my $prompt = shift;
-	my %opts = (default => 1, timeout => 0, category => '', @_);
+	my %opts = (default => 1, timeout => 0, category => '',
+				arrow => 0, require_answer => 0, @_);
 
 	my $choice_prompt = $opts{default} ? "Y/n" : "y/N";
+
+	# 加 `==>` 时把标记拼进提示语（get_input 会经 print_breaking 折行、上色）；
+	# 不加时保持原样。默认不加：这个函数有十几个调用点，全都带箭头反而把真正
+	# 重要的是哪一问淹掉了。
+	if ($opts{arrow}) {
+		require Fink::Color;
+		$prompt = Fink::Color::step_prefix() . '${bold}' . $prompt . '${reset}';
+	}
 
 	my $meaning;
 	my $answer = &get_input(
@@ -409,9 +446,16 @@ sub prompt_boolean {
 	);
 	while (1) {
 		chomp $answer;
-		if ($answer eq "") {
+		if ($answer eq "" and !$opts{require_answer}) {
 			$meaning = $opts{default};
 			last;
+		} elsif ($answer eq "") {
+			# 要求明确作答：回车不算数，再问一次。
+			$answer = &get_input(
+				"Please answer y or n [$choice_prompt]",
+				map { $_ => $opts{$_} } qw(timeout category),
+			);
+			next;
 		} elsif ($answer =~ /^y(es?)?$/i) {
 			$meaning = 1;
 			last;

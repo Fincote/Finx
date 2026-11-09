@@ -93,23 +93,30 @@ print STDERR "install_preview: 模拟输出，不联网、不提权、不写文�
 
 # 步骤表：kind 决定怎么打。
 #
+#   step  —— print_step 的 `==>` 行（箭头绿/橙/红，右侧文字加粗）
+#   item  —— 摘要里的包名行：print_breaking + 四空格缩进
 #   text  —— 走 print_breaking：折行、缩进、颜色标记都按真实规则来
-#   raw   —— 裸 print：execute 的命令回显就是裸 print，不折行也不上色
+#   echo  —— execute 的命令回显：整行压暗
+#   child —— execute 接管后重新打出来的子进程输出：每行加 `==> `
+#   raw   —— 裸 print：不折行也不上色
 #   break —— 空行
 #
 # prefix 用于 text，等价于 print_breaking 的第三个参数（续行缩进）。
 my @steps = (
-	{ kind => 'text', text => '${bold}The following package would be installed:${reset}' },
-	{ kind => 'text', text => '${pkg}ncdu${reset}', prefix => ' ', linebreak => 1 },
+	{ kind => 'step', text => 'The following package would be installed:' },
+	{ kind => 'item', text => '${pkg}ncdu${reset}' },
 
-	{ kind => 'text', text => '${bold}The following additional package would be installed:${reset}' },
-	{ kind => 'text', text => '${pkg}libncursesw5-shlibs${reset}', prefix => ' ' },
+	{ kind => 'step', text => 'The following additional package would be installed:' },
+	{ kind => 'item', text => '${pkg}libncursesw5-shlibs${reset}' },
 
-	{ kind => 'text', text => 'The following package might be temporarily removed:' },
-	{ kind => 'text', text => ' ncurses', prefix => ' ' },
+	{ kind => 'step', text => 'The following package might be temporarily removed:' },
+	{ kind => 'item', text => '${pkg}ncurses${reset}' },
 
 	{ kind => 'break' },
-	{ kind => 'raw',  text => 'Do you want to continue? [Y/n] ' },
+	# 提示行不带换行（真正运行时由用户按的那个 Enter 补上），随后 Engine 会再
+	# 空一行，把提问与下面的构建回显隔开。
+	{ kind => 'step', text => 'Do you want to continue?', raw_tail => ' [Y/n] ' },
+	{ kind => 'break' },
 	{ kind => 'break' },
 
 	# 源码：fetch_source 在 dry-run 下打「文件名 摘要」，真下载前也会打一行
@@ -136,19 +143,20 @@ my @steps = (
 
 	{ kind => 'break' },
 
-	# dpkg 这一步是子进程的输出，直通终端，没有颜色
-	{ kind => 'raw',  text => '/opt/finx/bin/dpkg -i /opt/finx/finx/debs/ncdu_1.22-1_darwin24-arm64.deb' },
-	{ kind => 'raw',  text => 'Selecting previously unselected package ncdu.' },
-	{ kind => 'raw',  text => 'Unpacking ncdu (1.22-1) ...' },
-	{ kind => 'raw',  text => 'Setting up ncdu (1.22-1) ...' },
+	{ kind => 'echo', text => '/opt/finx/bin/dpkg -i /opt/finx/finx/debs/ncdu_1.22-1_darwin24-arm64.deb' },
+	{ kind => 'child', text => 'Selecting previously unselected package ncdu.' },
+	{ kind => 'child', text => 'Unpacking ncdu (1.22-1) ...' },
+	{ kind => 'child', text => 'Setting up ncdu (1.22-1) ...' },
 );
 
 if ($with_failure) {
 	push @steps,
 		{ kind => 'break' },
-		{ kind => 'text', text => 'Failed: execution of make, exit code 2' },
+		{ kind => 'fail', text => 'Failed: execution of make, exit code 2' },
 		{ kind => 'break' },
-		{ kind => 'text', text => '${error}phase compile: ncdu-1.22-1 failed${reset}' },
+		# 真实路径是 print_breaking("Failed: $msg")：style_diagnostic 认出段首的
+		# Failed，把它刷成红色。预览只重放标题这一段，报告正文省略。
+		{ kind => 'text', text => 'Failed: phase compile: ncdu-1.22-1 failed' },
 		{ kind => 'text', text => 'Before reporting any errors, please run "finx selfupdate" and try again.' },
 		{ kind => 'text', text => 'If you continue to have issues, please open an issue at' },
 		{ kind => 'text', text => "\thttps://github.com/Fincote/Finx/issues" },
@@ -156,15 +164,39 @@ if ($with_failure) {
 		{ kind => 'raw',  text => 'Closed logfile /tmp/finx-build-log_ncdu_1.22-1_2026.11.06-14.55.02' };
 }
 
+require Fink::Color;
+
+# 子进程输出那一行的前缀，与 Services::_run_prefixed 拿到的是同一个东西。
+my $child_prefix = Fink::Color::colorize(Fink::Color::step_prefix());
+
 foreach my $step (@steps) {
-	if ($step->{kind} eq 'break') {
+	my $kind = $step->{kind};
+	if ($kind eq 'break') {
 		print "\n";
-	} elsif ($step->{kind} eq 'raw') {
+	} elsif ($kind eq 'raw') {
 		print $step->{text}, "\n";
-	} elsif ($step->{kind} eq 'echo') {
+	} elsif ($kind eq 'step') {
+		# `==>` 行。raw_tail 是接在箭头行末尾、不加粗的那一段（[Y/n]）。
+		if (defined $step->{raw_tail}) {
+			Fink::CLI::print_breaking(
+				Fink::Color::step_prefix() . '${bold}' . $step->{text}
+				. '${reset}' . $step->{raw_tail}, 0);
+		} else {
+			Fink::CLI::print_step($step->{text});
+		}
+	} elsif ($kind eq 'item') {
+		# 摘要里的包名行：与箭头右侧的文字对齐（四个可见列）
+		Fink::CLI::print_breaking($step->{text}, 1, '    ', '    ');
+	} elsif ($kind eq 'echo') {
 		# execute 的命令回显：整行压暗
-		require Fink::Color;
 		print Fink::Color::colorize("%{dim}$step->{text}%{reset}"), "\n";
+	} elsif ($kind eq 'child') {
+		# 子进程输出：每行一个箭头
+		print $child_prefix, $step->{text}, "\n";
+	} elsif ($kind eq 'fail') {
+		# 失败那一步：箭头与文字都是 error 色，不加 🧩
+		Fink::CLI::print_breaking(Fink::Color::step_prefix('error')
+			. '${error}' . $step->{text} . '${reset}');
 	} else {
 		Fink::CLI::print_breaking($step->{text}, $step->{linebreak},
 			$step->{prefix});

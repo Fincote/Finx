@@ -32,7 +32,7 @@ use Fink::Services qw(&latest_version &sort_versions
 					  &dpkg_lockwait &aptget_lockwait &store_rename &get_options
 					  $VALIDATE_HELP &apt_available &ensure_fink_bld &select_legal_path);
 use Fink::Help;
-use Fink::CLI qw(&print_breaking &print_breaking_stderr
+use Fink::CLI qw(&print_breaking &print_breaking_stderr &print_step
 				 &prompt_boolean &prompt_selection
 				 &get_term_width &die_breaking);
 use Fink::Configure qw(&spotlight_warning);
@@ -210,6 +210,16 @@ sub process {
 	unless (exists $commands{$cmd}) {
 		print STDERR _unknown_command_message($cmd, $orig_ARGV);
 		exit 1;
+	}
+
+	# `==>` 的颜色按命令定：删除类是橙色，其余绿色。放在这里而不是各个 cmd_*
+	# 里，是因为一条命令的输出会跨好几个模块（Engine 打摘要、Services 打子进程
+	# 输出、PkgVersion 报失败），只有进程级的一次设定才管得住全部。
+	{
+		require Fink::Color;
+		my %removal = map { $_ => 1 }
+			qw(remove delete purge disable deactivate unuse);
+		Fink::Color::set_step_role($removal{$cmd} ? 'orange' : 'ok');
 	}
 
 	# Store original @ARGV in case we want to know how we were called.
@@ -2323,7 +2333,7 @@ sub real_install {
 	# ${...} 是 Fink::Color 的标记：写的人是「这句话是什么」，不是「哪个转义码」。
 	# 关闭上色时标记会被删干净，所以这里不需要额外的开关判断。
 	if ($showlist && not $forceoff) {
-		$s = "\${bold}The following ";
+		$s = "The following ";
 		if ($#requested > 0) {
 			$s .= scalar(@requested)." packages";
 		} else {
@@ -2339,9 +2349,10 @@ sub real_install {
 		} elsif ($op == $OP_REINSTALL) {
 			$s .= "reinstalled";
 		}
-		$s .= ":\${reset}";
-		&print_breaking($s);
-		&print_breaking("\${pkg}" . join(" ", @requested) . "\${reset}", 1, " ");
+		$s .= ":";
+		&print_step($s);
+		&print_breaking("\${pkg}" . join(" ", @requested) . "\${reset}",
+			1, '    ', '    ');
 	}
 	unless ($forceoff) {
 		# find the packages we're likely to remove
@@ -2351,28 +2362,36 @@ sub real_install {
 		if ($#additionals >= 0 || @removals) {
 			if ($#additionals >= 0 and not $fetch_only) {
 				if ($#additionals > 0) {
-					&print_breaking("\${bold}The following ".scalar(@additionals).
-							" additional packages $to_be installed:\${reset}");
+					&print_step("The following ".scalar(@additionals).
+							" additional packages $to_be installed:");
 				} else {
-					&print_breaking("\${bold}The following additional package ".
-							"$to_be installed:\${reset}");
+					&print_step("The following additional package ".
+							"$to_be installed:");
 				}
-				&print_breaking("\${pkg}" . join(" ", @additionals) . "\${reset}", 1, " ");
+				&print_breaking("\${pkg}" . join(" ", @additionals) . "\${reset}",
+					1, '    ', '    ');
 			}
 			if (@removals and not $fetch_only) {
 				my $number = scalar(@removals) > 1
 					? (scalar(@removals) . " packages") : "package";
-				&print_breaking(
+				&print_step(
 					"The following $number might be temporarily removed:");
-				&print_breaking(join(" ",@removals), 1, " ");
+				&print_breaking("\${pkg}" . join(" ",@removals) . "\${reset}",
+					1, '    ', '    ');
 			}
 			if (not $dryrun) {
+				&print_breaking("");
 				$answer = &prompt_boolean("Do you want to continue?",
 						  				  default => 1,
-										  timeout => 60);
+										  timeout => 60,
+										  arrow => 1,
+										  require_answer => 1);
 				if (! $answer) {
 					die "Package requirements not satisfied\n";
 				}
+				# 与下文（取源码 / 取 .deb 的地址）之间空一行：那一串是要滚很久的
+				# 构建回显，紧贴着提问会让「刚才答了什么」看不出来。
+				&print_breaking("");
 			}
 		}
 	}

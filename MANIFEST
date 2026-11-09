@@ -137,6 +137,7 @@ test/CLI/color_tokens.t
 test/CLI/diagnostics.t
 test/CLI/interrupt.t
 test/CLI/mirror.t
+test/CLI/steps.t
 test/Command/cat.t
 test/Command/chowname.t
 test/Command/commands.t

@@ -11,7 +11,7 @@
 | 层 | 谁在说 | 现在有颜色吗 | 要改它得动 |
 | --- | --- | --- | --- |
 | **我们的话** | `print_breaking` 打印的摘要、警告、错误 | 可以（`${name}` 标记） | 调用点的字符串 + `Fink::Color` |
-| **外部命令的回显** | `execute` 把要跑的命令打出来（`sudo … sh -c …`，整行压暗）、失败时的 `Failed: execution of …` | 回显压暗；失败那行红 + 🧩 | `perlmod/Fink/Services.pm` 的 `_print_command` 与 `execute` |
+| **外部命令的回显** | `execute` 把要跑的命令打出来（`sudo … sh -c …`，整行压暗）、失败时的 `==> Failed: execution of …` | 回显压暗；失败那行红色箭头 + 红字 | `perlmod/Fink/Services.pm` 的 `_print_command` 与 `_run_prefixed` |
 | **子进程自己的话** | 编译器、`make`、`dpkg -i`、`curl` 进度条、`patch` | 无，也不该有 | 不归我们管 |
 | **帮助** | `finx --help` / `finx <cmd> --help` | 有，但走另一套 | `perlmod/Fink/Help.pm` |
 
@@ -157,6 +157,68 @@ FINX_COLOR=1 perl scripts/install_preview.pl | cat -v   # 看真实转义码
 
 想看**真实**的计划（不是重放），用 `finx install --dry-run <pkg>`：它会解依赖并打印
 摘要，然后停下。
+
+---
+
+## 六点五、`==>`：一步的样子
+
+摘要、提问、子进程的输出都用同一个记号开头：
+
+```
+==> The following package would be installed:
+    ncdu
+==> The following additional package would be installed:
+    libncursesw5-shlibs
+
+==> Do you want to continue? [Y/n]
+```
+
+| 元素 | 规则 |
+| --- | --- |
+| 箭头颜色 | 正常 <span>绿</span>（`ok`）；删除类命令 <span>橙</span>（`orange`）；失败 <span>红</span>（`error`） |
+| 箭头右侧的文字 | 默认前景色 + 加粗（`${bold}`）。**不用真黑色** `\033[1;30m`：深色主题上黑字会糊进背景 |
+| 列表项 | 四个空格缩进，正好落在箭头右侧文字的起始列 |
+| 折行的续行 | 同样缩进四列，所以一个折行的步骤仍是一块 |
+
+箭头的颜色是**进程级状态**，不是逐次传参：一步操作的输出会跨三个模块
+（`Engine` 打摘要、`Services` 打子进程输出、`PkgVersion` 报失败），把颜色名
+一层层传下去会把签名弄脏，而且漏传一处就少一片颜色。`Engine::process` 在
+认出命令之后设一次：
+
+```perl
+Fink::Color::set_step_role($removal{$cmd} ? 'orange' : 'ok');
+```
+
+用法：`&print_step("…")`（`Fink::CLI`），或者自己拼
+`Fink::Color::step_prefix()` 的标记串。`step_prefix` 用的是 `${…}` 而不是
+`%{…}`：`print_breaking` 见到 `${` 就跳过 `style_diagnostic`，否则
+「Failed: …」会被判定成诊断，把 🧩 顶到箭头前面变成「🧩 ==> Failed: …」。
+
+**提问默认不认回车。** `finx install` 的那一问传了 `require_answer => 1`：直接
+回车不算数，会再问一次 `Please answer y or n [Y/n]`。其它 `prompt_boolean`
+调用点保持原样（回车取默认值）。
+
+### 子进程的输出也被接管了
+
+每一条子进程输出前面也有箭头：
+
+```
+==> Selecting previously unselected package ncdu.
+==> Unpacking ncdu (1.22-1) ...
+==> Setting up ncdu (1.22-1) ...
+```
+
+这是靠 `Services::_run_prefixed` **接管**子进程的 stdout 做到的 —— 只有拿到管道
+才能逐行加前缀。三个实际代价：
+
+1. 子进程看到的 stdout 不再是终端，`make` / 编译器可能不再输出颜色，`configure`
+   一类的进度也可能按块到达而不是逐行；
+2. stderr 被并进 stdout（在 fork 出来的子进程里做 `>&=`），否则两股输出各写各的，
+   同一条前缀下会混行；
+3. 退出码靠 `close $fh` 之后的 `$?` 传回，与 `system()` 的取法一致 —— 传错一次，
+   构建失败就会被当成成功。
+
+`--logfile` 打开时 STDOUT 已经不是终端，前缀里因此没有转义码，日志是干净的。
 
 ---
 
@@ -331,23 +393,24 @@ $ finx mirror --jsons=1
 
 | 位置 | 为什么没有 |
 | --- | --- |
-| 编译输出、`make` 的进度 | 子进程直通终端 |
+| 子进程输出的**正文** | 只有箭头带颜色，正文原样 —— `make` / `gcc` 自己决定怎么排版，全涂一种颜色只会更难读 |
 | `curl` 的进度条 | 第三方工具自己的输出 |
-| `dpkg -i` 的输出 | 同上 |
 | `configure` 的交互提问 | `Fink::CLI::prompt_*` 的排版是另一套（`(1)\t选项`），目前不上色 |
 | `finx mirror --json/--raw` | 机器可读的输出，故意不掺转义码 |
 
-要给这些上色，得先决定它们归哪一层：子进程输出只能靠「收进日志 + 摘要」而不是
-上色，因为转义码会跟着进构建日志。
-
-`execute` 那两条已经处理过了，形状不一样：
+`execute` 那一层已经处理过了，形状不一样：
 
 - **回显**（`sudo -u fink-bld [env] sh -c '…'`）整行压暗，让子进程自己的输出更
   醒目。走 `Fink::Color::colorize('%{dim}…%{reset}')` 而不是 `print_breaking`：
   一次构建几千行，不值得每行走一遍折行包装。关闭上色时逐字节不变。
-- **失败那一行**改成 `Failed: execution of <命令>, exit code <N>`，交给
-  `print_breaking`：于是它和别的诊断同形（红 + 🧩）。原来的 `### execution of …`
-  不以 `Failed` 开头，`style_diagnostic` 认不出来，所以那句一直是素的。
+- **子进程的每一行输出**都加 `==> `（见第六点五节）。
+- **失败那一步**是 `==> Failed: execution of <命令>, exit code <N>`，箭头与文字
+  都是 `error` 色，**不带 🧩** —— 箭头已经承担了「这是哪一行」的职责。原来的
+  `### execution of …` 不以 `Failed` 开头，`style_diagnostic` 认不出来，所以
+  那句一直是素的。
+
+注意这两套记号的分工：**`==>` 标「一步」**（包括失败的那一步），**🧩 标「一条
+诊断」**（`ERROR:` / `WARNING:` 之类）。同一条消息只该有其中一个。
 
 ---
 

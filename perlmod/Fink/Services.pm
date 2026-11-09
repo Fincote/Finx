@@ -559,6 +559,42 @@ sub _print_command {
 	print Fink::Color::colorize("%{dim}$text%{reset}"), "\n";
 }
 
+# 跑一条命令，把它的每一行加前缀后原样吐出来。
+#
+# 为什么要接管输出：只有拿到管道才能逐行加前缀。代价有两个，都实际存在 ——
+#   * 子进程看到的 stdout 不再是终端，make / 编译器可能不再输出颜色，
+#     configure 一类的进度也可能按块到达而不是逐行；
+#   * stderr 被并进 stdout（在 fork 出来的子进程里做 >&=），否则两股输出会
+#     交错，同一条前缀下会混着两行。
+#
+# 返回 0 表示成功，-1 表示根本没启动起来；其余照 system() 的规矩放在 $? 里。
+sub _run_prefixed {
+	my ($prefix, @cmd) = @_;
+
+	my $pid = open(my $fh, '-|');
+	return -1 unless defined $pid;
+
+	unless ($pid) {		# 子进程
+		open(STDERR, '>&', \*STDOUT);
+		# 单独一层块：exec 后面还有语句时，perl 会警告「是不是想用 system()」。
+		{ exec @cmd; }
+		# exec 没成（找不到命令）。用 _exit 而不是 exit：exit 会跑 END 块，
+		# 而 END 里有解锁、删临时文件这些清理 —— 在 fork 出来的副本里再跑一遍
+		# 会把父进程还在用的东西弄掉。
+		require POSIX;
+		POSIX::_exit(127);
+	}
+
+	# 行一读到就吐出去。不刷新的话，构建期间屏幕上会一段一段地憋。
+	select((select(STDOUT), $| = 1)[0]);
+
+	while (defined(my $line = <$fh>)) {
+		print $prefix, $line;
+	}
+	close $fh;
+	return $?;
+}
+
 sub execute {
 	my $script = shift;
 	my %options = ( defined $_[0] ? @_ : () );
@@ -617,6 +653,15 @@ EOSCRIPT
 	# ignore SIGINT during the *Script if requested
 	local $SIG{INT} = 'IGNORE' if $options{ignore_INT};
 
+	# 子进程输出逐行加 `==> `。前缀只算一次（它是常量），并且在这里算而不是
+	# 在 _run_prefixed 里：--logfile 打开时 STDOUT 已经不是终端，此时算出的前缀
+	# 是不带转义码的纯文本，日志里不会混进颜色。
+	my $line_prefix = '';
+	unless ($options{'quiet'}) {
+		require Fink::Color;
+		$line_prefix = Fink::Color::colorize(Fink::Color::step_prefix());
+	}
+
 	# Execute each line as a separate command.
 	foreach my $cmd (split(/\n/,$script)) {
 		my ($commandname) = split(/\s+/, $cmd);
@@ -626,7 +671,8 @@ EOSCRIPT
 			# system("no_such_command") emits a warning involving finx
 			# itself (it's the system() that fails)
 			local $SIG{__WARN__} = sub {};
-			my $rc = system(@wrap, $cmd);
+			my $rc = _run_prefixed($options{'quiet'} ? '' : $line_prefix,
+				@wrap, $cmd);
 			if ($rc == -1) {
 				# system() failed to launch (!= launched cmd failed)
 				print "Can't exec \"$commandname\": $!\n";
@@ -636,9 +682,12 @@ EOSCRIPT
 		if ($?) {
 			my $rc = $?;
 			if (not $options{'quiet'}) {
-				# 与其他诊断同形：红色 + 🧩，由 print_breaking 统一处理。
-				print_breaking("Failed: execution of $commandname, "
-					. "exit code $rc");
+				# 失败那一步的箭头也是红的（Fink::Color::step_prefix('error')），
+				# 文字同样用 error 色。不再加 🧩：箭头已经承担了「这是哪一行」
+				# 的职责，两个标记叠在一条短消息前面只会互相干扰。
+				print_breaking(Fink::Color::step_prefix('error')
+					. '${error}Failed: execution of ' . $commandname
+					. ', exit code ' . $rc . '${reset}');
 			}
 			if (defined $options{'delete_tempfile'} and $options{'delete_tempfile'} == 1) {
 				# probably keep tempfile around (to aide debugging)

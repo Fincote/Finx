@@ -372,6 +372,29 @@ sub style_diagnostic {
 	return $out;
 }
 
+# `==>` 那种「一步」的行。箭头按操作取色：正常绿、删除橙、失败红。
+#
+# 角色是进程级状态，不逐次传参：一步操作会跨三个模块（Engine 定操作、
+# Services 打子进程的输出、PkgVersion 报失败），把颜色名一层层传下去会把
+# 每个签名都弄脏，而且漏传一处就少一片颜色。
+our $STEP_ROLE = 'ok';
+
+sub set_step_role {
+	my $role = shift;
+	$STEP_ROLE = $role if defined $role && length $role;
+}
+
+sub step_role { return $STEP_ROLE }
+
+# 箭头的标记串。用 ${...} 而不是 %{...} 是有意的：print_breaking 见到 ${ 就
+# 跳过 style_diagnostic，否则「Failed: ...」会被判定成诊断，把 🧩 顶到箭头
+# 前面去，变成「🧩 ==> Failed: ...」。
+sub step_prefix {
+	my $role = shift;
+	$role = $STEP_ROLE unless defined $role && length $role;
+	return '${' . $role . '}==>${reset} ';
+}
+
 # 给调色 / 排查用：返回一份 (标记名 → 转义码) 的副本
 sub palette { return %PALETTE }
 
@@ -404,6 +427,14 @@ C<print_breaking> uses.
 
 Whether colour is on right now. Consults C<NO_COLOR> / C<CLICOLOR> /
 C<CLICOLOR_FORCE> / C<FINX_COLOR>.
+
+=item step_prefix(ROLE) / step_role() / set_step_role(ROLE)
+
+The `==>` marker that opens a step line, as a marker string. The arrow takes its
+colour from ROLE, or from the process-wide role when none is given: C<ok> (green)
+for normal work, C<orange> when packages are being removed, C<error> when
+something failed. The caller decides what the role means for its command; the
+colour lives in C<%PALETTE> like everything else.
 
 =item tokens() / palette()
 
