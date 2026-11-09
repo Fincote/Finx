@@ -3434,7 +3434,10 @@ sub _fetch_deb_from_mirror {
 		my $url  = $pkg->get_bottle_url();
 
 		if ($dryrun) {
-			print_breaking("Would fetch " . Fink::Domains::redact_url($url));
+			# 裸 print，不经过 print_breaking：后者按宽度折行，而 URL 是一个
+			# 整体，被从中间劈开（…darwin24-a / rm64.deb）就没法照着重敲了。
+			# 与 fetch_source 的 dry-run 写法一致。
+			print "Would fetch " . Fink::Domains::redact_url($url) . "\n";
 			next;
 		}
 
