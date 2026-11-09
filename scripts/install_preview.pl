@@ -115,9 +115,11 @@ my @steps = (
 	# 源码：fetch_source 在 dry-run 下打「文件名 摘要」，真下载前也会打一行
 	{ kind => 'raw',  text => 'ncdu-1.22.tar.gz sha256=9c1b0f4e2a7d...' },
 
-	# 二进制：fetch_deb 在 verbosity > 2 时打这一行，随后是 apt 的回显
+	# 二进制：finx 自己下载并校验，apt 不再参与（PkgVersion::_fetch_deb_from_mirror）。
+	# 第一行只在 -v -v（verbosity > 2）时出现；留在这里是为了让预览也覆盖那个分支。
 	{ kind => 'raw',  text => 'Downloading ncdu_1.22-1_darwin24-arm64.deb from binary dist.' },
-	{ kind => 'raw',  text => '/opt/finx/bin/apt-get --ignore-breakage --download-only install ncdu=1.22-1' },
+	{ kind => 'echo', text => q!curl --connect-timeout 30 -f -L -A 'finx/1.0.0-beta4' -s -S -o ncdu.SHA256SUMS https://github.com/Fincote/debs/releases/download/ncdu/SHA256SUMS! },
+	{ kind => 'echo', text => q!curl --connect-timeout 30 -f -L -A 'finx/1.0.0-beta4' -s -S -O https://github.com/Fincote/debs/releases/download/ncdu/ncdu@1.22-1.darwin24-arm64.deb! },
 
 	{ kind => 'break' },
 
