@@ -48,7 +48,7 @@ BEGIN {
 					  &get_term_width &should_skip_prompt
 					  &word_wrap &capture
 					  &install_interrupt_handler &report_interrupt
-					  &interrupted);
+					  &interrupted &raise_interrupt);
 }
 our @EXPORT_OK;
 
@@ -288,6 +288,10 @@ sub interrupted {
 	my $err = shift;
 	return defined $err && $err =~ /^\Q$INTERRUPT\E/;
 }
+
+# 抛一个中断。让调用点用它而不是自己 die 那个字符串：字符串只有一份，
+# 「谁抛的」和「谁认出来的」（interrupted、Scanpackages）才对得上。
+sub raise_interrupt { die $INTERRUPT }
 
 # 打一句「已取消」并返回要用的退出码。放在 STDERR：它不是命令的正常输出，
 # `finx install > log` 的人也该看到。

@@ -238,14 +238,14 @@ resolve_method()   决定走种子还是源码
 | --- | --- | --- |
 | `PkgVersion.pm` | 6646 | **单个包的单个版本**。所有 `phase_*` 都在这；依赖求解、`.info` 解析、打包、装包 |
 | `Engine.pm` | 3544 | **命令分发**。`finx install` 等子命令的入口（`cmd_*`） |
-| `Services.pm` | 2767 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
+| `Services.pm` | 2821 | 杂项系统服务：执行命令、比较版本号、处理文本、`%` 展开、锁、选项解析（`get_options`） |
 | `Validation.pm` | 2557 | `.info` 字段校验（含"不许硬编码前缀"那条） |
 | `VirtPackage.pm` | 2484 | 虚拟包：把系统能力（SDK、perl、openssl…）伪装成包 |
 | `Package.pm` | 1363 | 所有包的集合：索引、查找、`Essential` 判定 |
 | `Config.pm` | 1266 | `finx.conf` 读写 + 路径推导（`$basepath`/`$buildpath`/`$dbpath`…） |
 | `Bootstrap.pm` | 1195 | 自举三阶段、`check_host`、打 tar、`inject_package` |
 | `SysState.pm` | 997 | 探测系统状态（架构、SDK 路径等） |
-| `CLI.pm` | 867 | 与用户交互：提问、进度条、`print_breaking`（带颜色标记时转入 `Fink::Color` 折行） |
+| `CLI.pm` | 871 | 与用户交互：提问、进度条、`print_breaking`（带颜色标记时转入 `Fink::Color` 折行） |
 | `Configure.pm` | 768 | `finx configure` 的那一串问题 |
 | `Scanpackages.pm` | 671 | 纯 Perl 的 `.deb` 扫描器，生成 `Packages` |
 | `SelfUpdate.pm` | 553 | 更新包描述树（命令分发到 `SelfUpdate/*.pm`） |

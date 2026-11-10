@@ -53,6 +53,20 @@ on_exit() {
     exit $rc
 }
 
+# ^C：先说一句，再以 130 退出（128 + SIGINT）。与 finx 本体的
+# Fink::CLI::report_interrupt 同一句话。
+#
+# 不用 `t`：本文件按顺序被读，陷阱装在 t() 定义之前，早期 ^C 时它还不存在。
+# "${ZH:-0}" 与 t() 内部的判断等价。
+on_interrupt() {
+    if [ "${ZH:-0}" -eq 1 ]; then
+        printf '操作已取消。\n' >&2
+    else
+        printf 'Operation cancelled by user.\n' >&2
+    fi
+    exit 130
+}
+
 # ---------------------------------------------------------------------------
 # 屏幕输出：颜色与横幅
 # ---------------------------------------------------------------------------
@@ -169,7 +183,7 @@ export FINX_CONNECT_TIMEOUT
 HOST_DARWIN_MAJOR=""
 
 trap on_exit EXIT
-trap 'exit 130' INT
+trap on_interrupt INT
 trap 'exit 143' TERM
 
 step() {

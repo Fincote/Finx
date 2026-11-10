@@ -28,7 +28,7 @@ package Fink::Services;
 #use Fink::Checksum;
 use Fink::Command	qw(&rm_f);
 use Fink::CLI		qw(&word_wrap &get_term_width &print_breaking
-					  &print_breaking_stderr);
+					  &print_breaking_stderr &raise_interrupt);
 use Fink::Help qw(&expand_help &new_option);
 
 use POSIX qw(:errno_h uname);
@@ -559,6 +559,50 @@ sub _print_command {
 	print Fink::Color::colorize("%{dim}$text%{reset}"), "\n";
 }
 
+# 跑一条「不许被打断」的命令：dpkg 装到一半被 ^C 打断，比多等几秒糟得多
+# （包停在 half-installed，下一次任何操作都得先收拾它）。
+#
+# 要点是**推迟**而不是**丢弃**：
+#   * 子进程里把 SIGINT 设成 IGNORE，被 exec 继承，dpkg 因此不会被打断；
+#   * 父进程里装一个只记标记、不 die 的句柄，于是 ^C 不会立刻结束等待，但也不
+#     会丢 —— 命令一结束就把它当成「用户取消」抛出去。
+#
+# 为什么不用 sigprocmask 挡住：perl 的 system() 自己会在这段时间里把父进程的
+# SIGINT 设成忽略，信号直接被内核丢掉，解除阻挡时挂起集合是空的（实测）。
+# 只有自己 fork 才能既保住子进程、又接住 ^C。
+sub _system_uninterruptible {
+	my @cmd = @_;
+
+	my $interrupted = 0;
+	my $rc;
+
+	{
+		local $SIG{INT} = sub { $interrupted = 1 };
+
+		my $pid = fork();
+		return -1 unless defined $pid;
+
+		unless ($pid) {		# 子进程
+			$SIG{INT} = 'IGNORE';
+			# 单独一层块：exec 后面还有语句时，perl 会警告「是不是想用 system()」。
+			{ exec @cmd; }
+			require POSIX;
+			POSIX::_exit(127);	# 不用 exit：不让 END 块在这个副本里再跑一遍
+		}
+
+		# 信号会把 waitpid 打断，值不值得重试与实现有关，所以显式循环。
+		while (1) {
+			my $got = waitpid($pid, 0);
+			last if $got == $pid || $got == -1;
+		}
+		$rc = $?;
+	}
+
+	raise_interrupt() if $interrupted;
+
+	return $rc;
+}
+
 sub execute {
 	my $script = shift;
 	my %options = ( defined $_[0] ? @_ : () );
@@ -614,9 +658,6 @@ EOSCRIPT
 	}
 
 	{
-	# ignore SIGINT during the *Script if requested
-	local $SIG{INT} = 'IGNORE' if $options{ignore_INT};
-
 	# Execute each line as a separate command.
 	foreach my $cmd (split(/\n/,$script)) {
 		my ($commandname) = split(/\s+/, $cmd);
@@ -626,15 +667,28 @@ EOSCRIPT
 			# system("no_such_command") emits a warning involving finx
 			# itself (it's the system() that fails)
 			local $SIG{__WARN__} = sub {};
-			my $rc = system(@wrap, $cmd);
+			my $rc;
+			if ($options{ignore_INT}) {
+				$rc = _system_uninterruptible(@wrap, $cmd);
+			} else {
+				$rc = system(@wrap, $cmd);
+			}
 			if ($rc == -1) {
 				# system() failed to launch (!= launched cmd failed)
 				print "Can't exec \"$commandname\": $!\n";
 			}
 		}
+		# 先留一份**未位移**的退出状态：位移之后「被信号 2 杀掉」与「退出码就是
+		# 2」长得一模一样，而后者是很常见的结果（`exit 2` 满地都是），不能当成
+		# 用户取消。
+		my $raw_status = $?;
 		$? >>= 8 if defined $? and $? >= 256;
 		if ($?) {
 			my $rc = $?;
+			# 被 ^C 杀掉（$? == 2，即信号 2），或者子进程按 128+2 退出：那是用户
+			# 取消，不是构建失败。交给上游走「一句话 + 130」，而不是打出两屏
+			# 「请提 issue」的范文 —— 用户是自己按的。
+			raise_interrupt() if $raw_status == 2 || $rc == 130;
 			if (not $options{'quiet'}) {
 				# 失败那一步：红色箭头 + 红色文字（Fink::Color::step_prefix）。
 				# 子进程自己的输出是直通的，这里只标「哪一步失败、退出码多少」。
