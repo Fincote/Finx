@@ -30,7 +30,7 @@ use warnings;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(enabled colorize paint strip wrap_marked tokens palette
-					prog_mark style_diagnostic);
+					style_diagnostic);
 
 =head1 NAME
 
@@ -308,39 +308,23 @@ sub paint {
 	return _escape($name) . $text . $PALETTE{reset};
 }
 
-# 程序标记。终端里一眼认出「这行是 finx 自己说的」，与 MacWave 的 🌊 同位。
-#
-# 只出现在**诊断**消息（ERROR / WARNING）的段首，不出现在正常输出里 —— 满屏
-# 都是标记等于没有标记。
-#
-# 用 U+1F9E9（拼图块）：不与任何既有工具的输出撞脸，且宽度为 2 列，与本项目
-# 其它地方按可见列折行的假设一致。
-#
-# 写成 UTF-8 字节而不是 "\x{1F9E9}"：STDOUT 没有 binmode 成 :utf8，宽字符会
-# 触发 "Wide character in print" 警告，把干净的输出弄脏。字节写法的效果完全
-# 一样 —— 终端收到的仍是那四个字节。
-our $PROG_MARK = "\xF0\x9F\xA7\xA9";
-
-sub prog_mark { return $PROG_MARK }
-
 # 诊断消息的识别。 在词尾用，避免 "ERRORS" 之类被算进来。
 my $ERROR_RE       = qr/(?:ERROR\b|Error\b|FATAL\b|Fatal\b|FAILED\b|Failed\b|错误)/;
 my $DIAGNOSTIC_RE  = qr/(?:ERROR\b|Error\b|FATAL\b|Fatal\b|FAILED\b|Failed\b
 						|WARNING\b|Warning\b|错误|警告)/x;
 
-# 诊断消息的统一外观：ERROR 上 error 红、WARNING 上 warn 黄，并在每段开头
-# 打一个程序标记。
+# 诊断消息的统一外观：ERROR 上 error 红、WARNING 上 warn 黄。
 #
 # 为什么在这里做，而不是让每个调用点自己写：
 #   1. 全项目的 ERROR/WARNING 有三十多处，散在六个模块里。要求每个人记得
-#      加颜色和标记，迟早会漏 —— 而漏掉的那条恰好是最少走到的那条。
+#      上色，迟早会漏 —— 而漏掉的那条恰好是最少走到的那条。
 #   2. 调用点写的仍然是 "ERROR: ..." 这样的纯文本，`grep` 日志、测试断言、
 #      通知正文全都不受影响（颜色是渲染期才加的）。
 #
 # 三条不碰的规则，避免和作者的意思打架：
 #   * 已经带 ${name} 标记或转义码的消息 —— 作者自己上过色了，按他写的来。
 #   * 不以 ERROR/WARNING/Failed 开头的消息 —— 那是普通输出。
-#   * 段用空行分隔，每段单独上色，这样多段消息每一段的段首都有标记（否则只有
+#   * 段用空行分隔，每段单独上色，这样多段消息每一段都被刷上颜色（否则只有
 #     第一段有，下面几段看着像别人的输出）。
 sub style_diagnostic {
 	my $text = shift;
@@ -367,7 +351,7 @@ sub style_diagnostic {
 		# 交还给调用方，下一条无关的输出也会被染红。
 		my ($tail) = $body =~ /(\s*)$/;
 		$body = substr($body, 0, length($body) - length $tail) if length $tail;
-		$out .= $lead . $open . $PROG_MARK . ' ' . $body . '${reset}' . $tail;
+		$out .= $lead . $open . $body . '${reset}' . $tail;
 	}
 	return $out;
 }
@@ -387,8 +371,8 @@ sub set_step_role {
 sub step_role { return $STEP_ROLE }
 
 # 箭头的标记串。用 ${...} 而不是 %{...} 是有意的：print_breaking 见到 ${ 就
-# 跳过 style_diagnostic，否则「Failed: ...」会被判定成诊断，把 🧩 顶到箭头
-# 前面去，变成「🧩 ==> Failed: ...」。
+# 跳过 style_diagnostic，否则「Failed: ...」会被判定成诊断，用诊断的颜色把
+# 整行重刷一遍，箭头的红就白设了。
 sub step_prefix {
 	my $role = shift;
 	$role = $STEP_ROLE unless defined $role && length $role;

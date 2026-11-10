@@ -292,9 +292,7 @@ sub interrupted {
 # 打一句「已取消」并返回要用的退出码。放在 STDERR：它不是命令的正常输出，
 # `finx install > log` 的人也该看到。
 sub report_interrupt {
-	my $mark = eval { require Fink::Color; Fink::Color::prog_mark() };
-	$mark = '🧩' unless defined $mark;
-	print_breaking_stderr("$mark Operation cancelled by user.");
+	print_breaking_stderr("Operation cancelled by user.");
 	return 130;
 }
 

@@ -34,7 +34,7 @@ use Fink::Services qw(&filename &execute
 					  &store_rename &apt_available
 					  &is_accessible);
 use Fink::CLI qw(&print_breaking &print_breaking_stderr &rejoin_text
-				 &prompt_boolean &prompt_selection
+				 &print_step &prompt_boolean &prompt_selection
 				 &should_skip_prompt &die_breaking);
 use Fink::Config qw($config $basepath $libpath $buildpath
 					$dbpath $ignore_errors);
@@ -4053,6 +4053,10 @@ sub phase_compile {
 	}
 
 	### construct CompileScript and execute it
+	#
+	# 先说清楚现在编的是哪个包。编译要跑几分钟、回显几百行命令，没有这一行
+	# 就看不出边界在哪 —— 而且失败时「上面那一大段属于哪个包」也说不清。
+	&print_step("Building: " . $self->get_fullname());
 	$self->run_script($self->get_script("CompileScript"), "compiling", 1, 1);
 
 	if (Fink::Config::get_option("tests")) {

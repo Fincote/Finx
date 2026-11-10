@@ -162,7 +162,7 @@ FINX_COLOR=1 perl scripts/install_preview.pl | cat -v   # 看真实转义码
 
 ## 六点五、`==>`：一步的样子
 
-摘要、提问、子进程的输出都用同一个记号开头：
+摘要、提问、每个包开始编译之前，都用同一个记号开头：
 
 ```
 ==> The following package would be installed:
@@ -192,68 +192,67 @@ Fink::Color::set_step_role($removal{$cmd} ? 'orange' : 'ok');
 用法：`&print_step("…")`（`Fink::CLI`），或者自己拼
 `Fink::Color::step_prefix()` 的标记串。`step_prefix` 用的是 `${…}` 而不是
 `%{…}`：`print_breaking` 见到 `${` 就跳过 `style_diagnostic`，否则
-「Failed: …」会被判定成诊断，把 🧩 顶到箭头前面变成「🧩 ==> Failed: …」。
+「Failed: …」会被判定成诊断、整行按诊断色重刷，箭头的红就白设了。
+
+编译每一段回显前有一行 `==> Building: <包名>-<版本>`（`PkgVersion::phase_compile`
+打的）。编译要跑几分钟、回显几百行命令，没有这一行就看不出边界在哪 —— 失败时
+也说不清「上面那一大段属于哪个包」。
 
 **提问默认不认回车。** `finx install` 的那一问传了 `require_answer => 1`：直接
 回车不算数，会再问一次 `Please answer y or n [Y/n]`。其它 `prompt_boolean`
 调用点保持原样（回车取默认值）。
 
-### 子进程的输出也被接管了
+### 子进程的输出**不**接管
 
-每一条子进程输出前面也有箭头：
+`execute` 用的是 `system(@wrap, $cmd)`，子进程直接继承终端 fd。所以
+`make` / `gcc` / `dpkg` 的输出原样直通，没有箭头、没有前缀，颜色由子进程自己
+决定（`make` 在真终端上照常上色，`--logfile` 打开时它看到的是文件，自然就不上色）。
+
+曾经试过接管（管道 + 逐行重放），能做出「每行一个箭头」，代价是子进程看不到终端：
+
+1. `make` / 编译器不再输出颜色，`configure` 一类的进度按块到达而不是逐行；
+2. stderr 必须并进 stdout，否则两股输出各写各的，同一前缀下会混行。
+
+为了两列装饰粒子而牺牲编译输出的可读性，不值得 —— 已回退。
+
+失败那一步仍然有箭头，因为它由 finx 自己打：
 
 ```
-==> Selecting previously unselected package ncdu.
-==> Unpacking ncdu (1.22-1) ...
-==> Setting up ncdu (1.22-1) ...
+==> Failed: execution of make, exit code 2
 ```
-
-这是靠 `Services::_run_prefixed` **接管**子进程的 stdout 做到的 —— 只有拿到管道
-才能逐行加前缀。三个实际代价：
-
-1. 子进程看到的 stdout 不再是终端，`make` / 编译器可能不再输出颜色，`configure`
-   一类的进度也可能按块到达而不是逐行；
-2. stderr 被并进 stdout（在 fork 出来的子进程里做 `>&=`），否则两股输出各写各的，
-   同一条前缀下会混行；
-3. 退出码靠 `close $fh` 之后的 `$?` 传回，与 `system()` 的取法一致 —— 传错一次，
-   构建失败就会被当成成功。
-
-`--logfile` 打开时 STDOUT 已经不是终端，前缀里因此没有转义码，日志是干净的。
 
 ---
 
-## 七、诊断消息：红色 + 🧩
+## 七、诊断消息：红色
 
 全项目的 `ERROR:` / `WARNING:` 有三十多处，散在六个模块里。要求每个调用点自己
-记得上色、自己打标记，迟早会漏 —— 而漏掉的往往是最少走到的那条。
+记得上色，迟早会漏 —— 而漏掉的往往是最少走到的那条。
 
 所以这件事**只在一处做**：`Fink::CLI::print_breaking` 在折行之前先过一遍
 `Fink::Color::style_diagnostic`。
 
 ```
 调用点写的：  "ERROR: apt-get could not be run"
-渲染出来的：  🧩 ERROR: apt-get could not be run     ← error 红（WARNING 是黄）
+渲染出来的：  ERROR: apt-get could not be run        ← error 红（WARNING 是黄）
 ```
 
 | 规则 | 为什么 |
 | --- | --- |
 | 只认段首的 `ERROR` / `Error` / `FATAL` / `Failed` / `WARNING` / `Warning` | 那是项目里既有的写法，`grep`、测试断言、通知正文全都不受影响 —— 颜色是渲染期才加的 |
-| 空行分隔的**每段**都加标记 | 只给第一段加的话，下面几段看着像别人的输出 |
+| 空行分隔的**每段**各自上色 | 只给第一段上色的话，下面几段看着像别人的输出 |
 | 已经带 `${name}` 标记或转义码的消息**原样返回** | 作者自己排过色了；再包一层 `error` 会把 `${reset}` 之后的文字染红 |
-| 其它消息原样返回 | 满屏都是标记等于没有标记 |
+| 其它消息原样返回 | 普通输出不该被染成错误色 |
 
-标记本身是 `Fink::Color::$PROG_MARK`，与 MacWave 的 🌊 同位。它是**字节串**
-（`"\xF0\x9F\xA7\xA9"`），不是 `"\x{1F9E9}"` —— STDOUT 没有 `:utf8` 层，宽字符
-会打一条 `Wide character in print` 把输出弄脏。`install.sh` 里另有同名的
-`MARK` 常量（bash 直接写字面量），两处要一起改。
+**没有程序标记。** 曾经在段首打一个 🧩（`Fink::Color::$PROG_MARK`），已经去掉：
+`ERROR:` / `WARNING:` 这个词本身加上颜色就够认，而每个段首都挂一个表情只会把
+真正的文字往右推。`install.sh` 的 `MARK` 常量一并删了。
 
 `die` 的消息也能带上：它经 `Engine::process` 的 `$@` 处理，最终走
 `print_breaking("Failed: …")`，同样自动上色。`die_breaking` 直接把消息交给
 `print_breaking_stderr`，也是自动的。
 
 安装器（`finx-install/install.sh`）是 bash，用不了 Perl 模块，但 `die()` /
-`warn()` 是它所有 stderr 提示的**唯一**出口，改那两个函数就够了。另有两处
-「还没读到函数定义就得报错」的早期校验，直接用了 `${RED_BOLD}${MARK} ERROR: …`。
+`warn()` 是它所有 stderr 提示的**唯一**出口，改那两个函数就够了。
 
 调试：
 
@@ -276,7 +275,7 @@ FINX_COLOR=1 perl scripts/color_preview.pl | cat -v            # 看真实转义
 $ finx install ncdu
    ...
 ^C
-🧩 Operation cancelled by user.        ← 走 STDERR
+Operation cancelled by user.          ← 走 STDERR
 $ echo $?
 130
 ```
@@ -347,12 +346,12 @@ FINX_COLOR=1 finx install --dry-run cvs | cat -v
 
 ```
 $ finx instll jq
-🧩 Error: Unknown command or argument.
+Error: Unknown command or argument.
 
    finx instll jq
         ^^^^^^
 
-🧩 Did you mean: finx install jq
+Did you mean: finx install jq
 
    instll is not a command. The one you want is install.
 
@@ -361,14 +360,14 @@ $ finx instll jq
 
 ```
 $ finx mirror --jsons=1
-🧩 Error: illegal option --jsons for `finx mirror`
+Error: illegal option --jsons for `finx mirror`
 
    finx mirror --jsons=1
                ^^^^^^^
 
-🧩 Next: Did you mean --json?
+Next: Did you mean --json?
 
-🧩 finx mirror --help lists the flags this command accepts
+finx mirror --help lists the flags this command accepts
 ```
 
 颜色与普通消息同一套 `%PALETTE`：`Error:` 行与出错的那个词、脱字符用 `error`，
@@ -403,14 +402,10 @@ $ finx mirror --jsons=1
 - **回显**（`sudo -u fink-bld [env] sh -c '…'`）整行压暗，让子进程自己的输出更
   醒目。走 `Fink::Color::colorize('%{dim}…%{reset}')` 而不是 `print_breaking`：
   一次构建几千行，不值得每行走一遍折行包装。关闭上色时逐字节不变。
-- **子进程的每一行输出**都加 `==> `（见第六点五节）。
+- **子进程的输出**不接管，直通终端（见第六点五节）。
 - **失败那一步**是 `==> Failed: execution of <命令>, exit code <N>`，箭头与文字
-  都是 `error` 色，**不带 🧩** —— 箭头已经承担了「这是哪一行」的职责。原来的
-  `### execution of …` 不以 `Failed` 开头，`style_diagnostic` 认不出来，所以
-  那句一直是素的。
-
-注意这两套记号的分工：**`==>` 标「一步」**（包括失败的那一步），**🧩 标「一条
-诊断」**（`ERROR:` / `WARNING:` 之类）。同一条消息只该有其中一个。
+  都是 `error` 色。原来的 `### execution of …` 不以 `Failed` 开头，
+  `style_diagnostic` 认不出来，所以那句一直是素的。
 
 ---
 

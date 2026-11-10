@@ -17,16 +17,13 @@
 # 三件事只有改动者自己知道，钉在这里：
 #   1. 箭头的颜色是进程级状态（正常绿 / 删除橙 / 失败红）。它必须能被设定，
 #      否则删除类命令的输出会和安装时一模一样。
-#   2. 子进程的输出是**接管**来的，所以退出码必须原样传回 —— 一旦传错，
-#      构建失败会被当成成功，或者反过来。
-#   3. stderr 必须并进 stdout：不并的话两股输出各写各的，前缀下会混行。
+#   2. 折行的续行必须缩进四列 —— 否则一个折行的步骤看起来像两条。
 
 use strict;
-use Test::More tests => 15;
+use Test::More tests => 10;
 
 use Fink::Color;
 use Fink::CLI qw(capture print_step);
-use Fink::Services ();
 
 sub clear_colour { delete @ENV{qw(NO_COLOR CLICOLOR CLICOLOR_FORCE FINX_COLOR)} }
 sub force_colour { clear_colour(); $ENV{FINX_COLOR} = 1 }
@@ -79,48 +76,7 @@ sub force_colour { clear_colour(); $ENV{FINX_COLOR} = 1 }
 	like($lines[1], qr/^    \S/, 'and the continuation lines up under the text');
 }
 
-# --- 2. 子进程输出 -------------------------------------------------------
-
-{
-	my $out = '';
-	open(my $fh, '>', \$out) or die $!;
-	my $saved = select($fh);
-	my $rc;
-	{
-		local $Fink::Color::STEP_ROLE = 'ok';
-		$rc = Fink::Services::_run_prefixed('PF ', 'echo', 'a');
-	}
-	select($saved);
-	close $fh;
-
-	is($rc, 0, 'a command that succeeds reports 0');
-	is($out, "PF a\n", 'and its output comes back with the prefix');
-}
-
-{
-	my $out = '';
-	open(my $fh, '>', \$out) or die $!;
-	my $saved = select($fh);
-	my $rc = Fink::Services::_run_prefixed('PF ', 'sh', '-c', 'echo e 1>&2');
-	select($saved);
-	close $fh;
-
-	like($out, qr/^PF e/m, 'stderr is merged, so it is prefixed too');
-	is($rc, 0, 'redirecting to stderr does not change the exit code');
-}
-
-{
-	my $out = '';
-	open(my $fh, '>', \$out) or die $!;
-	my $saved = select($fh);
-	my $rc = Fink::Services::_run_prefixed('', 'sh', '-c', 'exit 7');
-	select($saved);
-	close $fh;
-
-	is($rc >> 8, 7, 'a failing command hands back its exit code');
-}
-
-# --- 3. 明确作答 ---------------------------------------------------------
+# --- 2. 明确作答 ---------------------------------------------------------
 
 {
 	clear_colour();

@@ -97,7 +97,6 @@ print STDERR "install_preview: 模拟输出，不联网、不提权、不写文�
 #   item  —— 摘要里的包名行：print_breaking + 四空格缩进
 #   text  —— 走 print_breaking：折行、缩进、颜色标记都按真实规则来
 #   echo  —— execute 的命令回显：整行压暗
-#   child —— execute 接管后重新打出来的子进程输出：每行加 `==> `
 #   raw   —— 裸 print：不折行也不上色
 #   break —— 空行
 #
@@ -130,6 +129,9 @@ my @steps = (
 
 	{ kind => 'break' },
 
+	# 编译前的一句：PkgVersion::phase_compile 打的
+	{ kind => 'step', text => 'Building: ncdu-1.22-1' },
+
 	# 以下都是 execute 的命令回显：sudo -u fink-bld [ENV] sh -c '<命令>'
 	# （[ENV] 是真实代码里的占位，实际会展开成一长串 KEY=VALUE）
 	# 用 q!...! 而不是 q{...}：命令里带 sh -c 的单引号，q{} 的右花括号容易被看错。
@@ -144,9 +146,10 @@ my @steps = (
 	{ kind => 'break' },
 
 	{ kind => 'echo', text => '/opt/finx/bin/dpkg -i /opt/finx/finx/debs/ncdu_1.22-1_darwin24-arm64.deb' },
-	{ kind => 'child', text => 'Selecting previously unselected package ncdu.' },
-	{ kind => 'child', text => 'Unpacking ncdu (1.22-1) ...' },
-	{ kind => 'child', text => 'Setting up ncdu (1.22-1) ...' },
+	# 子进程自己输出，直通终端，没有前缀也没有颜色
+	{ kind => 'raw', text => 'Selecting previously unselected package ncdu.' },
+	{ kind => 'raw', text => 'Unpacking ncdu (1.22-1) ...' },
+	{ kind => 'raw', text => 'Setting up ncdu (1.22-1) ...' },
 );
 
 if ($with_failure) {
@@ -165,9 +168,6 @@ if ($with_failure) {
 }
 
 require Fink::Color;
-
-# 子进程输出那一行的前缀，与 Services::_run_prefixed 拿到的是同一个东西。
-my $child_prefix = Fink::Color::colorize(Fink::Color::step_prefix());
 
 foreach my $step (@steps) {
 	my $kind = $step->{kind};
@@ -190,11 +190,8 @@ foreach my $step (@steps) {
 	} elsif ($kind eq 'echo') {
 		# execute 的命令回显：整行压暗
 		print Fink::Color::colorize("%{dim}$step->{text}%{reset}"), "\n";
-	} elsif ($kind eq 'child') {
-		# 子进程输出：每行一个箭头
-		print $child_prefix, $step->{text}, "\n";
 	} elsif ($kind eq 'fail') {
-		# 失败那一步：箭头与文字都是 error 色，不加 🧩
+		# 失败那一步：箭头与文字都是 error 色
 		Fink::CLI::print_breaking(Fink::Color::step_prefix('error')
 			. '${error}' . $step->{text} . '${reset}');
 	} else {

@@ -34,8 +34,6 @@ use Test::More tests => 12;
 require Fink::Color;
 require Fink::CLI;
 
-my $MARK = Fink::Color::prog_mark();
-
 my @VARS = qw(NO_COLOR CLICOLOR CLICOLOR_FORCE FINX_COLOR);
 my %saved = map { $_ => $ENV{$_} } @VARS;
 END {
@@ -47,31 +45,26 @@ sub clear_env { delete @ENV{@VARS} }
 sub force_on { clear_env(); $ENV{FINX_COLOR} = 1 }
 sub force_off { clear_env(); $ENV{NO_COLOR} = 1 }
 
-# --- 标记本身 -----------------------------------------------------------
-
-isnt(index($MARK, "\xF0\x9F\xA7\xA9"), -1,
-	'程序标记是 UTF-8 字节串，不是宽字符（否则 print 会警告 Wide character）');
-
 # --- 识别与上色 ---------------------------------------------------------
 
 {
 	force_on();
 	my $got = Fink::Color::colorize(
 		Fink::Color::style_diagnostic('ERROR: cannot continue'));
-	is($got, "\033[1;31m${MARK} ERROR: cannot continue\033[0m",
-		'ERROR: 上 error 红，并在段首加标记');
+	is($got, "\033[1;31mERROR: cannot continue\033[0m",
+		'ERROR: 整段上 error 红');
 }
 {
 	force_on();
 	my $got = Fink::Color::colorize(
 		Fink::Color::style_diagnostic('WARNING: check this'));
-	is($got, "\033[33m${MARK} WARNING: check this\033[0m",
-		'WARNING: 上 warn 黄');
+	is($got, "\033[33mWARNING: check this\033[0m",
+		'WARNING: 整段上 warn 黄');
 }
 {
 	force_on();
 	my $got = Fink::Color::colorize(Fink::Color::style_diagnostic('Failed: boom'));
-	like($got, qr/^\033\[1;31m\Q$MARK\E Failed: boom/, 'Failed: 也算诊断消息');
+	like($got, qr/^\033\[1;31mFailed: boom/, 'Failed: 也算诊断消息');
 }
 
 # --- 不该碰的 -----------------------------------------------------------
@@ -90,7 +83,10 @@ isnt(index($MARK, "\xF0\x9F\xA7\xA9"), -1,
 {
 	force_on();
 	my $got = Fink::Color::style_diagnostic("WARNING: one\n\nERROR: two\n");
-	is(scalar(my @m = $got =~ /\Q$MARK\E/g), 2, '每段都有标记');
+	# style_diagnostic 产出的是标记，不是转义码 —— 展开交给 colorize。
+	like($got, qr/^\$\{warn\}WARNING: one\$\{reset\}/m, '第一段是 warn 色');
+	like($got, qr/^\$\{error\}ERROR: two\$\{reset\}/m,
+		'第二段是 error 色，各段自己定色');
 	like($got, qr/ERROR: two/, '第二段保留原意');
 	unlike($got, qr/\n\033\[0m$/, '结尾的换行在 reset 之后，不把颜色漏给下一条输出');
 }
@@ -101,7 +97,7 @@ isnt(index($MARK, "\xF0\x9F\xA7\xA9"), -1,
 	force_off();
 	my $got = Fink::Color::colorize(
 		Fink::Color::style_diagnostic('ERROR: no colour'));
-	is($got, "$MARK ERROR: no colour", '关闭上色：标记保留，转义码为零');
+	is($got, "ERROR: no colour", '关闭上色：纯文本，转义码为零');
 }
 
 # --- 经 print_breaking 的最终形态 --------------------------------------
@@ -114,7 +110,7 @@ isnt(index($MARK, "\xF0\x9F\xA7\xA9"), -1,
 		open STDOUT, '>', \$out or die $!;
 		Fink::CLI::print_breaking('ERROR: apt-get is missing. Install it, then try again.');
 	}
-	like($out, qr/^\Q$MARK\E ERROR: apt-get is missing\./,
+	is($out, "ERROR: apt-get is missing. Install it, then try again.\n",
 		'print_breaking 自动认出诊断消息');
 	unlike($out, qr/\033/, '关闭上色时没有转义码');
 }

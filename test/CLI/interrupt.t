@@ -31,7 +31,7 @@
 #      「这不是真的错误，别降级成警告」
 
 use strict;
-use Test::More tests => 9;
+use Test::More tests => 8;
 
 require Fink::CLI;
 
@@ -66,9 +66,8 @@ ok(!Fink::CLI::interrupted(undef), 'undef 也不算');
 		is(Fink::CLI::report_interrupt(), 130,
 			'退出码 130（128 + SIGINT）');
 	}
-	like($err, qr/Operation cancelled by user\./, '打了一句「已取消」');
-	like($err, qr/^\Q@{[Fink::Color::prog_mark()]}\E /,
-		'并且带程序标记');
+	is($err, "Operation cancelled by user.\n",
+		'只有这一句，没有前缀也没有转义码');
 }
 
 # --- 与 Scanpackages 的约定 --------------------------------------------
